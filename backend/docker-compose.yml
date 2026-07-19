@@ -1,0 +1,14 @@
+services:
+  pocketbase:
+    build: .
+    container_name: somoim-pocketbase
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pb_data:/pb/pb_data
+      - ./pb_hooks:/pb/pb_hooks
+      - ./pb_migrations:/pb/pb_migrations
+    environment:
+      # 나중에 데이터를 암호화할 때 사용할 키 (선택사항이지만 보안상 설정 권장)
+      PB_ENCRYPTION_KEY: ${PB_ENCRYPTION_KEY}
