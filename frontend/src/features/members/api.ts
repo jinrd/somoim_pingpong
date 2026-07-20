@@ -15,6 +15,8 @@ export interface Member extends RecordModel {
 export interface RankSettings extends RecordModel {
   min_rank: number;
   max_rank: number;
+  default_member_rank: number;
+  default_guest_rank: number;
   promotion_threshold: number;
   demotion_threshold: number;
 }
@@ -32,6 +34,8 @@ export interface MemberInput {
 export interface RankSettingsInput {
   min_rank: number;
   max_rank: number;
+  default_member_rank: number;
+  default_guest_rank: number;
   promotion_threshold: number;
   demotion_threshold: number;
 }
@@ -45,11 +49,13 @@ export const getMembers = async (): Promise<Member[]> => {
 
 // 회원 추가
 export const createMember = async (data: MemberInput): Promise<Member> => {
+  await validateMemberRank(data.rank);
   return pb.collection('members').create<Member>(data);
 };
 
 // 회원 수정
 export const updateMember = async (id: string, data: MemberInput): Promise<Member> => {
+  await validateMemberRank(data.rank);
   return pb.collection('members').update<Member>(id, data);
 };
 
@@ -59,6 +65,24 @@ export const getRankSettings = async (): Promise<RankSettings | null> => {
     sort: '-updated',
   });
   return records.items[0] ?? null;
+};
+
+const validateMemberRank = async (rank: number): Promise<void> => {
+  const settings = await getRankSettings();
+
+  if (!settings) {
+    throw new Error('부수 설정을 찾을 수 없습니다.');
+  }
+
+  if (
+    !Number.isInteger(rank) ||
+    rank < settings.min_rank ||
+    rank > settings.max_rank
+  ) {
+    throw new Error(
+      `부수는 ${settings.min_rank}부터 ${settings.max_rank} 사이의 정수여야 합니다.`,
+    );
+  }
 };
 
 // 승강 기준 수정 (또는 생성)

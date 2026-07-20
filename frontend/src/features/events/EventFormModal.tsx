@@ -8,6 +8,7 @@ import type {
 } from './types';
 
 import styles from './Events.module.css';
+import { DOMAIN_LIMITS } from '../../config/domain';
 
 interface Props {
   onClose: () => void;
@@ -128,7 +129,7 @@ export default function EventFormModal({
               onChange={(changeEvent) => {
                 setTitle(changeEvent.target.value);
               }}
-              maxLength={150}
+              maxLength={DOMAIN_LIMITS.eventTitleMaxLength}
               required
               autoFocus
             />
@@ -179,7 +180,7 @@ export default function EventFormModal({
               onChange={(changeEvent) => {
                 setNotice(changeEvent.target.value);
               }}
-              maxLength={3000}
+              maxLength={DOMAIN_LIMITS.eventNoticeMaxLength}
               placeholder="참가자에게 전달할 공지사항을 입력하세요."
             />
           </div>

@@ -5,10 +5,13 @@ import type { Member, RankSettings } from '../../features/members/api';
 import MemberFormModal from '../../features/members/MemberFormModal';
 import RankSettingsModal from '../../features/members/RankSettingsModal';
 import { Settings, UserPlus, Edit } from 'lucide-react';
+import { DEFAULT_RANK_SETTINGS } from '../../config/domain';
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
   const [rankSettings, setRankSettings] = useState<RankSettings | null>(null);
+  const effectiveRankSettings =
+    rankSettings ?? DEFAULT_RANK_SETTINGS;
   
   const [isMemberModalOpen, setMemberModalOpen] = useState(false);
   const [isRankModalOpen, setRankModalOpen] = useState(false);
@@ -128,6 +131,7 @@ export default function Members() {
           key={selectedMember?.id ?? 'new-member'}
           onClose={() => setMemberModalOpen(false)}
           initialData={selectedMember}
+          rankSettings={effectiveRankSettings}
           onSaved={loadData}
         />
       )}

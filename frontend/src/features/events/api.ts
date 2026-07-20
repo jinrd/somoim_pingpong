@@ -1,5 +1,11 @@
 import { pb } from '../../lib/pocketbase';
-import { getMembers, type Member } from '../members/api';
+import { DOMAIN_LIMITS } from '../../config/domain';
+import {
+  getMembers,
+  getRankSettings,
+  type Member,
+  type RankSettingsInput,
+} from '../members/api';
 
 import type {
   AddGuestInput,
@@ -40,20 +46,45 @@ const validateTitle = (title: string): string => {
     throw new Error('회차 제목을 입력해 주세요.');
   }
 
-  if (trimmedTitle.length > 150) {
-    throw new Error('회차 제목은 150자 이하로 입력해 주세요.');
+  if (trimmedTitle.length > DOMAIN_LIMITS.eventTitleMaxLength) {
+    throw new Error(
+      `회차 제목은 ${DOMAIN_LIMITS.eventTitleMaxLength}자 이하로 입력해 주세요.`,
+    );
   }
 
   return trimmedTitle;
 };
 
-const validateRank = (rank: number): number => {
+const validateNotice = (notice: string): string => {
+  const trimmedNotice = notice.trim();
+
+  if (
+    trimmedNotice.length >
+    DOMAIN_LIMITS.eventNoticeMaxLength
+  ) {
+    throw new Error(
+      `공지사항은 ${DOMAIN_LIMITS.eventNoticeMaxLength}자 이하로 입력해 주세요.`,
+    );
+  }
+
+  return trimmedNotice;
+};
+
+const validateRank = (
+  rank: number,
+  settings: RankSettingsInput,
+): number => {
   if (!Number.isInteger(rank)) {
     throw new Error('부수는 정수로 입력해 주세요.');
   }
 
-  if (rank < 1 || rank > 99) {
-    throw new Error('부수는 1부터 99 사이로 입력해 주세요.');
+  if (
+    rank < settings.min_rank ||
+    rank > settings.max_rank
+  ) {
+    throw new Error(
+      `부수는 ${settings.min_rank}부터 ${settings.max_rank} 사이로 입력해 주세요.`,
+    );
   }
 
   return rank;
@@ -91,7 +122,7 @@ export const createEvent = async (
     title: validateTitle(input.title),
     event_date: toPocketBaseDate(input.eventDate),
     status: input.status ?? 'draft',
-    notice: input.notice?.trim() ?? '',
+    notice: validateNotice(input.notice ?? ''),
 
     public_token_hash: '',
     public_access_enabled: false,
@@ -148,7 +179,7 @@ export const updateEvent = async (
     }
 
     if (input.notice !== undefined) {
-        data.notice = input.notice.trim();
+        data.notice = validateNotice(input.notice);
     }
     return pb
         .collection(EVENTS_COLLECTION)
@@ -233,6 +264,11 @@ export const addMembersToEvent = async (
     }
 
     const existingParticipants = await getEventParticipants(eventId);
+    const rankSettings = await getRankSettings();
+
+    if (!rankSettings) {
+      throw new Error('부수 설정을 찾을 수 없습니다.');
+    }
 
     const existingMemberIds = new Set(
         existingParticipants.filter(
@@ -265,7 +301,10 @@ export const addMembersToEvent = async (
                 member.nickname.trim() ||
                 member.name.trim(),
 
-                rank_snapshot: validateRank(member.rank),
+                rank_snapshot: validateRank(
+                  member.rank,
+                  rankSettings,
+                ),
 
                 game_participation_status:
                 gameParticipationStatus,
@@ -296,10 +335,19 @@ export const addGuestToEvent = async (
         throw new Error("게스트 이름을 입력해 주세요");
     }
 
-    if(guestName.length > 100) {
-        throw new Error(
-        '게스트 이름은 100자 이하로 입력해 주세요.',
-        );
+    if(
+      guestName.length >
+      DOMAIN_LIMITS.guestNameMaxLength
+    ) {
+      throw new Error(
+        `게스트 이름은 ${DOMAIN_LIMITS.guestNameMaxLength}자 이하로 입력해 주세요.`,
+      );
+    }
+
+    const rankSettings = await getRankSettings();
+
+    if (!rankSettings) {
+      throw new Error('부수 설정을 찾을 수 없습니다.');
     }
 
     return pb
@@ -312,7 +360,10 @@ export const addGuestToEvent = async (
       guest_name: guestName,
       display_name: guestName,
 
-      rank_snapshot: validateRank(input.rank),
+      rank_snapshot: validateRank(
+        input.rank,
+        rankSettings,
+      ),
 
       game_participation_status:
         input.gameParticipationStatus ?? 'undecided',

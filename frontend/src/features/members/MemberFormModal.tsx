@@ -2,12 +2,20 @@ import { useState, type SubmitEvent } from 'react';
 import { X } from 'lucide-react';
 import { ClientResponseError } from 'pocketbase';
 import styles from './Modal.module.css';
-import { type Member, type MemberInput, createMember, updateMember } from './api';
+import { DOMAIN_LIMITS } from '../../config/domain';
+import {
+  type Member,
+  type MemberInput,
+  type RankSettingsInput,
+  createMember,
+  updateMember,
+} from './api';
 
 interface Props {
   onClose: () => void;
   onSaved: () => void;
   initialData?: Member | null;
+  rankSettings: RankSettingsInput;
 }
 
 const PHONE_PATTERN = /^010-[0-9]{4}-[0-9]{4}$/;
@@ -57,18 +65,28 @@ const getSaveErrorMessage = (error: unknown): string => {
   return error.response.message || '회원 정보를 저장하지 못했습니다.';
 };
 
-const toFormData = (member?: Member | null): MemberInput => ({
+const toFormData = (
+  rankSettings: RankSettingsInput,
+  member?: Member | null,
+): MemberInput => ({
   name: member?.name ?? '',
   nickname: member?.nickname ?? '',
-  rank: member?.rank ?? 8,
+  rank: member?.rank ?? rankSettings.default_member_rank,
   status: member?.status ?? 'active',
   gender: member?.gender ?? 'M',
   phone: formatPhoneNumber(member?.phone ?? ''),
   memo: member?.memo ?? '',
 });
 
-export default function MemberFormModal({ onClose, onSaved, initialData }: Props) {
-  const [formData, setFormData] = useState<MemberInput>(() => toFormData(initialData));
+export default function MemberFormModal({
+  onClose,
+  onSaved,
+  initialData,
+  rankSettings,
+}: Props) {
+  const [formData, setFormData] = useState<MemberInput>(() =>
+    toFormData(rankSettings, initialData),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -116,11 +134,11 @@ export default function MemberFormModal({ onClose, onSaved, initialData }: Props
           {error && <p className={styles.error} role="alert">{error}</p>}
           <div className={styles.formGroup}>
             <label htmlFor="member-name">이름 *</label>
-            <input id="member-name" required maxLength={100} className={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <input id="member-name" required maxLength={DOMAIN_LIMITS.memberNameMaxLength} className={styles.input} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="member-nickname">닉네임 *</label>
-            <input id="member-nickname" required maxLength={100} className={styles.input} value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
+            <input id="member-nickname" required maxLength={DOMAIN_LIMITS.memberNicknameMaxLength} className={styles.input} value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="member-gender">성별</label>
@@ -139,7 +157,7 @@ export default function MemberFormModal({ onClose, onSaved, initialData }: Props
               className={styles.input}
               placeholder="010-1234-5678"
               value={formData.phone}
-              maxLength={13}
+              maxLength={DOMAIN_LIMITS.formattedPhoneLength}
               pattern="010-[0-9]{4}-[0-9]{4}"
               title="010-1234-5678 형식으로 입력해 주세요."
               onChange={(event) => {
@@ -152,7 +170,7 @@ export default function MemberFormModal({ onClose, onSaved, initialData }: Props
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="member-rank">부수 *</label>
-            <input id="member-rank" type="number" min={1} max={99} required className={styles.input} value={formData.rank} onChange={e => setFormData({...formData, rank: Number(e.target.value)})} />
+            <input id="member-rank" type="number" min={rankSettings.min_rank} max={rankSettings.max_rank} required className={styles.input} value={formData.rank} onChange={e => setFormData({...formData, rank: Number(e.target.value)})} />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="member-status">상태</label>

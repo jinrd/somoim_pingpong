@@ -1,5 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
 import { X } from 'lucide-react';
+import { DOMAIN_LIMITS } from '../../config/domain';
+import type { RankSettingsInput } from '../members/api';
 
 import { addGuestToEvent } from './api';
 
@@ -14,15 +16,19 @@ interface Props {
   eventId: string;
   onClose: () => void;
   onCreated: (participant: EventParticipant) => void;
+  rankSettings: RankSettingsInput;
 }
 
 export default function GuestFormModal({
   eventId,
   onClose,
   onCreated,
+  rankSettings,
 }: Props) {
   const [name, setName] = useState('');
-  const [rank, setRank] = useState(8);
+  const [rank, setRank] = useState(
+    rankSettings.default_guest_rank,
+  );
 
   const [
     gameParticipationStatus,
@@ -109,7 +115,7 @@ export default function GuestFormModal({
               type="text"
               className={styles.input}
               value={name}
-              maxLength={100}
+              maxLength={DOMAIN_LIMITS.guestNameMaxLength}
               required
               autoFocus
               onChange={(changeEvent) => {
@@ -126,8 +132,8 @@ export default function GuestFormModal({
               type="number"
               className={styles.input}
               value={rank}
-              min={1}
-              max={99}
+              min={rankSettings.min_rank}
+              max={rankSettings.max_rank}
               required
               onChange={(changeEvent) => {
                 setRank(Number(changeEvent.target.value));

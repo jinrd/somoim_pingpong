@@ -14,8 +14,11 @@ import {
 
 import {
   getMembers,
+  getRankSettings,
   type Member,
+  type RankSettingsInput,
 } from '../members/api';
+import { DEFAULT_RANK_SETTINGS } from '../../config/domain';
 
 import {
   addMembersToEvent,
@@ -79,6 +82,8 @@ export default function ParticipantManager({
 
   const [availableMembers, setAvailableMembers] =
     useState<Member[]>([]);
+  const [rankSettings, setRankSettings] =
+    useState<RankSettingsInput>(DEFAULT_RANK_SETTINGS);
 
   const [selectedMemberIds, setSelectedMemberIds] =
     useState<Set<string>>(() => new Set());
@@ -99,8 +104,9 @@ export default function ParticipantManager({
     Promise.all([
       getEventParticipants(eventId),
       getMembers(),
+      getRankSettings(),
     ])
-      .then(([participantRecords, memberRecords]) => {
+      .then(([participantRecords, memberRecords, settings]) => {
         if (cancelled) {
           return;
         }
@@ -112,6 +118,7 @@ export default function ParticipantManager({
             participantRecords,
           ),
         );
+        setRankSettings(settings ?? DEFAULT_RANK_SETTINGS);
       })
       .catch(() => {
         if (!cancelled) {
@@ -178,9 +185,11 @@ export default function ParticipantManager({
       const [
         participantRecords,
         memberRecords,
+        settings,
       ] = await Promise.all([
         getEventParticipants(eventId),
         getMembers(),
+        getRankSettings(),
       ]);
 
       setParticipants(participantRecords);
@@ -189,6 +198,9 @@ export default function ParticipantManager({
           memberRecords,
           participantRecords,
         ),
+      );
+      setRankSettings(
+        settings ?? DEFAULT_RANK_SETTINGS,
       );
       setSelectedMemberIds(new Set());
     } catch {
@@ -602,6 +614,7 @@ export default function ParticipantManager({
       {isGuestModalOpen && (
         <GuestFormModal
           eventId={eventId}
+          rankSettings={rankSettings}
           onClose={() => {
             setGuestModalOpen(false);
           }}
