@@ -12,6 +12,7 @@ import AdminLayout from './components/layout/AdminLayout';
 import Login from './pages/Login';
 import Events from './pages/admin/Events';
 import Members from './pages/admin/Members';
+import EventDetail from './pages/admin/EventDetail';
 
 import { useAuthStore } from './store/authStore';
 
@@ -26,20 +27,6 @@ const Dashboard = () => {
   );
 };
 
-/**
- * Phase 3-1D 구현 전까지 사용하는 임시 화면입니다.
- */
-const EventDetailPlaceholder = () => {
-  return (
-    <div>
-      <h2>회차 상세</h2>
-
-      <p>
-        참석자 관리 기능은 Phase 3-1D에서 구현합니다.
-      </p>
-    </div>
-  );
-};
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -99,7 +86,7 @@ export default function App() {
 
           <Route
             path="events/:eventId"
-            element={<EventDetailPlaceholder />}
+            element={<EventDetail />}
           />
         </Route>
 

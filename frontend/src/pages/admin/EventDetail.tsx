@@ -1,0 +1,207 @@
+import { useEffect, useState } from 'react';
+
+import {
+  ArrowLeft,
+  CalendarDays,
+  Trophy,
+  Users,
+} from 'lucide-react';
+
+import {
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
+
+import ParticipantManager from '../../features/events/ParticipantManager';
+import { getEvent } from '../../features/events/api';
+
+import {
+  EVENT_STATUS_LABELS,
+  type SomoimEvent,
+} from '../../features/events/types';
+
+import styles from '../../features/events/Events.module.css';
+
+const formatEventDate = (eventDate: string): string => {
+  const parsedDate = new Date(eventDate);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return eventDate;
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  }).format(parsedDate);
+};
+
+export default function EventDetail() {
+  const { eventId } = useParams<{
+    eventId: string;
+  }>();
+
+  const navigate = useNavigate();
+
+  const [eventRecord, setEventRecord] =
+    useState<SomoimEvent | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!eventId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getEvent(eventId)
+      .then((record) => {
+        if (!cancelled) {
+          setEventRecord(record);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(
+            '회차 정보를 불러오지 못했습니다.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+
+  if (!eventId) {
+    return (
+      <div className={styles.emptyPanel}>
+        <h2>회차를 불러올 수 없습니다.</h2>
+        <p>잘못된 회차 주소입니다.</p>
+
+        <button
+          type="button"
+          className={styles.cancelButton}
+          onClick={() => {
+            navigate('/events');
+          }}
+        >
+          회차 목록으로 돌아가기
+        </button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className={styles.emptyPanel}>
+        회차 정보를 불러오는 중입니다…
+      </div>
+    );
+  }
+
+  if (error || !eventRecord) {
+    return (
+      <div className={styles.emptyPanel}>
+        <h2>회차를 불러올 수 없습니다.</h2>
+        <p>{error}</p>
+
+        <button
+          type="button"
+          className={styles.cancelButton}
+          onClick={() => {
+            navigate('/events');
+          }}
+        >
+          회차 목록으로 돌아가기
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <section className={styles.page}>
+      <button
+        type="button"
+        className={styles.backButton}
+        onClick={() => {
+          navigate('/events');
+        }}
+      >
+        <ArrowLeft size={18} aria-hidden="true" />
+        회차 목록
+      </button>
+
+      <header className={styles.detailHeader}>
+        <div>
+          <span className={styles.detailStatus}>
+            {EVENT_STATUS_LABELS[eventRecord.status]}
+          </span>
+
+          <h1>{eventRecord.title}</h1>
+
+          <div className={styles.detailDate}>
+            <CalendarDays
+              size={18}
+              aria-hidden="true"
+            />
+
+            <time dateTime={eventRecord.event_date}>
+              {formatEventDate(
+                eventRecord.event_date,
+              )}
+            </time>
+          </div>
+
+          {eventRecord.notice && (
+            <p className={styles.detailNotice}>
+              {eventRecord.notice}
+            </p>
+          )}
+        </div>
+      </header>
+
+      <nav
+        className={styles.detailTabs}
+        aria-label="회차 관리 메뉴"
+      >
+        <button
+          type="button"
+          className={`${styles.detailTab} ${styles.detailTabActive}`}
+        >
+          <Users size={18} aria-hidden="true" />
+          참석자 관리
+        </button>
+
+        <button
+          type="button"
+          className={styles.detailTab}
+          disabled
+        >
+          <Trophy size={18} aria-hidden="true" />
+          팀 편성
+          <small>준비 중</small>
+        </button>
+
+        <button
+          type="button"
+          className={styles.detailTab}
+          disabled
+        >
+          대진표/결과
+          <small>준비 중</small>
+        </button>
+      </nav>
+
+      <ParticipantManager eventId={eventId} />
+    </section>
+  );
+}
