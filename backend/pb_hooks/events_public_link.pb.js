@@ -664,3 +664,186 @@ routerAdd(
     });
   },
 );
+
+/**
+ * 공개 참가자: 본인의 게임 참가 여부 변경
+ *
+ * PATCH /api/somoim/public/participants/game-status
+ *
+ * body:
+ * {
+ *   "responseToken": "개인 응답 토큰",
+ *   "gameParticipationStatus": "playing"
+ * }
+ */
+routerAdd(
+  'PATCH',
+  '/api/somoim/public/participants/game-status',
+  (context) => {
+    const config = require(
+      `${__hooks}/config.js`,
+    );
+
+    const requestData = new DynamicModel({
+      responseToken: '',
+      gameParticipationStatus: '',
+    });
+
+    context.bind(requestData);
+
+    const responseToken = String(
+      requestData.responseToken || '',
+    ).trim();
+
+    const gameParticipationStatus = String(
+      requestData.gameParticipationStatus || '',
+    ).trim();
+
+    /*
+     * 참가자는 게임 참가 또는 미참가만 선택합니다.
+     * 미정 상태는 응답하기 전의 상태입니다.
+     */
+    if (
+      gameParticipationStatus !== 'playing' &&
+      gameParticipationStatus !== 'not_playing'
+    ) {
+      throw new BadRequestError(
+        '게임 참가 여부를 선택해 주세요.',
+      );
+    }
+
+    if (
+      !responseToken ||
+      responseToken.length !==
+        config.PARTICIPATION_TOKEN_LENGTH
+    ) {
+      throw new NotFoundError(
+        '유효하지 않은 본인 확인 정보입니다.',
+      );
+    }
+
+    const responseTokenHash =
+      $security.sha256(responseToken);
+
+    /*
+     * 개인 토큰으로 참가자 한 명만 조회합니다.
+     */
+    let participantRecord;
+
+    try {
+      participantRecord = $app
+        .dao()
+        .findFirstRecordByFilter(
+          'event_participants',
+          'participation_token_hash = {:tokenHash}',
+          {
+            tokenHash: responseTokenHash,
+          },
+        );
+    } catch {
+      throw new NotFoundError(
+        '유효하지 않은 본인 확인 정보입니다.',
+      );
+    }
+
+    /*
+     * 참가자가 속한 회차를 확인합니다.
+     */
+    const eventId =
+      participantRecord.getString('event');
+
+    let eventRecord;
+
+    try {
+      eventRecord = $app
+        .dao()
+        .findRecordById(
+          'events',
+          eventId,
+        );
+    } catch {
+      throw new NotFoundError(
+        '회차 정보를 찾을 수 없습니다.',
+      );
+    }
+
+    if (
+      !eventRecord.getBool(
+        'public_access_enabled',
+      )
+    ) {
+      throw new NotFoundError(
+        '비활성화된 참석 링크입니다.',
+      );
+    }
+
+    const expiresAt =
+      eventRecord.getString(
+        'public_expires_at',
+      );
+
+    if (
+      !expiresAt ||
+      new Date(expiresAt).getTime() <=
+        Date.now()
+    ) {
+      throw new NotFoundError(
+        '참석 응답 기간이 만료됐습니다.',
+      );
+    }
+
+    if (
+      eventRecord.getString('status') ===
+      'archived'
+    ) {
+      throw new NotFoundError(
+        '종료된 회차입니다.',
+      );
+    }
+
+    /*
+     * 게임 참가 상태와 응답 시간을 저장합니다.
+     */
+    const respondedAt =
+      new Date().toISOString();
+
+    participantRecord.set(
+      'game_participation_status',
+      gameParticipationStatus,
+    );
+
+    participantRecord.set(
+      'participation_responded_at',
+      respondedAt,
+    );
+
+    participantRecord.set(
+      'version',
+      participantRecord.getInt(
+        'version',
+      ) + 1,
+    );
+
+    $app
+      .dao()
+      .saveRecord(participantRecord);
+
+    return context.json(200, {
+      participant: {
+        displayName:
+          participantRecord.getString(
+            'display_name',
+          ),
+        rank:
+          participantRecord.getInt(
+            'rank_snapshot',
+          ),
+        gameParticipationStatus:
+          participantRecord.getString(
+            'game_participation_status',
+          ),
+      },
+      respondedAt,
+    });
+  },
+);

@@ -138,3 +138,18 @@ export interface PublicIdentityResult {
   responseToken: string;
   participant: PublicIdentifiedParticipant;
 }
+
+export type PublicGameParticipationStatus = 
+  | 'playing'
+  | 'not_playing';
+
+export interface PublicParticipationUpdateInput {
+  responseToken: string;
+  gameParticipationStatus:
+    PublicGameParticipationStatus;
+}
+
+export interface PublicParticipationUpdateResult {
+  participant: PublicIdentifiedParticipant;
+  respondedAt: string;
+}

@@ -21,6 +21,8 @@ import type {
   UpdateEventInput,
   PublicIdentityInput,
   PublicIdentityResult,
+  PublicParticipationUpdateInput,
+  PublicParticipationUpdateResult,
 } from './types';
 
 const EVENTS_COLLECTION = 'events';
@@ -504,6 +506,22 @@ export const identifyPublicParticipant = async (
     ].join('/'),
     {
       method: 'POST',
+      body: input,
+    },
+  );
+};
+
+/**
+ * 본인 확인을 마친 참가자가
+ * 자신의 게임 참가 여부를 변경합니다.
+ */
+export const updateOwnGameParticipation = async (
+  input: PublicParticipationUpdateInput,
+): Promise<PublicParticipationUpdateResult> => {
+  return pb.send<PublicParticipationUpdateResult>(
+    '/api/somoim/public/participants/game-status',
+    {
+      method: 'PATCH',
       body: input,
     },
   );

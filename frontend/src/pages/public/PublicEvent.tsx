@@ -16,11 +16,15 @@ import { ClientResponseError } from 'pocketbase';
 import { useParams } from 'react-router-dom';
 
 import { getPublicEvent } from '../../features/events/api';
+
 import PublicIdentityForm from '../../features/events/PublicIdentityForm';
+import PublicParticipationForm from '../../features/events/PublicParticipationForm';
+
 import {
   EVENT_STATUS_LABELS,
   type PublicEventResponse,
   type PublicIdentityResult,
+  type PublicIdentifiedParticipant,
 } from '../../features/events/types';
 
 
@@ -78,6 +82,40 @@ const getPublicErrorMessage = (
   return '서버에 연결하지 못했습니다.';
 };
 
+const getStoredIdentity = (
+  publicToken?: string,
+): PublicIdentityResult | null => {
+  if (!publicToken) {
+    return null;
+  }
+
+  try {
+    const storedValue =
+      sessionStorage.getItem(
+        `event-participant:${publicToken}`,
+      );
+
+    if (!storedValue) {
+      return null;
+    }
+
+    const parsedValue = JSON.parse(
+      storedValue,
+    ) as PublicIdentityResult;
+
+    if (
+      !parsedValue.responseToken ||
+      !parsedValue.participant
+    ) {
+      return null;
+    }
+
+    return parsedValue;
+  } catch {
+    return null;
+  }
+};
+
 export default function PublicEvent() {
   const { token } = useParams<{
     token: string;
@@ -89,7 +127,9 @@ export default function PublicEvent() {
 
   const [error, setError] = useState('');
 
-  const [identity, setIdentity] = useState<PublicIdentityResult | null>(null);
+  const [identity, setIdentity] = useState<PublicIdentityResult | null>(
+                                    () => getStoredIdentity(token),
+                                  );
 
   const loadEvent = () => {
     if (!token) {
@@ -272,37 +312,59 @@ export default function PublicEvent() {
               {!identity ? (
                 <PublicIdentityForm
                   publicToken={token}
-                  onIdentified={setIdentity}
+                  onIdentified={(result) => {
+                    setIdentity(result);
+                  }}
                 />
               ) : (
-                <div className={styles.identitySuccess}>
-                  <span className={styles.successIcon}>
-                    <UserCheck
-                      size={24}
-                      aria-hidden="true"
-                    />
-                  </span>
+                <div className={styles.identifiedContent}>
+                  <div className={styles.identitySuccess}>
+                    <span className={styles.successIcon}>
+                      <UserCheck
+                        size={24}
+                        aria-hidden="true"
+                      />
+                    </span>
 
-                  <div>
-                    <h2>본인 확인 완료</h2>
+                    <div>
+                      <h2>본인 확인 완료</h2>
 
-                    <p>
-                      <strong>
-                        {identity.participant.displayName}
-                      </strong>
-                      님의 참석이 등록됐습니다.
-                    </p>
+                      <p>
+                        <strong>
+                          {identity.participant.displayName}
+                        </strong>
+                        님의 참석이 등록됐습니다.
+                      </p>
 
-                    <p>
-                      현재 부수:{' '}
-                      {identity.participant.rank}부
-                    </p>
-
-                    <p>
-                      게임 참가 여부는 다음 단계에서
-                      선택할 수 있습니다.
-                    </p>
+                      <p>
+                        현재 부수:{' '}
+                        {identity.participant.rank}부
+                      </p>
+                    </div>
                   </div>
+
+                  <PublicParticipationForm
+                    responseToken={identity.responseToken}
+                    participant={identity.participant}
+                    onUpdated={(
+                      updatedParticipant:
+                        PublicIdentifiedParticipant,
+                    ) => {
+                      const updatedIdentity = {
+                        ...identity,
+                        participant: updatedParticipant,
+                      };
+
+                      setIdentity(updatedIdentity);
+
+                      sessionStorage.setItem(
+                        `event-participant:${token}`,
+                        JSON.stringify(
+                          updatedIdentity,
+                        ),
+                      );
+                    }}
+                  />
                 </div>
               )}
             </section>
