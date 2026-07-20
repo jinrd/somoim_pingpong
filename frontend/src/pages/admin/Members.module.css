@@ -1,4 +1,5 @@
 .container {
+  width: 100%;
   text-align: left;
 }
 
@@ -6,61 +7,95 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.45rem, 2.5vw, 1.85rem);
+  letter-spacing: -0.04em;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .btnPrimary,
 .btnSecondary {
-  min-height: 44px;
-  padding: 0.65rem 1rem;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  font-weight: 600;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: 11px;
   cursor: pointer;
+  font-weight: 750;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .btnPrimary {
-  color: #fff;
-  background: #2563eb;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border: 1px solid transparent;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.2);
 }
 
 .btnSecondary {
-  color: #1f2937;
-  background: #fff;
-  border-color: #d1d5db;
+  color: #475467;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--color-border);
+}
+
+.btnPrimary:hover,
+.btnSecondary:hover {
+  transform: translateY(-1px);
+}
+
+.btnSecondary:hover {
+  border-color: #c4cad4;
+  box-shadow: var(--shadow-sm);
 }
 
 .tableContainer {
   overflow-x: auto;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  color: #1f2937;
+  color: #273142;
 }
 
 .table th,
 .table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 15px 18px;
+  border-bottom: 1px solid #edf0f4;
   white-space: nowrap;
 }
 
 .table th {
-  color: #4b5563;
-  background: #f9fafb;
-  font-size: 0.875rem;
+  color: #697386;
+  background: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.table tbody tr {
+  transition: background 140ms ease;
+}
+
+.table tbody tr:hover {
+  background: #fafbff;
 }
 
 .table tbody tr:last-child td {
@@ -69,50 +104,58 @@
 
 .activeBadge,
 .inactiveBadge {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
   border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 750;
 }
 
 .activeBadge {
-  color: #166534;
-  background: #dcfce7;
+  color: #067647;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
 }
 
 .inactiveBadge {
-  color: #991b1b;
-  background: #fee2e2;
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
 }
 
 .iconButton {
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 6px;
-  color: #4b5563;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #697386;
   background: transparent;
+  border: 0;
+  border-radius: 10px;
   cursor: pointer;
 }
 
 .iconButton:hover {
-  background: #f3f4f6;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .emptyCell {
-  height: 120px;
+  height: 180px;
+  color: var(--color-muted);
   text-align: center;
-  color: #6b7280;
 }
 
 .error {
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+  border-radius: 12px;
 }
 
 @media (max-width: 720px) {
@@ -121,7 +164,19 @@
     flex-direction: column;
   }
 
-  .actions > button {
-    flex: 1;
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    padding: 0 12px;
+    font-size: 0.86rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 13px 14px;
   }
 }

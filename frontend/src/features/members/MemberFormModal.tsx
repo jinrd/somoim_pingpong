@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from 'react';
 import { X } from 'lucide-react';
+import { ClientResponseError } from 'pocketbase';
 import styles from './Modal.module.css';
 import { type Member, type MemberInput, createMember, updateMember } from './api';
 
@@ -9,13 +10,60 @@ interface Props {
   initialData?: Member | null;
 }
 
+const PHONE_PATTERN = /^010-[0-9]{4}-[0-9]{4}$/;
+
+const formatPhoneNumber = (value: string): string => {
+  const digits = value.replace(/[^0-9]/g, '').slice(0, 11);
+
+  if (digits.length <= 3) {
+    return digits;
+  }
+
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+};
+
+const getSaveErrorMessage = (error: unknown): string => {
+  if (!(error instanceof ClientResponseError)) {
+    return '저장하지 못했습니다. 서버 연결을 확인해 주세요.';
+  }
+
+  if (error.status === 401 || error.status === 403) {
+    return '로그인이 만료됐거나 저장 권한이 없습니다. 다시 로그인해 주세요.';
+  }
+
+  const fieldErrors = Object.values(error.response.data ?? {})
+    .map((fieldError) => {
+      if (
+        typeof fieldError === 'object' &&
+        fieldError !== null &&
+        'message' in fieldError &&
+        typeof fieldError.message === 'string'
+      ) {
+        return fieldError.message;
+      }
+
+      return null;
+    })
+    .filter((message): message is string => Boolean(message));
+
+  if (fieldErrors.length > 0) {
+    return fieldErrors.join(' ');
+  }
+
+  return error.response.message || '회원 정보를 저장하지 못했습니다.';
+};
+
 const toFormData = (member?: Member | null): MemberInput => ({
   name: member?.name ?? '',
   nickname: member?.nickname ?? '',
   rank: member?.rank ?? 8,
   status: member?.status ?? 'active',
   gender: member?.gender ?? 'M',
-  phone: member?.phone ?? '',
+  phone: formatPhoneNumber(member?.phone ?? ''),
   memo: member?.memo ?? '',
 });
 
@@ -26,19 +74,32 @@ export default function MemberFormModal({ onClose, onSaved, initialData }: Props
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const phone = formData.phone?.trim() ?? '';
+
+    if (phone && !PHONE_PATTERN.test(phone)) {
+      setError('연락처는 010-1234-5678 형식으로 입력해 주세요.');
+      return;
+    }
+
     setIsSaving(true);
     setError('');
 
     try {
+      const memberData: MemberInput = {
+        ...formData,
+        phone,
+      };
+
       if (initialData?.id) {
-        await updateMember(initialData.id, formData);
+        await updateMember(initialData.id, memberData);
       } else {
-        await createMember(formData);
+        await createMember(memberData);
       }
       onSaved();
       onClose();
-    } catch {
-      setError('저장하지 못했습니다. 입력값과 서버 연결을 확인해 주세요.');
+    } catch (caughtError) {
+      setError(getSaveErrorMessage(caughtError));
     } finally {
       setIsSaving(false);
     }
@@ -70,7 +131,24 @@ export default function MemberFormModal({ onClose, onSaved, initialData }: Props
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="member-phone">연락처</label>
-            <input id="member-phone" className={styles.input} placeholder="010-0000-0000" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+            <input
+              id="member-phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              className={styles.input}
+              placeholder="010-1234-5678"
+              value={formData.phone}
+              maxLength={13}
+              pattern="010-[0-9]{4}-[0-9]{4}"
+              title="010-1234-5678 형식으로 입력해 주세요."
+              onChange={(event) => {
+                setFormData({
+                  ...formData,
+                  phone: formatPhoneNumber(event.target.value),
+                });
+              }}
+            />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="member-rank">부수 *</label>

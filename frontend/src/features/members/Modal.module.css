@@ -1,103 +1,180 @@
 .overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(6px);
 }
 
 .modal {
-  background-color: white;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 450px;
-  padding: 1.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  max-height: calc(100vh - 2rem);
+  width: min(500px, 100%);
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
-  color: #1f2937;
+  padding: 26px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.24);
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: bold;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.3rem;
+  letter-spacing: -0.03em;
 }
 
 .closeBtn {
-  background: none;
-  border: none;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: #7c8799;
+  background: #f5f7fa;
+  border: 0;
+  border-radius: 12px;
   cursor: pointer;
-  color: #6b7280;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.closeBtn:hover {
+  color: var(--color-text);
+  background: #e9edf3;
 }
 
 .formGroup {
-  margin-bottom: 1rem;
+  margin-bottom: 17px;
 }
 
 .formGroup label {
   display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
+  margin-bottom: 7px;
+  color: #3d4758;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  box-sizing: border-box;
-  color: #111827;
-  background: #fff;
+  min-height: 46px;
+  padding: 10px 13px;
+  color: var(--color-text);
+  background: #fbfcfe;
+  border: 1px solid #dce2ea;
+  border-radius: 11px;
   font: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.input:hover {
+  border-color: #bdc6d4;
+}
+
+.input:focus {
+  background: #ffffff;
+  border-color: #6366f1;
+  outline: 0;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
 }
 
 textarea.input {
-  min-height: 80px;
+  min-height: 92px;
   resize: vertical;
 }
 
 .error {
-  padding: 0.75rem;
-  margin: 0 0 1rem;
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
+  padding: 11px 13px;
+  margin: 0 0 18px;
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #ffd5cf;
+  border-radius: 11px;
+  font-size: 0.9rem;
 }
 
 .footer {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.btnCancel,
+.btnSubmit {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 11px;
+  cursor: pointer;
+  font-weight: 750;
+  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
 .btnCancel {
-  padding: 0.5rem 1rem;
-  background-color: #f3f4f6;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  color: #4b5565;
+  background: #ffffff;
+  border: 1px solid #dce2ea;
 }
 
 .btnSubmit {
-  padding: 0.5rem 1rem;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border: 1px solid transparent;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22);
+}
+
+.btnCancel:hover:not(:disabled),
+.btnSubmit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btnCancel:hover:not(:disabled) {
+  background: #f7f8fa;
+}
+
+.btnSubmit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5558e8, #4338ca);
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.28);
 }
 
 .btnCancel:disabled,
 .btnSubmit:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
+}
+
+@media (max-width: 560px) {
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92vh;
+    padding: 22px 18px;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .footer {
+    flex-direction: column-reverse;
+  }
+
+  .footer button {
+    width: 100%;
+  }
 }

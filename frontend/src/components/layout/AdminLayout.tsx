@@ -1,46 +1,105 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import {
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  Users,
+} from 'lucide-react';
+
+import {
+  NavLink,
+  Outlet,
+} from 'react-router-dom';
+
 import { useAuthStore } from '../../store/authStore';
-import { Users, LayoutDashboard, LogOut } from 'lucide-react';
+
 import styles from './AdminLayout.module.css';
 
+const getNavLinkClassName = ({
+  isActive,
+}: {
+  isActive: boolean;
+}): string => {
+  if (isActive) {
+    return `${styles.navItem} ${styles.activeNavItem}`;
+  }
+
+  return styles.navItem;
+};
+
 export default function AdminLayout() {
-  const { logout } = useAuthStore();
+  const logout = useAuthStore(
+    (state) => state.logout,
+  );
 
   return (
     <div className={styles.layout}>
-      {/* 왼쪽 사이드바 */}
       <aside className={styles.sidebar}>
-        <div className={styles.logo}>🏓 탁구 매니저</div>
-        <nav className={styles.nav}>
-          <NavLink 
-            to="/" 
-            className={({ isActive }) => isActive ? `${styles.navItem} ${styles.activeNavItem}` : styles.navItem}
+        <div className={styles.logo}>
+          🏓 탁구 매니저
+        </div>
+
+        <nav
+          className={styles.nav}
+          aria-label="관리자 주요 메뉴"
+        >
+          <NavLink
+            to="/"
+            className={getNavLinkClassName}
             end
           >
-            <LayoutDashboard size={20} />
-            대시보드
+            <LayoutDashboard
+              size={20}
+              aria-hidden="true"
+            />
+
+            <span>대시보드</span>
           </NavLink>
-          <NavLink 
-            to="/members" 
-            className={({ isActive }) => isActive ? `${styles.navItem} ${styles.activeNavItem}` : styles.navItem}
+
+          <NavLink
+            to="/members"
+            className={getNavLinkClassName}
           >
-            <Users size={20} />
-            회원 관리
+            <Users
+              size={20}
+              aria-hidden="true"
+            />
+
+            <span>회원 관리</span>
+          </NavLink>
+
+          <NavLink
+            to="/events"
+            className={getNavLinkClassName}
+          >
+            <CalendarDays
+              size={20}
+              aria-hidden="true"
+            />
+
+            <span>회차 관리</span>
           </NavLink>
         </nav>
-        <button onClick={logout} className={styles.logoutBtn}>
-          <LogOut size={18} />
-          로그아웃
+
+        <button
+          type="button"
+          onClick={logout}
+          className={styles.logoutBtn}
+        >
+          <LogOut
+            size={18}
+            aria-hidden="true"
+          />
+
+          <span>로그아웃</span>
         </button>
       </aside>
 
-      {/* 오른쪽 메인 영역 */}
       <main className={styles.mainContent}>
         <header className={styles.header}>
-          관리자 페이지
+          Somoim PingPong Manager
         </header>
+
         <div className={styles.content}>
-          {/* Outlet 자리에 라우터에 설정된 하위 컴포넌트(Dashboard, Members 등)가 표시됩니다 */}
           <Outlet />
         </div>
       </main>
