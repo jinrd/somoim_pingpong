@@ -19,6 +19,8 @@ import type {
   PublicLinkIssueResult,
   SomoimEvent,
   UpdateEventInput,
+  PublicIdentityInput,
+  PublicIdentityResult,
 } from './types';
 
 const EVENTS_COLLECTION = 'events';
@@ -483,6 +485,26 @@ export const getAdminPublicEventLink = async (
     `/api/somoim/admin/events/${eventId}/public-link`,
     {
       method: 'GET',
+    },
+  );
+};
+
+/**
+ * 공개 회차에서 이름과 연락처로 회원을 확인합니다.
+ */
+export const identifyPublicParticipant = async (
+  publicToken: string,
+  input: PublicIdentityInput,
+): Promise<PublicIdentityResult> => {
+  return pb.send<PublicIdentityResult>(
+    [
+      '/api/somoim/public/events',
+      encodeURIComponent(publicToken),
+      'identify',
+    ].join('/'),
+    {
+      method: 'POST',
+      body: input,
     },
   );
 };

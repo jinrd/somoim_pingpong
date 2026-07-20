@@ -228,3 +228,125 @@
     border-radius: 18px;
   }
 }
+
+.identityForm {
+  display: grid;
+  gap: 16px;
+}
+
+.identityHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: #4338ca;
+}
+
+.identityHeading h2 {
+  margin: 0 0 5px;
+  color: #344054;
+  font-size: 1rem;
+}
+
+.identityHeading p {
+  margin: 0;
+  color: #667085;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.formField {
+  display: grid;
+  gap: 6px;
+}
+
+.formField > span {
+  color: #344054;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.formField input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  color: #101828;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.formField input:focus {
+  border-color: #6366f1;
+  outline: 3px solid rgba(99, 102, 241, 0.12);
+}
+
+.identityButton {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+  background: #4f46e5;
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.identityButton:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.identityButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.formError {
+  padding: 11px 13px;
+  margin: 0;
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+  border-radius: 9px;
+  font-size: 0.84rem;
+}
+
+.identitySuccess {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.successIcon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  color: #067647;
+  background: #dcfae6;
+  border-radius: 13px;
+}
+
+.identitySuccess h2 {
+  margin: 0 0 8px;
+  color: #101828;
+  font-size: 1rem;
+}
+
+.identitySuccess p {
+  margin: 4px 0;
+  color: #667085;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.identitySuccess strong {
+  color: #344054;
+}

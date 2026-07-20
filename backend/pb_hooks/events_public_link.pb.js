@@ -361,3 +361,306 @@ routerAdd(
     });
   },
 );
+
+/**
+ * 공개 사용자: 이름과 연락처로 회원 본인 확인
+ *
+ * POST /api/somoim/public/events/:token/identify
+ *
+ * body:
+ * {
+ *   "name": "홍길동",
+ *   "phone": "010-1234-5678"
+ * }
+ */
+routerAdd(
+  'POST',
+  '/api/somoim/public/events/:token/identify',
+  (context) => {
+    const config = require(
+      `${__hooks}/config.js`,
+    );
+
+    const publicToken =
+      context.pathParam('token');
+
+    /*
+     * 1. 공용 회차 토큰 검증
+     */
+    if (
+      !publicToken ||
+      publicToken.length !==
+        config.PUBLIC_LINK_TOKEN_LENGTH
+    ) {
+      throw new NotFoundError(
+        '유효하지 않은 참석 링크입니다.',
+      );
+    }
+
+    const publicTokenHash =
+      $security.sha256(publicToken);
+
+    let eventRecord;
+
+    try {
+      eventRecord = $app
+        .dao()
+        .findFirstRecordByFilter(
+          'events',
+          'public_token_hash = {:tokenHash}',
+          {
+            tokenHash: publicTokenHash,
+          },
+        );
+    } catch {
+      throw new NotFoundError(
+        '유효하지 않은 참석 링크입니다.',
+      );
+    }
+
+    if (
+      !eventRecord.getBool(
+        'public_access_enabled',
+      )
+    ) {
+      throw new NotFoundError(
+        '비활성화된 참석 링크입니다.',
+      );
+    }
+
+    const publicExpiresAt =
+      eventRecord.getString(
+        'public_expires_at',
+      );
+
+    if (
+      !publicExpiresAt ||
+      new Date(publicExpiresAt).getTime() <=
+        Date.now()
+    ) {
+      throw new NotFoundError(
+        '만료된 참석 링크입니다.',
+      );
+    }
+
+    if (
+      eventRecord.getString('status') ===
+      'archived'
+    ) {
+      throw new NotFoundError(
+        '종료된 참석 링크입니다.',
+      );
+    }
+
+    /*
+     * 2. 요청 body 확인
+     */
+    const requestData = new DynamicModel({
+      name: '',
+      phone: '',
+    });
+
+    context.bind(requestData);
+
+    const name = String(
+      requestData.name || '',
+    ).trim();
+
+    const phoneDigits = String(
+      requestData.phone || '',
+    ).replace(/[^0-9]/g, '');
+
+    // 사용자 존재 여부 추측을 막기 위해
+    // 형식 오류와 회원 불일치에 같은 메시지를 사용합니다.
+    const identityErrorMessage =
+      '입력한 정보와 일치하는 회원을 찾을 수 없습니다.';
+
+    if (
+      !name ||
+      phoneDigits.length !== 11 ||
+      phoneDigits.slice(0, 3) !== '010'
+    ) {
+      throw new BadRequestError(
+        identityErrorMessage,
+      );
+    }
+
+    const formattedPhone =
+      phoneDigits.slice(0, 3) +
+      '-' +
+      phoneDigits.slice(3, 7) +
+      '-' +
+      phoneDigits.slice(7, 11);
+
+    /*
+     * 3. 이름과 연락처가 모두 일치하는 활성 회원 조회
+     */
+    const matchingMembers = $app
+      .dao()
+      .findRecordsByFilter(
+        'members',
+        [
+          'name = {:name}',
+          'phone = {:phone}',
+          'status = {:status}',
+        ].join(' && '),
+        '',
+        2,
+        0,
+        {
+          name,
+          phone: formattedPhone,
+          status: 'active',
+        },
+      );
+
+    // 0명뿐 아니라 중복 회원이 있어도 본인 확인 실패
+    if (matchingMembers.length !== 1) {
+      throw new BadRequestError(
+        identityErrorMessage,
+      );
+    }
+
+    const memberRecord =
+      matchingMembers[0];
+
+    /*
+     * 4. 기존 참석자 조회
+     */
+    let participantRecord = null;
+
+    try {
+      participantRecord = $app
+        .dao()
+        .findFirstRecordByFilter(
+          'event_participants',
+          [
+            'event = {:eventId}',
+            'member = {:memberId}',
+          ].join(' && '),
+          {
+            eventId: eventRecord.id,
+            memberId: memberRecord.id,
+          },
+        );
+    } catch {
+      // 아직 참석자로 등록되지 않은 정상 상황
+    }
+
+    /*
+     * 5. 참석자가 없다면 새로 생성
+     */
+    if (!participantRecord) {
+      const participantsCollection =
+        $app
+          .dao()
+          .findCollectionByNameOrId(
+            'event_participants',
+          );
+
+      participantRecord = new Record(
+        participantsCollection,
+      );
+
+      const nickname =
+        memberRecord
+          .getString('nickname')
+          .trim();
+
+      const memberName =
+        memberRecord
+          .getString('name')
+          .trim();
+
+      participantRecord.set(
+        'event',
+        eventRecord.id,
+      );
+
+      participantRecord.set(
+        'participant_type',
+        'member',
+      );
+
+      participantRecord.set(
+        'member',
+        memberRecord.id,
+      );
+
+      participantRecord.set(
+        'guest_name',
+        '',
+      );
+
+      participantRecord.set(
+        'display_name',
+        nickname || memberName,
+      );
+
+      participantRecord.set(
+        'rank_snapshot',
+        memberRecord.getInt('rank'),
+      );
+
+      participantRecord.set(
+        'game_participation_status',
+        'undecided',
+      );
+
+      participantRecord.set(
+        'participation_responded_at',
+        '',
+      );
+
+      participantRecord.set(
+        'version',
+        1,
+      );
+    } else {
+      participantRecord.set(
+        'version',
+        participantRecord.getInt(
+          'version',
+        ) + 1,
+      );
+    }
+
+    /*
+     * 6. 참가자 본인 응답용 개인 토큰 발급
+     *
+     * 본인 확인을 다시 하면 이전 개인 토큰은
+     * 즉시 무효화됩니다.
+     */
+    const responseToken =
+      $security.randomString(
+        config.PARTICIPATION_TOKEN_LENGTH,
+      );
+
+    participantRecord.set(
+      'participation_token_hash',
+      $security.sha256(responseToken),
+    );
+
+    $app
+      .dao()
+      .saveRecord(participantRecord);
+
+    return context.json(200, {
+      responseToken,
+      participant: {
+        displayName:
+          participantRecord.getString(
+            'display_name',
+          ),
+        rank:
+          participantRecord.getInt(
+            'rank_snapshot',
+          ),
+        gameParticipationStatus:
+          participantRecord.getString(
+            'game_participation_status',
+          ),
+      },
+    });
+  },
+);

@@ -121,3 +121,20 @@ export interface AdminPublicLinkResult {
   token: string;
   expiresAt: string;
 }
+
+export interface PublicIdentityInput {
+  name: string;
+  phone: string;
+}
+
+export interface PublicIdentifiedParticipant {
+  displayName: string;
+  rank: number;
+  gameParticipationStatus:
+    GameParticipationStatus;
+}
+
+export interface PublicIdentityResult {
+  responseToken: string;
+  participant: PublicIdentifiedParticipant;
+}

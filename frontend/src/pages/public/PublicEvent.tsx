@@ -7,8 +7,8 @@ import {
   AlertCircle,
   CalendarDays,
   LoaderCircle,
-  LogIn,
   Trophy,
+  UserCheck,
 } from 'lucide-react';
 
 import { ClientResponseError } from 'pocketbase';
@@ -16,11 +16,13 @@ import { ClientResponseError } from 'pocketbase';
 import { useParams } from 'react-router-dom';
 
 import { getPublicEvent } from '../../features/events/api';
-
+import PublicIdentityForm from '../../features/events/PublicIdentityForm';
 import {
   EVENT_STATUS_LABELS,
   type PublicEventResponse,
+  type PublicIdentityResult,
 } from '../../features/events/types';
+
 
 import styles from './PublicEvent.module.css';
 
@@ -81,14 +83,13 @@ export default function PublicEvent() {
     token: string;
   }>();
 
-  const [response, setResponse] =
-    useState<PublicEventResponse | null>(null);
+  const [response, setResponse] = useState<PublicEventResponse | null>(null);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [error, setError] =
-    useState('');
+  const [error, setError] = useState('');
+
+  const [identity, setIdentity] = useState<PublicIdentityResult | null>(null);
 
   const loadEvent = () => {
     if (!token) {
@@ -268,24 +269,42 @@ export default function PublicEvent() {
             </section>
 
             <section className={styles.responseSection}>
-              <h2>참석 여부 응답</h2>
-
-              <p>
-                다음 단계에서 이름과 연락처를
-                이용한 본인 확인 기능이 연결됩니다.
-              </p>
-
-              <button
-                type="button"
-                className={styles.pendingButton}
-                disabled
-              >
-                <LogIn
-                  size={18}
-                  aria-hidden="true"
+              {!identity ? (
+                <PublicIdentityForm
+                  publicToken={token}
+                  onIdentified={setIdentity}
                 />
-                본인 확인 기능 준비 중
-              </button>
+              ) : (
+                <div className={styles.identitySuccess}>
+                  <span className={styles.successIcon}>
+                    <UserCheck
+                      size={24}
+                      aria-hidden="true"
+                    />
+                  </span>
+
+                  <div>
+                    <h2>본인 확인 완료</h2>
+
+                    <p>
+                      <strong>
+                        {identity.participant.displayName}
+                      </strong>
+                      님의 참석이 등록됐습니다.
+                    </p>
+
+                    <p>
+                      현재 부수:{' '}
+                      {identity.participant.rank}부
+                    </p>
+
+                    <p>
+                      게임 참가 여부는 다음 단계에서
+                      선택할 수 있습니다.
+                    </p>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
         </article>

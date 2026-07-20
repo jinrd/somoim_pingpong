@@ -1,5 +1,6 @@
 module.exports = Object.freeze({
   PUBLIC_LINK_TOKEN_LENGTH: 48,
+  PARTICIPATION_TOKEN_LENGTH: 48,
   createPublicTokenEncryptionKey: function (secret) {
     if (!secret) {
       throw new Error('PB_ENCRYPTION_KEY is required.');
