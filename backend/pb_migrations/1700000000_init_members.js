@@ -11,6 +11,8 @@ migrate((db) => {
     schema: [
       { name: "name", type: "text", required: true, options: { min: 1, max: 100 } },
       { name: "nickname", type: "text", required: true, options: { min: 1, max: 100 } },
+      { name: "gender", type: "select", required: false, options: { maxSelect: 1, values: ["M", "F"] } }, // 성별 추가
+      { name: "phone", type: "text", required: false }, // 연락처 추가
       { name: "rank", type: "number", required: true }, // 부수 (예: 1~8)
       { 
         name: "status", 
@@ -51,14 +53,7 @@ migrate((db) => {
   dao.saveCollection(rankSettings);
 
 }, (db) => {
-  // 마이그레이션 롤백 시 실행되는 코드
   const dao = new Dao(db);
-  
-  try {
-    dao.deleteCollection(dao.findCollectionByNameOrId("members"));
-  } catch (e) {}
-  
-  try {
-    dao.deleteCollection(dao.findCollectionByNameOrId("rank_settings"));
-  } catch (e) {}
+  try { dao.deleteCollection(dao.findCollectionByNameOrId("members")); } catch (e) {}
+  try { dao.deleteCollection(dao.findCollectionByNameOrId("rank_settings")); } catch (e) {}
 });

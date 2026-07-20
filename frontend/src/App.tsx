@@ -1,9 +1,21 @@
+import Members from './pages/admin/Members';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
-import Login from './pages/Login';
 import type { JSX } from 'react/jsx-runtime';
+import Login from './pages/Login';
+import AdminLayout from './components/layout/AdminLayout';
 
-// 보호된 라우트 컴포넌트 (로그인 안 된 유저는 튕겨냄)
+
+
+// 임시 대시보드 (나중에 분리 예정)
+const Dashboard = () => (
+  <div>
+    <h2>환영합니다!</h2>
+    <p>좌측 메뉴에서 회원 관리를 선택해 주세요.</p>
+  </div>
+);
+
+// 로그인 안 된 유저는 튕겨냄
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const isValid = useAuthStore((state) => state.isValid);
   if (!isValid) {
@@ -12,31 +24,25 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-// 아주 간단한 임시 대시보드 화면
-const Dashboard = () => {
-  const { logout } = useAuthStore();
-  return (
-    <div style={{ padding: '2rem' }}>
-      <h1>관리자 대시보드</h1>
-      <button onClick={logout} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>로그아웃</button>
-    </div>
-  );
-};
-
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        {/* 모든 관리자 페이지는 ProtectedRoute로 감쌉니다 */}
+        
+        {/* Admin Layout 적용 */}
         <Route 
-          path="/*" 
+          path="/" 
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AdminLayout />
             </ProtectedRoute>
-          } 
-        />
+          }
+        >
+          {/* 중첩 라우트 (Outlet 위치에 들어감) */}
+          <Route index element={<Dashboard />} />
+          <Route path="members" element={<Members />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

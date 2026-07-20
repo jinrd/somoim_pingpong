@@ -10,5 +10,5 @@ services:
       - ./pb_hooks:/pb/pb_hooks
       - ./pb_migrations:/pb/pb_migrations
     environment:
-      # 나중에 데이터를 암호화할 때 사용할 키 (선택사항이지만 보안상 설정 권장)
-      PB_ENCRYPTION_KEY: ${PB_ENCRYPTION_KEY}
+      # backend/.env에서 읽으며 저장된 외부 인증 토큰 등의 암호화에 사용됩니다.
+      PB_ENCRYPTION_KEY: ${PB_ENCRYPTION_KEY:?backend/.env에 PB_ENCRYPTION_KEY를 설정하세요}

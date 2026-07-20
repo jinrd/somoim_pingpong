@@ -1,0 +1,127 @@
+.container {
+  text-align: left;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btnPrimary,
+.btnSecondary {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  color: #fff;
+  background: #2563eb;
+}
+
+.btnSecondary {
+  color: #1f2937;
+  background: #fff;
+  border-color: #d1d5db;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #1f2937;
+}
+
+.table th,
+.table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.table th {
+  color: #4b5563;
+  background: #f9fafb;
+  font-size: 0.875rem;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.activeBadge,
+.inactiveBadge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.activeBadge {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.inactiveBadge {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 6px;
+  color: #4b5563;
+  background: transparent;
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: #f3f4f6;
+}
+
+.emptyCell {
+  height: 120px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.error {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+
+@media (max-width: 720px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions > button {
+    flex: 1;
+  }
+}
