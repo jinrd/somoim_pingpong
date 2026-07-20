@@ -96,3 +96,28 @@ export const GAME_PARTICIPATION_STATUS_LABELS: Record<
   playing: '게임 참가',
   not_playing: '게임 미참가',
 };
+
+export interface PublicLinkIssueResult {
+  token: string;
+  expiresAt: string;
+}
+
+export interface PublicEventInfo {
+  id: string;
+  title: string;
+  eventDate: string;
+  notice: string;
+  status: EventStatus;
+}
+
+export interface PublicEventResponse {
+  event: PublicEventInfo;
+  expiresAt: string;
+}
+
+export interface AdminPublicLinkResult {
+  enabled: boolean;
+  recoverable: boolean;
+  token: string;
+  expiresAt: string;
+}

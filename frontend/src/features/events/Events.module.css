@@ -768,3 +768,185 @@
     flex: 1;
   }
 }
+
+/* Public participation link */
+
+.publicLinkPanel {
+  padding: 22px;
+  margin-bottom: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.publicLinkHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.publicLinkHeader h2 {
+  margin: 0 0 5px;
+  color: var(--color-text);
+  font-size: 1.05rem;
+}
+
+.publicLinkHeader p,
+.publicLinkHint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.publicLinkEnabled,
+.publicLinkDisabled {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.publicLinkEnabled {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.publicLinkDisabled {
+  color: #667085;
+  background: #f2f4f7;
+}
+
+.publicLinkControls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.publicLinkControls > label {
+  width: min(100%, 320px);
+}
+
+.publicLinkControls > label > span,
+.issuedLinkBox > label {
+  display: block;
+  margin-bottom: 6px;
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.publicLinkActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.dangerButton {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  color: #b42318;
+  background: #ffffff;
+  border: 1px solid #fda29b;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: #fff4f2;
+}
+
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.publicLinkHint {
+  padding: 12px 14px;
+  margin-top: 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.issuedLinkBox {
+  padding: 14px;
+  margin-top: 14px;
+  background: #f8fafc;
+  border: 1px solid #dce2ea;
+  border-radius: 11px;
+}
+
+.issuedLinkBox > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.issuedLinkBox input {
+  min-width: 0;
+  min-height: 42px;
+  flex: 1;
+  padding: 0 11px;
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.copyButton {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 13px;
+  color: #4338ca;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.publicLinkSuccess {
+  margin: 12px 0 0;
+  color: #067647;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+@media (max-width: 600px) {
+  .publicLinkPanel {
+    padding: 17px;
+  }
+
+  .publicLinkControls,
+  .publicLinkActions,
+  .issuedLinkBox > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .publicLinkControls > label,
+  .publicLinkActions button,
+  .copyButton {
+    width: 100%;
+  }
+}

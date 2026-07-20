@@ -14,6 +14,9 @@ import type {
   EventParticipant,
   EventParticipantWithMember,
   GameParticipationStatus,
+  AdminPublicLinkResult,
+  PublicEventResponse,
+  PublicLinkIssueResult,
   SomoimEvent,
   UpdateEventInput,
 } from './types';
@@ -200,6 +203,57 @@ export const archiveEvent = async (
       status: 'archived',
     },
     expectedVersion,
+  );
+};
+
+/**
+ * 회차 공용 참석 링크를 새로 발급한다.
+ * 
+ * 기존 링크가 있다면 이전 링크는 즉시 무효화됩니다.
+ */
+export const issuePublicEventLink = async (
+  eventId: string,
+  expiresAt: string,
+): Promise<PublicLinkIssueResult> => {
+  return pb.send<PublicLinkIssueResult>(
+    `/api/somoim/admin/events/${eventId}/public-link`,
+    {
+      method: 'POST',
+      body: {
+        expiresAt,
+      },
+    },
+  );
+};
+
+/**
+ * 회차 공용 참석 링크를 비활성화합니다.
+ */
+export const disablePublicEventLink = async (
+  eventId: string,
+): Promise<void> => {
+  await pb.send(
+    `/api/somoim/admin/events/${eventId}/public-link`,
+    {
+      method: 'DELETE',
+    },
+  );
+};
+
+/**
+ * 공개 토큰으로 회차 정보를 조회합니다.
+ * 
+ * 로그인하지 않은 참가자도 호출할 수 있지만,
+ * 서버에서는 유효한 토큰의 회차 정보만 반환합니다.
+ */
+export const getPublicEvent = async (
+  publicToken: string,
+): Promise<PublicEventResponse> => {
+  return pb.send<PublicEventResponse>(
+    `/api/somoim/public/events/${encodeURIComponent(publicToken)}`,
+    {
+      method: 'GET',
+    },
   );
 };
 
@@ -416,4 +470,19 @@ export const removeEventParticipant = async (
   await pb
     .collection(PARTICIPANTS_COLLECTION)
     .delete(participantId);
+};
+
+
+/**
+ * 관리자가 현재 발급된 공개 링크를 다시 조회합니다.
+ */
+export const getAdminPublicEventLink = async (
+  eventId: string,
+): Promise<AdminPublicLinkResult> => {
+  return pb.send<AdminPublicLinkResult>(
+    `/api/somoim/admin/events/${eventId}/public-link`,
+    {
+      method: 'GET',
+    },
+  );
 };

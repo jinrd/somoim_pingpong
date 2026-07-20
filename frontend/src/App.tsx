@@ -13,7 +13,7 @@ import Login from './pages/Login';
 import Events from './pages/admin/Events';
 import Members from './pages/admin/Members';
 import EventDetail from './pages/admin/EventDetail';
-
+import PublicEvent from './pages/public/PublicEvent';
 import { useAuthStore } from './store/authStore';
 
 const Dashboard = () => {
@@ -63,6 +63,12 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/join/events/:token"
+          element={<PublicEvent />}
+        />
+
 
         <Route
           path="/"

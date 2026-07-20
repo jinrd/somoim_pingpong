@@ -1,7 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-const PUBLIC_LINK_TOKEN_LENGTH = 48;
-
 /**
  * 관리자 전용: 회차 공용 링크 발급 또는 재발급
  *
@@ -16,6 +14,26 @@ routerAdd(
   'POST',
   '/api/somoim/admin/events/:eventId/public-link',
   (context) => {
+
+    const config = require(
+      `${__hooks}/config.js`,
+    );
+
+    const encryptionSecret = $os.getenv(
+      'PB_ENCRYPTION_KEY',
+    );
+
+    if (!encryptionSecret) {
+      throw new BadRequestError(
+        '서버 암호화 키 설정을 확인해 주세요.',
+      );
+    }
+
+    const encryptionKey =
+      config.createPublicTokenEncryptionKey(
+        encryptionSecret,
+      );
+
     const eventId = context.pathParam('eventId');
 
     const requestData = new DynamicModel({
@@ -62,16 +80,26 @@ routerAdd(
     }
 
     const publicToken = $security.randomString(
-      PUBLIC_LINK_TOKEN_LENGTH,
+      config.PUBLIC_LINK_TOKEN_LENGTH,
     );
 
-    const publicTokenHash = $security.sha256(
-      publicToken,
-    );
+    const publicTokenHash =
+      $security.sha256(publicToken);
+
+    const encryptedPublicToken =
+      $security.encrypt(
+        publicToken,
+        encryptionKey,
+      );
 
     eventRecord.set(
       'public_token_hash',
       publicTokenHash,
+    );
+
+    eventRecord.set(
+      'public_token_encrypted',
+      encryptedPublicToken,
     );
 
     eventRecord.set(
@@ -100,6 +128,108 @@ routerAdd(
 );
 
 /**
+ * 관리자 전용: 현재 회차의 공개 링크 조회
+ *
+ * GET /api/somoim/admin/events/:eventId/public-link
+ */
+routerAdd(
+  'GET',
+  '/api/somoim/admin/events/:eventId/public-link',
+  (context) => {
+    const config = require(
+      `${__hooks}/config.js`,
+    );
+
+    const eventId =
+      context.pathParam('eventId');
+
+    const encryptionSecret = $os.getenv(
+      'PB_ENCRYPTION_KEY',
+    );
+
+    if (!encryptionSecret) {
+      throw new BadRequestError(
+        '서버 암호화 키 설정을 확인해 주세요.',
+      );
+    }
+
+    const encryptionKey =
+      config.createPublicTokenEncryptionKey(
+        encryptionSecret,
+      );
+
+    const eventRecord = $app
+      .dao()
+      .findRecordById(
+        'events',
+        eventId,
+      );
+
+    if (!eventRecord) {
+      throw new NotFoundError(
+        '해당 회차를 찾을 수 없습니다.',
+      );
+    }
+
+    const enabled = eventRecord.getBool(
+      'public_access_enabled',
+    );
+
+    const expiresAt =
+      eventRecord.getString(
+        'public_expires_at',
+      );
+
+    const encryptedToken =
+      eventRecord.getString(
+        'public_token_encrypted',
+      );
+
+    if (!enabled) {
+      return context.json(200, {
+        enabled: false,
+        recoverable: false,
+        token: '',
+        expiresAt: '',
+      });
+    }
+
+    // migration 이전에 만들어진 링크는
+    // 암호화된 원본 토큰이 없으므로 복원할 수 없습니다.
+    if (!encryptedToken) {
+      return context.json(200, {
+        enabled: true,
+        recoverable: false,
+        token: '',
+        expiresAt,
+      });
+    }
+
+    let publicToken;
+
+    try {
+      publicToken = $security.decrypt(
+        encryptedToken,
+        encryptionKey,
+      );
+    } catch {
+      throw new BadRequestError(
+        '기존 링크를 복호화하지 못했습니다. 링크를 재발급해 주세요.',
+      );
+    }
+
+    return context.json(200, {
+      enabled: true,
+      recoverable: true,
+      token: String(publicToken),
+      expiresAt,
+    });
+  },
+  $apis.requireRecordAuth('users'),
+);
+
+
+/**
  * 관리자 전용: 회차 공용 링크 비활성화
  *
  * DELETE /api/somoim/admin/events/:eventId/public-link
@@ -121,7 +251,17 @@ routerAdd(
     }
 
     eventRecord.set('public_token_hash', '');
-    eventRecord.set('public_access_enabled', false);
+    
+    eventRecord.set(
+      'public_token_encrypted',
+      '',
+    );
+    
+    eventRecord.set(
+      'public_access_enabled',
+      false,
+    );
+
     eventRecord.set('public_expires_at', '');
 
     eventRecord.set(
@@ -148,11 +288,15 @@ routerAdd(
   'GET',
   '/api/somoim/public/events/:token',
   (context) => {
+    const config = require(
+      `${__hooks}/config.js`,
+    );
+
     const publicToken = context.pathParam('token');
 
     if (
       !publicToken ||
-      publicToken.length !== PUBLIC_LINK_TOKEN_LENGTH
+      publicToken.length !== config.PUBLIC_LINK_TOKEN_LENGTH
     ) {
       throw new NotFoundError(
         '유효하지 않은 참석 링크입니다.',

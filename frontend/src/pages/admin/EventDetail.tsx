@@ -13,6 +13,7 @@ import {
 } from 'react-router-dom';
 
 import ParticipantManager from '../../features/events/ParticipantManager';
+import PublicLinkManager from '../../features/events/PublicLinkManager';
 import { getEvent } from '../../features/events/api';
 
 import {
@@ -168,7 +169,10 @@ export default function EventDetail() {
           )}
         </div>
       </header>
-
+      <PublicLinkManager
+        eventRecord={eventRecord}
+        onEventUpdated={setEventRecord}
+      />
       <nav
         className={styles.detailTabs}
         aria-label="회차 관리 메뉴"
