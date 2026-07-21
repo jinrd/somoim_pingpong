@@ -1,11 +1,11 @@
-import { pb } from '../../lib/pocketbase';
-import { DOMAIN_LIMITS } from '../../config/domain';
+import { pb } from "../../lib/pocketbase";
+import { DOMAIN_LIMITS } from "../../config/domain";
 import {
   getMembers,
   getRankSettings,
   type Member,
   type RankSettingsInput,
-} from '../members/api';
+} from "../members/api";
 
 import type {
   AddGuestInput,
@@ -23,34 +23,34 @@ import type {
   PublicIdentityResult,
   PublicParticipationUpdateInput,
   PublicParticipationUpdateResult,
-} from './types';
+} from "./types";
 
-const EVENTS_COLLECTION = 'events';
-const PARTICIPANTS_COLLECTION = 'event_participants';
+const EVENTS_COLLECTION = "events";
+const PARTICIPANTS_COLLECTION = "event_participants";
 
 /**
  * HTML date input의 YYYY-MM-DD 값을 PocketBase date 형식으로 변환합니다.
  */
 const toPocketBaseDate = (date: string): string => {
-    const trimmedDate = date.trim();
+  const trimmedDate = date.trim();
 
-    if(!trimmedDate) {
-        throw new Error('회차 날짜를 입력해 주세요.');
-    }
-    const parsedDate = new Date(`${trimmedDate}T00:00:00`);
+  if (!trimmedDate) {
+    throw new Error("회차 날짜를 입력해 주세요.");
+  }
+  const parsedDate = new Date(`${trimmedDate}T00:00:00`);
 
-    if (Number.isNaN(parsedDate.getTime())) {
-       throw new Error('올바른 날짜를 입력해 주세요.');
-    }
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error("올바른 날짜를 입력해 주세요.");
+  }
 
-    return parsedDate.toISOString();
+  return parsedDate.toISOString();
 };
 
 const validateTitle = (title: string): string => {
   const trimmedTitle = title.trim();
 
   if (!trimmedTitle) {
-    throw new Error('회차 제목을 입력해 주세요.');
+    throw new Error("회차 제목을 입력해 주세요.");
   }
 
   if (trimmedTitle.length > DOMAIN_LIMITS.eventTitleMaxLength) {
@@ -65,10 +65,7 @@ const validateTitle = (title: string): string => {
 const validateNotice = (notice: string): string => {
   const trimmedNotice = notice.trim();
 
-  if (
-    trimmedNotice.length >
-    DOMAIN_LIMITS.eventNoticeMaxLength
-  ) {
+  if (trimmedNotice.length > DOMAIN_LIMITS.eventNoticeMaxLength) {
     throw new Error(
       `공지사항은 ${DOMAIN_LIMITS.eventNoticeMaxLength}자 이하로 입력해 주세요.`,
     );
@@ -77,18 +74,12 @@ const validateNotice = (notice: string): string => {
   return trimmedNotice;
 };
 
-const validateRank = (
-  rank: number,
-  settings: RankSettingsInput,
-): number => {
+const validateRank = (rank: number, settings: RankSettingsInput): number => {
   if (!Number.isInteger(rank)) {
-    throw new Error('부수는 정수로 입력해 주세요.');
+    throw new Error("부수는 정수로 입력해 주세요.");
   }
 
-  if (
-    rank < settings.min_rank ||
-    rank > settings.max_rank
-  ) {
+  if (rank < settings.min_rank || rank > settings.max_rank) {
     throw new Error(
       `부수는 ${settings.min_rank}부터 ${settings.max_rank} 사이로 입력해 주세요.`,
     );
@@ -102,7 +93,7 @@ const validateRank = (
  */
 export const getEvents = async (): Promise<SomoimEvent[]> => {
   return pb.collection(EVENTS_COLLECTION).getFullList<SomoimEvent>({
-    sort: '-event_date,-created',
+    sort: "-event_date,-created",
   });
 };
 
@@ -110,8 +101,8 @@ export const getEvents = async (): Promise<SomoimEvent[]> => {
  * ID로 회차 한 건을 가져옵니다.
  */
 export const getEvent = async (eventId: string): Promise<SomoimEvent> => {
-    return pb.collection(EVENTS_COLLECTION).getOne<SomoimEvent>(eventId);
-}
+  return pb.collection(EVENTS_COLLECTION).getOne<SomoimEvent>(eventId);
+};
 
 /**
  * 새 회차를 생성한다.
@@ -122,28 +113,25 @@ export const createEvent = async (
   const operatorId = pb.authStore.record?.id;
 
   if (!operatorId) {
-    throw new Error('로그인이 필요합니다.');
+    throw new Error("로그인이 필요합니다.");
   }
 
   const data = {
     title: validateTitle(input.title),
     event_date: toPocketBaseDate(input.eventDate),
-    status: input.status ?? 'draft',
-    notice: validateNotice(input.notice ?? ''),
+    status: input.status ?? "draft",
+    notice: validateNotice(input.notice ?? ""),
 
-    public_token_hash: '',
+    public_token_hash: "",
     public_access_enabled: false,
-    public_expires_at: '',
+    public_expires_at: "",
 
     created_by: operatorId,
     version: 1,
   };
 
-  return pb
-    .collection(EVENTS_COLLECTION)
-    .create<SomoimEvent>(data);
+  return pb.collection(EVENTS_COLLECTION).create<SomoimEvent>(data);
 };
-
 
 /**
  * 회차 정보를 수정합니다.
@@ -156,43 +144,39 @@ export const createEvent = async (
  * 추후 서버 hook에서 조건부 update로 강화할 수 있습니다.
  */
 export const updateEvent = async (
-    eventId: string,
-    input: UpdateEventInput,
-    expectedVersion: number,
+  eventId: string,
+  input: UpdateEventInput,
+  expectedVersion: number,
 ): Promise<SomoimEvent> => {
-    const currentEvent = await getEvent(eventId);
+  const currentEvent = await getEvent(eventId);
 
-    if(currentEvent.version !== expectedVersion) {
-        throw new Error(
-            '다른 운영진이 먼저 회차를 수정했습니다. 최신 정보를 다시 불러와 주세요.'
-        );
-    }
+  if (currentEvent.version !== expectedVersion) {
+    throw new Error(
+      "다른 운영진이 먼저 회차를 수정했습니다. 최신 정보를 다시 불러와 주세요.",
+    );
+  }
 
-    const data: Record<string, string | number> = {
-        version: currentEvent.version + 1,
-    }
+  const data: Record<string, string | number> = {
+    version: currentEvent.version + 1,
+  };
 
+  if (input.title !== undefined) {
+    data.title = validateTitle(input.title);
+  }
 
-    if (input.title !== undefined) {
-        data.title = validateTitle(input.title);
-    }
+  if (input.eventDate !== undefined) {
+    data.event_date = toPocketBaseDate(input.eventDate);
+  }
 
-    if (input.eventDate !== undefined) {
-        data.event_date = toPocketBaseDate(input.eventDate);
-    }
+  if (input.status !== undefined) {
+    data.status = input.status;
+  }
 
-    if (input.status !== undefined) {
-        data.status = input.status;
-    }
-
-    if (input.notice !== undefined) {
-        data.notice = validateNotice(input.notice);
-    }
-    return pb
-        .collection(EVENTS_COLLECTION)
-        .update<SomoimEvent>(eventId, data);
-
-}
+  if (input.notice !== undefined) {
+    data.notice = validateNotice(input.notice);
+  }
+  return pb.collection(EVENTS_COLLECTION).update<SomoimEvent>(eventId, data);
+};
 
 /**
  * 회차를 물리적으로 삭제하지 않고 archived 상태로 변경합니다.
@@ -204,7 +188,7 @@ export const archiveEvent = async (
   return updateEvent(
     eventId,
     {
-      status: 'archived',
+      status: "archived",
     },
     expectedVersion,
   );
@@ -212,7 +196,7 @@ export const archiveEvent = async (
 
 /**
  * 회차 공용 참석 링크를 새로 발급한다.
- * 
+ *
  * 기존 링크가 있다면 이전 링크는 즉시 무효화됩니다.
  */
 export const issuePublicEventLink = async (
@@ -222,7 +206,7 @@ export const issuePublicEventLink = async (
   return pb.send<PublicLinkIssueResult>(
     `/api/somoim/admin/events/${eventId}/public-link`,
     {
-      method: 'POST',
+      method: "POST",
       body: {
         expiresAt,
       },
@@ -236,17 +220,14 @@ export const issuePublicEventLink = async (
 export const disablePublicEventLink = async (
   eventId: string,
 ): Promise<void> => {
-  await pb.send(
-    `/api/somoim/admin/events/${eventId}/public-link`,
-    {
-      method: 'DELETE',
-    },
-  );
+  await pb.send(`/api/somoim/admin/events/${eventId}/public-link`, {
+    method: "DELETE",
+  });
 };
 
 /**
  * 공개 토큰으로 회차 정보를 조회합니다.
- * 
+ *
  * 로그인하지 않은 참가자도 호출할 수 있지만,
  * 서버에서는 유효한 토큰의 회차 정보만 반환합니다.
  */
@@ -256,11 +237,10 @@ export const getPublicEvent = async (
   return pb.send<PublicEventResponse>(
     `/api/somoim/public/events/${encodeURIComponent(publicToken)}`,
     {
-      method: 'GET',
+      method: "GET",
     },
   );
 };
-
 
 /**
  * 특정 회차의 참석자 목록을 가져옵니다.
@@ -268,41 +248,46 @@ export const getPublicEvent = async (
  * expand: 'member'를 사용하면 기존 회원인 경우
  * 참가자 데이터와 회원 데이터를 함께 받을 수 있습니다.
  */
-export const getEventParticipants = async (eventId: string) : Promise<EventParticipantWithMember[]> => {
-    return pb.collection(PARTICIPANTS_COLLECTION)
+export const getEventParticipants = async (
+  eventId: string,
+): Promise<EventParticipantWithMember[]> => {
+  return pb
+    .collection(PARTICIPANTS_COLLECTION)
     .getFullList<EventParticipantWithMember>({
-      filter: pb.filter(
-        'event = {:eventId}',
-        {
-          eventId,
-        },
-      ),
-      expand: 'member',
-      sort: 'display_name',
+      filter: pb.filter("event = {:eventId}", {
+        eventId,
+      }),
+      expand: "member",
+      sort: "display_name",
     });
-}
+};
 
 /**
  * 참석자로 아직 등록되지 않은 활성 회원을 가져온다.
  */
-export const getAvailableMembers = async (eventId: string) : Promise<Member[]> => {
-    const [members, participants] = await Promise.all([
-        getMembers(), getEventParticipants(eventId),
-    ])
+export const getAvailableMembers = async (
+  eventId: string,
+): Promise<Member[]> => {
+  const [members, participants] = await Promise.all([
+    getMembers(),
+    getEventParticipants(eventId),
+  ]);
 
-    const registeredMemberIds = new Set(
-        participants.filter(
-            (participant) => 
-                participant.participant_type === 'member' &&
-            Boolean(participant.member),
-        ).map((participant) => participant.member)
-    );
+  const registeredMemberIds = new Set(
+    participants
+      .filter(
+        (participant) =>
+          participant.participant_type === "member" &&
+          Boolean(participant.member),
+      )
+      .map((participant) => participant.member),
+  );
 
-    return members.filter(
-        (member) => member.status === 'active' && !registeredMemberIds.has(member.id)
-    )
-}
-
+  return members.filter(
+    (member) =>
+      member.status === "active" && !registeredMemberIds.has(member.id),
+  );
+};
 
 /**
  * 기존 회원 여러 명을 회차 참석자로 추가합니다.
@@ -310,128 +295,115 @@ export const getAvailableMembers = async (eventId: string) : Promise<Member[]> =
  * 이미 등록된 회원은 오류를 발생시키지 않고 skipped로 반환합니다.
  */
 export const addMembersToEvent = async (
-    eventId: string,
-    members: Member[],
-    gameParticipationStatus: GameParticipationStatus = 'undecided',
+  eventId: string,
+  members: Member[],
+  gameParticipationStatus: GameParticipationStatus = "undecided",
 ): Promise<AddMembersResult> => {
-    if(members.length === 0) {
-        return {
-            added: [],
-            skipped: [],
-        }
-    }
-
-    const existingParticipants = await getEventParticipants(eventId);
-    const rankSettings = await getRankSettings();
-
-    if (!rankSettings) {
-      throw new Error('부수 설정을 찾을 수 없습니다.');
-    }
-
-    const existingMemberIds = new Set(
-        existingParticipants.filter(
-            (participant) =>
-                participant.participant_type === 'member' &&
-            Boolean(participant.member),
-        ).map((participant) => participant.member)
-    );
-
-    const result: AddMembersResult = {
-        added: [],
-        skipped: [],
+  if (members.length === 0) {
+    return {
+      added: [],
+      skipped: [],
     };
+  }
 
-    for (const member of members ){
-        if(existingMemberIds.has(member.id)) {
-            result.skipped.push(member);
-            continue;
-        }
-        const participant = await pb
-            .collection(PARTICIPANTS_COLLECTION)
-            .create<EventParticipant>({
-                event: eventId,
+  const existingParticipants = await getEventParticipants(eventId);
+  const rankSettings = await getRankSettings();
 
-                participant_type: 'member',
-                member: member.id,
-                guest_name: '',
+  if (!rankSettings) {
+    throw new Error("부수 설정을 찾을 수 없습니다.");
+  }
 
-                display_name:
-                member.nickname.trim() ||
-                member.name.trim(),
+  const existingMemberIds = new Set(
+    existingParticipants
+      .filter(
+        (participant) =>
+          participant.participant_type === "member" &&
+          Boolean(participant.member),
+      )
+      .map((participant) => participant.member),
+  );
 
-                rank_snapshot: validateRank(
-                  member.rank,
-                  rankSettings,
-                ),
+  const result: AddMembersResult = {
+    added: [],
+    skipped: [],
+  };
 
-                game_participation_status:
-                gameParticipationStatus,
-
-                participation_token_hash: '',
-                participation_responded_at: '',
-
-                version: 1,
-            });
-
-        result.added.push(participant);
-        existingMemberIds.add(member.id);
+  for (const member of members) {
+    if (existingMemberIds.has(member.id)) {
+      result.skipped.push(member);
+      continue;
     }
+    const participant = await pb
+      .collection(PARTICIPANTS_COLLECTION)
+      .create<EventParticipant>({
+        event: eventId,
 
-    return result;
-}
+        participant_type: "member",
+        member: member.id,
+        guest_name: "",
+
+        display_name: member.nickname.trim() || member.name.trim(),
+
+        rank_snapshot: validateRank(member.rank, rankSettings),
+
+        game_participation_status: gameParticipationStatus,
+
+        participation_token_hash: "",
+        participation_responded_at: "",
+
+        version: 1,
+      });
+
+    result.added.push(participant);
+    existingMemberIds.add(member.id);
+  }
+
+  return result;
+};
 
 /**
  * 일회성 게스트를 참석자로 추가합니다.
  */
 export const addGuestToEvent = async (
-    eventId: string,
-    input: AddGuestInput,
+  eventId: string,
+  input: AddGuestInput,
 ): Promise<EventParticipant> => {
-    const guestName = input.name.trim();
+  const guestName = input.name.trim();
 
-    if(!guestName) {
-        throw new Error("게스트 이름을 입력해 주세요");
-    }
+  if (!guestName) {
+    throw new Error("게스트 이름을 입력해 주세요");
+  }
 
-    if(
-      guestName.length >
-      DOMAIN_LIMITS.guestNameMaxLength
-    ) {
-      throw new Error(
-        `게스트 이름은 ${DOMAIN_LIMITS.guestNameMaxLength}자 이하로 입력해 주세요.`,
-      );
-    }
+  if (guestName.length > DOMAIN_LIMITS.guestNameMaxLength) {
+    throw new Error(
+      `게스트 이름은 ${DOMAIN_LIMITS.guestNameMaxLength}자 이하로 입력해 주세요.`,
+    );
+  }
 
-    const rankSettings = await getRankSettings();
+  const rankSettings = await getRankSettings();
 
-    if (!rankSettings) {
-      throw new Error('부수 설정을 찾을 수 없습니다.');
-    }
+  if (!rankSettings) {
+    throw new Error("부수 설정을 찾을 수 없습니다.");
+  }
 
-    return pb
-    .collection(PARTICIPANTS_COLLECTION)
-    .create<EventParticipant>({
-      event: eventId,
+  return pb.collection(PARTICIPANTS_COLLECTION).create<EventParticipant>({
+    event: eventId,
 
-      participant_type: 'guest',
-      member: '',
-      guest_name: guestName,
-      display_name: guestName,
+    participant_type: "guest",
+    member: "",
+    guest_name: guestName,
+    display_name: guestName,
 
-      rank_snapshot: validateRank(
-        input.rank,
-        rankSettings,
-      ),
+    rank_snapshot: validateRank(input.rank, rankSettings),
 
-      game_participation_status:
-        input.gameParticipationStatus ?? 'undecided',
+    game_participation_status: input.gameParticipationStatus ?? "undecided",
 
-      participation_token_hash: '',
-      participation_responded_at: '',
+    participation_token_hash: "",
+    participation_responded_at: "",
 
-      version: 1,
-    });
-}
+    version: 1,
+  });
+};
 
 /**
  * 참석자의 게임 참가 상태를 변경한다.
@@ -447,19 +419,16 @@ export const updateGameParticipationStatus = async (
 
   if (currentParticipant.version !== expectedVersion) {
     throw new Error(
-      '다른 운영진이 먼저 참가 상태를 변경했습니다. 최신 정보를 다시 불러와 주세요.',
+      "다른 운영진이 먼저 참가 상태를 변경했습니다. 최신 정보를 다시 불러와 주세요.",
     );
   }
 
   return pb
     .collection(PARTICIPANTS_COLLECTION)
-    .update<EventParticipant>(
-      participantId,
-      {
-        game_participation_status: status,
-        version: currentParticipant.version + 1,
-      },
-    );
+    .update<EventParticipant>(participantId, {
+      game_participation_status: status,
+      version: currentParticipant.version + 1,
+    });
 };
 
 /**
@@ -471,11 +440,8 @@ export const updateGameParticipationStatus = async (
 export const removeEventParticipant = async (
   participantId: string,
 ): Promise<void> => {
-  await pb
-    .collection(PARTICIPANTS_COLLECTION)
-    .delete(participantId);
+  await pb.collection(PARTICIPANTS_COLLECTION).delete(participantId);
 };
-
 
 /**
  * 관리자가 현재 발급된 공개 링크를 다시 조회합니다.
@@ -486,7 +452,7 @@ export const getAdminPublicEventLink = async (
   return pb.send<AdminPublicLinkResult>(
     `/api/somoim/admin/events/${eventId}/public-link`,
     {
-      method: 'GET',
+      method: "GET",
     },
   );
 };
@@ -500,12 +466,12 @@ export const identifyPublicParticipant = async (
 ): Promise<PublicIdentityResult> => {
   return pb.send<PublicIdentityResult>(
     [
-      '/api/somoim/public/events',
+      "/api/somoim/public/events",
       encodeURIComponent(publicToken),
-      'identify',
-    ].join('/'),
+      "identify",
+    ].join("/"),
     {
-      method: 'POST',
+      method: "POST",
       body: input,
     },
   );
@@ -519,9 +485,9 @@ export const updateOwnGameParticipation = async (
   input: PublicParticipationUpdateInput,
 ): Promise<PublicParticipationUpdateResult> => {
   return pb.send<PublicParticipationUpdateResult>(
-    '/api/somoim/public/participants/game-status',
+    "/api/somoim/public/participants/game-status",
     {
-      method: 'PATCH',
+      method: "PATCH",
       body: input,
     },
   );

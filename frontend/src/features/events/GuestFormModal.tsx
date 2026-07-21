@@ -1,16 +1,13 @@
-import { useState, type SubmitEvent } from 'react';
-import { X } from 'lucide-react';
-import { DOMAIN_LIMITS } from '../../config/domain';
-import type { RankSettingsInput } from '../members/api';
+import { useState, type SubmitEvent } from "react";
+import { X } from "lucide-react";
+import { DOMAIN_LIMITS } from "../../config/domain";
+import type { RankSettingsInput } from "../members/api";
 
-import { addGuestToEvent } from './api';
+import { addGuestToEvent } from "./api";
 
-import type {
-  EventParticipant,
-  GameParticipationStatus,
-} from './types';
+import type { EventParticipant, GameParticipationStatus } from "./types";
 
-import styles from './Events.module.css';
+import styles from "./Events.module.css";
 
 interface Props {
   eventId: string;
@@ -25,36 +22,27 @@ export default function GuestFormModal({
   onCreated,
   rankSettings,
 }: Props) {
-  const [name, setName] = useState('');
-  const [rank, setRank] = useState(
-    rankSettings.default_guest_rank,
-  );
+  const [name, setName] = useState("");
+  const [rank, setRank] = useState(rankSettings.default_guest_rank);
 
-  const [
-    gameParticipationStatus,
-    setGameParticipationStatus,
-  ] = useState<GameParticipationStatus>('undecided');
+  const [gameParticipationStatus, setGameParticipationStatus] =
+    useState<GameParticipationStatus>("undecided");
 
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (
-    submitEvent: SubmitEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (submitEvent: SubmitEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
 
     setIsSaving(true);
-    setError('');
+    setError("");
 
     try {
-      const participant = await addGuestToEvent(
-        eventId,
-        {
-          name,
-          rank,
-          gameParticipationStatus,
-        },
-      );
+      const participant = await addGuestToEvent(eventId, {
+        name,
+        rank,
+        gameParticipationStatus,
+      });
 
       onCreated(participant);
       onClose();
@@ -62,7 +50,7 @@ export default function GuestFormModal({
       if (caughtError instanceof Error) {
         setError(caughtError.message);
       } else {
-        setError('게스트를 추가하지 못했습니다.');
+        setError("게스트를 추가하지 못했습니다.");
       }
     } finally {
       setIsSaving(false);
@@ -70,11 +58,7 @@ export default function GuestFormModal({
   };
 
   return (
-    <div
-      className={styles.overlay}
-      role="presentation"
-      onMouseDown={onClose}
-    >
+    <div className={styles.overlay} role="presentation" onMouseDown={onClose}>
       <div
         className={styles.modal}
         role="dialog"
@@ -106,9 +90,7 @@ export default function GuestFormModal({
           )}
 
           <div className={styles.formGroup}>
-            <label htmlFor="guest-name">
-              게스트 이름 *
-            </label>
+            <label htmlFor="guest-name">게스트 이름 *</label>
 
             <input
               id="guest-name"
@@ -142,9 +124,7 @@ export default function GuestFormModal({
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="guest-game-status">
-              게임 참가 여부
-            </label>
+            <label htmlFor="guest-game-status">게임 참가 여부</label>
 
             <select
               id="guest-game-status"
@@ -152,16 +132,13 @@ export default function GuestFormModal({
               value={gameParticipationStatus}
               onChange={(changeEvent) => {
                 setGameParticipationStatus(
-                  changeEvent.target
-                    .value as GameParticipationStatus,
+                  changeEvent.target.value as GameParticipationStatus,
                 );
               }}
             >
               <option value="undecided">미정</option>
               <option value="playing">게임 참가</option>
-              <option value="not_playing">
-                게임 미참가
-              </option>
+              <option value="not_playing">게임 미참가</option>
             </select>
           </div>
 
@@ -180,7 +157,7 @@ export default function GuestFormModal({
               className={styles.primaryButton}
               disabled={isSaving}
             >
-              {isSaving ? '추가 중…' : '게스트 추가'}
+              {isSaving ? "추가 중…" : "게스트 추가"}
             </button>
           </div>
         </form>

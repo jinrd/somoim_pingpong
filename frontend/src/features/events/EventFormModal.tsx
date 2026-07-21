@@ -1,14 +1,11 @@
-import { useState, type SubmitEvent } from 'react';
-import { X } from 'lucide-react';
+import { useState, type SubmitEvent } from "react";
+import { X } from "lucide-react";
 
-import { createEvent } from './api';
-import type {
-  EventStatus,
-  SomoimEvent,
-} from './types';
+import { createEvent } from "./api";
+import type { EventStatus, SomoimEvent } from "./types";
 
-import styles from './Events.module.css';
-import { DOMAIN_LIMITS } from '../../config/domain';
+import styles from "./Events.module.css";
+import { DOMAIN_LIMITS } from "../../config/domain";
 
 interface Props {
   onClose: () => void;
@@ -19,8 +16,8 @@ const getTodayInputValue = (): string => {
   const today = new Date();
 
   const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const date = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const date = String(today.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${date}`;
 };
@@ -33,29 +30,22 @@ const getDefaultTitle = (): string => {
   }월 ${today.getDate()}일 정기모임`;
 };
 
-export default function EventFormModal({
-  onClose,
-  onCreated,
-}: Props) {
+export default function EventFormModal({ onClose, onCreated }: Props) {
   const [title, setTitle] = useState(getDefaultTitle);
-  const [eventDate, setEventDate] =
-    useState(getTodayInputValue);
+  const [eventDate, setEventDate] = useState(getTodayInputValue);
 
-  const [status, setStatus] =
-    useState<EventStatus>('draft');
+  const [status, setStatus] = useState<EventStatus>("draft");
 
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (
-    submitEvent: SubmitEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (submitEvent: SubmitEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
 
     setIsSaving(true);
-    setError('');
+    setError("");
 
     try {
       const createdEvent = await createEvent({
@@ -71,9 +61,7 @@ export default function EventFormModal({
       if (caughtError instanceof Error) {
         setError(caughtError.message);
       } else {
-        setError(
-          '회차를 생성하지 못했습니다. 다시 시도해 주세요.',
-        );
+        setError("회차를 생성하지 못했습니다. 다시 시도해 주세요.");
       }
     } finally {
       setIsSaving(false);
@@ -81,11 +69,7 @@ export default function EventFormModal({
   };
 
   return (
-    <div
-      className={styles.overlay}
-      role="presentation"
-      onMouseDown={onClose}
-    >
+    <div className={styles.overlay} role="presentation" onMouseDown={onClose}>
       <div
         className={styles.modal}
         role="dialog"
@@ -160,9 +144,7 @@ export default function EventFormModal({
               className={styles.input}
               value={status}
               onChange={(changeEvent) => {
-                setStatus(
-                  changeEvent.target.value as EventStatus,
-                );
+                setStatus(changeEvent.target.value as EventStatus);
               }}
             >
               <option value="draft">준비 중</option>
@@ -200,7 +182,7 @@ export default function EventFormModal({
               className={styles.primaryButton}
               disabled={isSaving}
             >
-              {isSaving ? '생성 중…' : '회차 만들기'}
+              {isSaving ? "생성 중…" : "회차 만들기"}
             </button>
           </div>
         </form>

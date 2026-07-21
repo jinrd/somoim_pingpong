@@ -1,4 +1,4 @@
-import type { RankSettingsInput } from '../features/members/api';
+import type { RankSettingsInput } from "../features/members/api";
 
 /**
  * 운영 중 변경하는 값은 rank_settings에 저장합니다.

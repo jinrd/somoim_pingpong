@@ -1,7 +1,4 @@
-import {
-  useEffect,
-  useState,
-} from 'react';
+import { useEffect, useState } from "react";
 
 import {
   AlertCircle,
@@ -9,77 +6,66 @@ import {
   LoaderCircle,
   Trophy,
   UserCheck,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { ClientResponseError } from 'pocketbase';
+import { ClientResponseError } from "pocketbase";
 
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 
-import { getPublicEvent } from '../../features/events/api';
+import { getPublicEvent } from "../../features/events/api";
 
-import PublicIdentityForm from '../../features/events/PublicIdentityForm';
-import PublicParticipationForm from '../../features/events/PublicParticipationForm';
+import PublicIdentityForm from "../../features/events/PublicIdentityForm";
+import PublicParticipationForm from "../../features/events/PublicParticipationForm";
 
 import {
   EVENT_STATUS_LABELS,
   type PublicEventResponse,
   type PublicIdentityResult,
   type PublicIdentifiedParticipant,
-} from '../../features/events/types';
+} from "../../features/events/types";
 
+import styles from "./PublicEvent.module.css";
 
-import styles from './PublicEvent.module.css';
-
-const formatDate = (
-  value: string,
-): string => {
+const formatDate = (value: string): string => {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
   }).format(date);
 };
 
-const formatExpiration = (
-  value: string,
-): string => {
+const formatExpiration = (value: string): string => {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(date);
 };
 
-const getPublicErrorMessage = (
-  error: unknown,
-): string => {
+const getPublicErrorMessage = (error: unknown): string => {
   if (error instanceof ClientResponseError) {
     if (error.status === 404) {
       return (
-        error.response.message ||
-        '유효하지 않거나 만료된 참석 링크입니다.'
+        error.response.message || "유효하지 않거나 만료된 참석 링크입니다."
       );
     }
 
-    return (
-      error.response.message ||
-      '회차 정보를 불러오지 못했습니다.'
-    );
+    return error.response.message || "회차 정보를 불러오지 못했습니다.";
   }
 
-  return '서버에 연결하지 못했습니다.';
+  return "서버에 연결하지 못했습니다.";
 };
 
 const getStoredIdentity = (
@@ -90,23 +76,17 @@ const getStoredIdentity = (
   }
 
   try {
-    const storedValue =
-      sessionStorage.getItem(
-        `event-participant:${publicToken}`,
-      );
+    const storedValue = sessionStorage.getItem(
+      `event-participant:${publicToken}`,
+    );
 
     if (!storedValue) {
       return null;
     }
 
-    const parsedValue = JSON.parse(
-      storedValue,
-    ) as PublicIdentityResult;
+    const parsedValue = JSON.parse(storedValue) as PublicIdentityResult;
 
-    if (
-      !parsedValue.responseToken ||
-      !parsedValue.participant
-    ) {
+    if (!parsedValue.responseToken || !parsedValue.participant) {
       return null;
     }
 
@@ -125,11 +105,11 @@ export default function PublicEvent() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const [identity, setIdentity] = useState<PublicIdentityResult | null>(
-                                    () => getStoredIdentity(token),
-                                  );
+  const [identity, setIdentity] = useState<PublicIdentityResult | null>(() =>
+    getStoredIdentity(token),
+  );
 
   const loadEvent = () => {
     if (!token) {
@@ -137,16 +117,14 @@ export default function PublicEvent() {
     }
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     getPublicEvent(token)
       .then((result) => {
         setResponse(result);
       })
       .catch((caughtError) => {
-        setError(
-          getPublicErrorMessage(caughtError),
-        );
+        setError(getPublicErrorMessage(caughtError));
       })
       .finally(() => {
         setIsLoading(false);
@@ -168,9 +146,7 @@ export default function PublicEvent() {
       })
       .catch((caughtError) => {
         if (!cancelled) {
-          setError(
-            getPublicErrorMessage(caughtError),
-          );
+          setError(getPublicErrorMessage(caughtError));
         }
       })
       .finally(() => {
@@ -190,18 +166,12 @@ export default function PublicEvent() {
         <div className={styles.container}>
           <div className={styles.stateCard}>
             <span className={styles.stateIcon}>
-              <AlertCircle
-                size={28}
-                aria-hidden="true"
-              />
+              <AlertCircle size={28} aria-hidden="true" />
             </span>
 
             <h1>잘못된 참석 주소입니다.</h1>
 
-            <p>
-              운영진에게 올바른 참석 링크를
-              다시 요청해 주세요.
-            </p>
+            <p>운영진에게 올바른 참석 링크를 다시 요청해 주세요.</p>
           </div>
         </div>
       </main>
@@ -214,17 +184,12 @@ export default function PublicEvent() {
         <div className={styles.container}>
           <div className={styles.stateCard}>
             <span className={styles.stateIcon}>
-              <LoaderCircle
-                size={28}
-                aria-hidden="true"
-              />
+              <LoaderCircle size={28} aria-hidden="true" />
             </span>
 
             <h1>회차를 확인하고 있습니다.</h1>
 
-            <p>
-              잠시만 기다려 주세요.
-            </p>
+            <p>잠시만 기다려 주세요.</p>
           </div>
         </div>
       </main>
@@ -237,10 +202,7 @@ export default function PublicEvent() {
         <div className={styles.container}>
           <div className={styles.stateCard}>
             <span className={styles.stateIcon}>
-              <AlertCircle
-                size={28}
-                aria-hidden="true"
-              />
+              <AlertCircle size={28} aria-hidden="true" />
             </span>
 
             <h1>참석 링크를 사용할 수 없습니다.</h1>
@@ -267,12 +229,8 @@ export default function PublicEvent() {
       <div className={styles.container}>
         <div className={styles.brand}>
           <span className={styles.brandIcon}>
-            <Trophy
-              size={20}
-              aria-hidden="true"
-            />
+            <Trophy size={20} aria-hidden="true" />
           </span>
-
           소모임 탁구 매니저
         </div>
 
@@ -282,15 +240,10 @@ export default function PublicEvent() {
               {EVENT_STATUS_LABELS[event.status]}
             </span>
 
-            <h1 className={styles.title}>
-              {event.title}
-            </h1>
+            <h1 className={styles.title}>{event.title}</h1>
 
             <p className={styles.date}>
-              <CalendarDays
-                size={19}
-                aria-hidden="true"
-              />
+              <CalendarDays size={19} aria-hidden="true" />
 
               <time dateTime={event.eventDate}>
                 {formatDate(event.eventDate)}
@@ -302,10 +255,7 @@ export default function PublicEvent() {
             <section className={styles.notice}>
               <h2>모임 안내</h2>
 
-              <p>
-                {event.notice ||
-                  '등록된 공지사항이 없습니다.'}
-              </p>
+              <p>{event.notice || "등록된 공지사항이 없습니다."}</p>
             </section>
 
             <section className={styles.responseSection}>
@@ -320,26 +270,18 @@ export default function PublicEvent() {
                 <div className={styles.identifiedContent}>
                   <div className={styles.identitySuccess}>
                     <span className={styles.successIcon}>
-                      <UserCheck
-                        size={24}
-                        aria-hidden="true"
-                      />
+                      <UserCheck size={24} aria-hidden="true" />
                     </span>
 
                     <div>
                       <h2>본인 확인 완료</h2>
 
                       <p>
-                        <strong>
-                          {identity.participant.displayName}
-                        </strong>
+                        <strong>{identity.participant.displayName}</strong>
                         님의 참석이 등록됐습니다.
                       </p>
 
-                      <p>
-                        현재 부수:{' '}
-                        {identity.participant.rank}부
-                      </p>
+                      <p>현재 부수: {identity.participant.rank}부</p>
                     </div>
                   </div>
 
@@ -347,8 +289,7 @@ export default function PublicEvent() {
                     responseToken={identity.responseToken}
                     participant={identity.participant}
                     onUpdated={(
-                      updatedParticipant:
-                        PublicIdentifiedParticipant,
+                      updatedParticipant: PublicIdentifiedParticipant,
                     ) => {
                       const updatedIdentity = {
                         ...identity,
@@ -359,9 +300,7 @@ export default function PublicEvent() {
 
                       sessionStorage.setItem(
                         `event-participant:${token}`,
-                        JSON.stringify(
-                          updatedIdentity,
-                        ),
+                        JSON.stringify(updatedIdentity),
                       );
                     }}
                   />
@@ -372,8 +311,7 @@ export default function PublicEvent() {
         </article>
 
         <p className={styles.expiration}>
-          이 참석 링크는{' '}
-          {formatExpiration(expiresAt)}
+          이 참석 링크는 {formatExpiration(expiresAt)}
           까지 사용할 수 있습니다.
         </p>
       </div>

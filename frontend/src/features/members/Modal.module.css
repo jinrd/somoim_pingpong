@@ -49,7 +49,9 @@
   border: 0;
   border-radius: 12px;
   cursor: pointer;
-  transition: color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
 }
 
 .closeBtn:hover {
@@ -78,7 +80,10 @@
   border: 1px solid #dce2ea;
   border-radius: 11px;
   font: inherit;
-  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
 }
 
 .input:hover {
@@ -121,7 +126,10 @@ textarea.input {
   border-radius: 11px;
   cursor: pointer;
   font-weight: 750;
-  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .btnCancel {

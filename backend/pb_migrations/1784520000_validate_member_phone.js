@@ -1,25 +1,28 @@
-migrate((db) => {
-  const dao = new Dao(db);
-  const members = dao.findCollectionByNameOrId("members");
-  const phoneField = members.schema.getFieldByName("phone");
+migrate(
+  (db) => {
+    const dao = new Dao(db);
+    const members = dao.findCollectionByNameOrId("members");
+    const phoneField = members.schema.getFieldByName("phone");
 
-  phoneField.options = {
-    min: null,
-    max: 13,
-    pattern: "^010-[0-9]{4}-[0-9]{4}$",
-  };
+    phoneField.options = {
+      min: null,
+      max: 13,
+      pattern: "^010-[0-9]{4}-[0-9]{4}$",
+    };
 
-  dao.saveCollection(members);
-}, (db) => {
-  const dao = new Dao(db);
-  const members = dao.findCollectionByNameOrId("members");
-  const phoneField = members.schema.getFieldByName("phone");
+    dao.saveCollection(members);
+  },
+  (db) => {
+    const dao = new Dao(db);
+    const members = dao.findCollectionByNameOrId("members");
+    const phoneField = members.schema.getFieldByName("phone");
 
-  phoneField.options = {
-    min: null,
-    max: 30,
-    pattern: "",
-  };
+    phoneField.options = {
+      min: null,
+      max: 30,
+      pattern: "",
+    };
 
-  dao.saveCollection(members);
-});
+    dao.saveCollection(members);
+  },
+);

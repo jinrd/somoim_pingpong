@@ -2,7 +2,11 @@
   min-height: 100vh;
   display: flex;
   background:
-    radial-gradient(circle at 90% 0%, rgba(99, 102, 241, 0.08), transparent 28rem),
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(99, 102, 241, 0.08),
+      transparent 28rem
+    ),
     var(--color-background);
 }
 
@@ -51,7 +55,10 @@
   text-decoration: none;
   font-size: 0.94rem;
   font-weight: 600;
-  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .navItem:hover {
@@ -84,7 +91,9 @@
   border-radius: 12px;
   cursor: pointer;
   font-weight: 650;
-  transition: color 160ms ease, background 160ms ease;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
 }
 
 .logoutBtn:hover {

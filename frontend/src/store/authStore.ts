@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import type { RecordModel } from 'pocketbase';
-import { pb } from '../lib/pocketbase';
+import { create } from "zustand";
+import type { RecordModel } from "pocketbase";
+import { pb } from "../lib/pocketbase";
 
 interface AuthState {
   isInitialized: boolean;
@@ -33,7 +33,7 @@ const validateStoredAuthentication = async () => {
   }
 
   try {
-    await pb.collection('users').authRefresh();
+    await pb.collection("users").authRefresh();
   } catch {
     pb.authStore.clear();
   } finally {

@@ -1,102 +1,64 @@
-import {
-  useState,
-  type SubmitEvent,
-} from 'react';
+import { useState, type SubmitEvent } from "react";
 
-import {
-  LogIn,
-  UserCheck,
-} from 'lucide-react';
+import { LogIn, UserCheck } from "lucide-react";
 
-import { ClientResponseError } from 'pocketbase';
+import { ClientResponseError } from "pocketbase";
 
-import {
-  identifyPublicParticipant,
-} from './api';
+import { identifyPublicParticipant } from "./api";
 
-import type {
-  PublicIdentityResult,
-} from './types';
+import type { PublicIdentityResult } from "./types";
 
-import styles from '../../pages/public/PublicEvent.module.css';
+import styles from "../../pages/public/PublicEvent.module.css";
 
 interface Props {
   publicToken: string;
-  onIdentified: (
-    result: PublicIdentityResult,
-  ) => void;
+  onIdentified: (result: PublicIdentityResult) => void;
 }
 
-const formatPhoneNumber = (
-  value: string,
-): string => {
-  const digits = value
-    .replace(/[^0-9]/g, '')
-    .slice(0, 11);
+const formatPhoneNumber = (value: string): string => {
+  const digits = value.replace(/[^0-9]/g, "").slice(0, 11);
 
   if (digits.length <= 3) {
     return digits;
   }
 
   if (digits.length <= 7) {
-    return (
-      digits.slice(0, 3) +
-      '-' +
-      digits.slice(3)
-    );
+    return digits.slice(0, 3) + "-" + digits.slice(3);
   }
 
-  return (
-    digits.slice(0, 3) +
-    '-' +
-    digits.slice(3, 7) +
-    '-' +
-    digits.slice(7)
-  );
+  return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7);
 };
 
-const getIdentityErrorMessage = (
-  error: unknown,
-): string => {
+const getIdentityErrorMessage = (error: unknown): string => {
   if (error instanceof ClientResponseError) {
-    return (
-      error.response.message ||
-      '본인 확인에 실패했습니다.'
-    );
+    return error.response.message || "본인 확인에 실패했습니다.";
   }
 
-  return '서버에 연결하지 못했습니다.';
+  return "서버에 연결하지 못했습니다.";
 };
 
 export default function PublicIdentityForm({
   publicToken,
   onIdentified,
 }: Props) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (
-    event: SubmitEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setIsSubmitting(true);
-    setError('');
+    setError("");
 
     try {
-      const result =
-        await identifyPublicParticipant(
-          publicToken,
-          {
-            name: name.trim(),
-            phone,
-          },
-        );
+      const result = await identifyPublicParticipant(publicToken, {
+        name: name.trim(),
+        phone,
+      });
 
       // 다음 단계의 게임 참가 여부 변경에 사용합니다.
       sessionStorage.setItem(
@@ -106,41 +68,25 @@ export default function PublicIdentityForm({
 
       onIdentified(result);
     } catch (caughtError) {
-      setError(
-        getIdentityErrorMessage(
-          caughtError,
-        ),
-      );
+      setError(getIdentityErrorMessage(caughtError));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form
-      className={styles.identityForm}
-      onSubmit={handleSubmit}
-    >
+    <form className={styles.identityForm} onSubmit={handleSubmit}>
       <div className={styles.identityHeading}>
-        <UserCheck
-          size={22}
-          aria-hidden="true"
-        />
+        <UserCheck size={22} aria-hidden="true" />
 
         <div>
           <h2>본인 확인</h2>
-          <p>
-            회원 등록 시 입력한 이름과 연락처를
-            입력해 주세요.
-          </p>
+          <p>회원 등록 시 입력한 이름과 연락처를 입력해 주세요.</p>
         </div>
       </div>
 
       {error && (
-        <p
-          className={styles.formError}
-          role="alert"
-        >
+        <p className={styles.formError} role="alert">
           {error}
         </p>
       )}
@@ -174,11 +120,7 @@ export default function PublicIdentityForm({
           pattern="010-[0-9]{4}-[0-9]{4}"
           placeholder="010-1234-5678"
           onChange={(event) => {
-            setPhone(
-              formatPhoneNumber(
-                event.target.value,
-              ),
-            );
+            setPhone(formatPhoneNumber(event.target.value));
           }}
         />
       </label>
@@ -188,14 +130,9 @@ export default function PublicIdentityForm({
         className={styles.identityButton}
         disabled={isSubmitting}
       >
-        <LogIn
-          size={18}
-          aria-hidden="true"
-        />
+        <LogIn size={18} aria-hidden="true" />
 
-        {isSubmitting
-          ? '확인 중…'
-          : '본인 확인'}
+        {isSubmitting ? "확인 중…" : "본인 확인"}
       </button>
     </form>
   );

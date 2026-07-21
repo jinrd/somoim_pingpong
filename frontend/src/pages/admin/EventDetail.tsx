@@ -1,27 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import {
-  ArrowLeft,
-  CalendarDays,
-  Trophy,
-  Users,
-} from 'lucide-react';
+import { ArrowLeft, CalendarDays, Trophy, Users } from "lucide-react";
 
-import {
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
+import { useNavigate, useParams } from "react-router-dom";
 
-import ParticipantManager from '../../features/events/ParticipantManager';
-import PublicLinkManager from '../../features/events/PublicLinkManager';
-import { getEvent } from '../../features/events/api';
-
+import ParticipantManager from "../../features/events/ParticipantManager";
+import PublicLinkManager from "../../features/events/PublicLinkManager";
+import { getEvent } from "../../features/events/api";
+import GameSettingsPanel from "../../features/game-settings/GameSettingsPanel";
 import {
   EVENT_STATUS_LABELS,
   type SomoimEvent,
-} from '../../features/events/types';
+} from "../../features/events/types";
 
-import styles from '../../features/events/Events.module.css';
+import styles from "../../features/events/Events.module.css";
 
 const formatEventDate = (eventDate: string): string => {
   const parsedDate = new Date(eventDate);
@@ -30,11 +22,11 @@ const formatEventDate = (eventDate: string): string => {
     return eventDate;
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
   }).format(parsedDate);
 };
 
@@ -45,11 +37,13 @@ export default function EventDetail() {
 
   const navigate = useNavigate();
 
-  const [eventRecord, setEventRecord] =
-    useState<SomoimEvent | null>(null);
+  const [eventRecord, setEventRecord] = useState<SomoimEvent | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<"participants" | "game-settings">(
+    "participants",
+  );
 
   useEffect(() => {
     if (!eventId) {
@@ -66,9 +60,7 @@ export default function EventDetail() {
       })
       .catch(() => {
         if (!cancelled) {
-          setError(
-            '회차 정보를 불러오지 못했습니다.',
-          );
+          setError("회차 정보를 불러오지 못했습니다.");
         }
       })
       .finally(() => {
@@ -92,7 +84,7 @@ export default function EventDetail() {
           type="button"
           className={styles.cancelButton}
           onClick={() => {
-            navigate('/events');
+            navigate("/events");
           }}
         >
           회차 목록으로 돌아가기
@@ -103,9 +95,7 @@ export default function EventDetail() {
 
   if (isLoading) {
     return (
-      <div className={styles.emptyPanel}>
-        회차 정보를 불러오는 중입니다…
-      </div>
+      <div className={styles.emptyPanel}>회차 정보를 불러오는 중입니다…</div>
     );
   }
 
@@ -119,7 +109,7 @@ export default function EventDetail() {
           type="button"
           className={styles.cancelButton}
           onClick={() => {
-            navigate('/events');
+            navigate("/events");
           }}
         >
           회차 목록으로 돌아가기
@@ -134,7 +124,7 @@ export default function EventDetail() {
         type="button"
         className={styles.backButton}
         onClick={() => {
-          navigate('/events');
+          navigate("/events");
         }}
       >
         <ArrowLeft size={18} aria-hidden="true" />
@@ -150,22 +140,15 @@ export default function EventDetail() {
           <h1>{eventRecord.title}</h1>
 
           <div className={styles.detailDate}>
-            <CalendarDays
-              size={18}
-              aria-hidden="true"
-            />
+            <CalendarDays size={18} aria-hidden="true" />
 
             <time dateTime={eventRecord.event_date}>
-              {formatEventDate(
-                eventRecord.event_date,
-              )}
+              {formatEventDate(eventRecord.event_date)}
             </time>
           </div>
 
           {eventRecord.notice && (
-            <p className={styles.detailNotice}>
-              {eventRecord.notice}
-            </p>
+            <p className={styles.detailNotice}>{eventRecord.notice}</p>
           )}
         </div>
       </header>
@@ -173,13 +156,16 @@ export default function EventDetail() {
         eventRecord={eventRecord}
         onEventUpdated={setEventRecord}
       />
-      <nav
-        className={styles.detailTabs}
-        aria-label="회차 관리 메뉴"
-      >
+      <nav className={styles.detailTabs} aria-label="회차 관리 메뉴">
         <button
           type="button"
-          className={`${styles.detailTab} ${styles.detailTabActive}`}
+          className={`${styles.detailTab} ${
+            activeTab === "participants" ? styles.detailTabActive : ""
+          }`}
+          aria-current={activeTab === "participants" ? "page" : undefined}
+          onClick={() => {
+            setActiveTab("participants");
+          }}
         >
           <Users size={18} aria-hidden="true" />
           참석자 관리
@@ -187,25 +173,30 @@ export default function EventDetail() {
 
         <button
           type="button"
-          className={styles.detailTab}
-          disabled
+          className={`${styles.detailTab} ${
+            activeTab === "game-settings" ? styles.detailTabActive : ""
+          }`}
+          aria-current={activeTab === "game-settings" ? "page" : undefined}
+          onClick={() => {
+            setActiveTab("game-settings");
+          }}
         >
           <Trophy size={18} aria-hidden="true" />
-          팀 편성
-          <small>준비 중</small>
+          게임 설정/팀 편성
         </button>
 
-        <button
-          type="button"
-          className={styles.detailTab}
-          disabled
-        >
+        <button type="button" className={styles.detailTab} disabled>
           대진표/결과
           <small>준비 중</small>
         </button>
       </nav>
 
-      <ParticipantManager eventId={eventId} />
+      <div style={{ display: activeTab === "participants" ? "block" : "none" }}>
+        <ParticipantManager eventId={eventId} />
+      </div>
+      <div style={{ display: activeTab === "game-settings" ? "block" : "none" }}>
+        <GameSettingsPanel eventId={eventId} />
+      </div>
     </section>
   );
 }

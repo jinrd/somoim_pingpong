@@ -41,12 +41,7 @@ migrate(
           required: true,
           options: {
             maxSelect: 1,
-            values: [
-              "draft",
-              "active",
-              "completed",
-              "archived",
-            ],
+            values: ["draft", "active", "completed", "archived"],
           },
         },
         {
@@ -225,11 +220,7 @@ migrate(
           required: true,
           options: {
             maxSelect: 1,
-            values: [
-              "undecided",
-              "playing",
-              "not_playing",
-            ],
+            values: ["undecided", "playing", "not_playing"],
           },
         },
 
@@ -309,8 +300,7 @@ migrate(
     }
 
     try {
-      const eventsCollection =
-        dao.findCollectionByNameOrId("events");
+      const eventsCollection = dao.findCollectionByNameOrId("events");
 
       dao.deleteCollection(eventsCollection);
     } catch {

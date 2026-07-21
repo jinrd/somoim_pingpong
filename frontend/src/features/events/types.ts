@@ -1,20 +1,11 @@
-import type { RecordModel } from 'pocketbase';
-import type { Member } from '../members/api';
+import type { RecordModel } from "pocketbase";
+import type { Member } from "../members/api";
 
-export type EventStatus =
-  | 'draft'
-  | 'active'
-  | 'completed'
-  | 'archived';
+export type EventStatus = "draft" | "active" | "completed" | "archived";
 
-export type ParticipantType =
-  | 'member'
-  | 'guest';
+export type ParticipantType = "member" | "guest";
 
-export type GameParticipationStatus =
-  | 'undecided'
-  | 'playing'
-  | 'not_playing';
+export type GameParticipationStatus = "undecided" | "playing" | "not_playing";
 
 export interface SomoimEvent extends RecordModel {
   title: string;
@@ -82,19 +73,19 @@ export interface AddMembersResult {
 }
 
 export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
-  draft: '준비 중',
-  active: '진행 중',
-  completed: '경기 종료',
-  archived: '보관',
+  draft: "준비 중",
+  active: "진행 중",
+  completed: "경기 종료",
+  archived: "보관",
 };
 
 export const GAME_PARTICIPATION_STATUS_LABELS: Record<
   GameParticipationStatus,
   string
 > = {
-  undecided: '미정',
-  playing: '게임 참가',
-  not_playing: '게임 미참가',
+  undecided: "미정",
+  playing: "게임 참가",
+  not_playing: "게임 미참가",
 };
 
 export interface PublicLinkIssueResult {
@@ -130,8 +121,7 @@ export interface PublicIdentityInput {
 export interface PublicIdentifiedParticipant {
   displayName: string;
   rank: number;
-  gameParticipationStatus:
-    GameParticipationStatus;
+  gameParticipationStatus: GameParticipationStatus;
 }
 
 export interface PublicIdentityResult {
@@ -139,14 +129,11 @@ export interface PublicIdentityResult {
   participant: PublicIdentifiedParticipant;
 }
 
-export type PublicGameParticipationStatus = 
-  | 'playing'
-  | 'not_playing';
+export type PublicGameParticipationStatus = "playing" | "not_playing";
 
 export interface PublicParticipationUpdateInput {
   responseToken: string;
-  gameParticipationStatus:
-    PublicGameParticipationStatus;
+  gameParticipationStatus: PublicGameParticipationStatus;
 }
 
 export interface PublicParticipationUpdateResult {

@@ -3,7 +3,7 @@ module.exports = Object.freeze({
   PARTICIPATION_TOKEN_LENGTH: 48,
   createPublicTokenEncryptionKey: function (secret) {
     if (!secret) {
-      throw new Error('PB_ENCRYPTION_KEY is required.');
+      throw new Error("PB_ENCRYPTION_KEY is required.");
     }
 
     // $security.encrypt()는 정확히 32자의 AES 키를 요구합니다.

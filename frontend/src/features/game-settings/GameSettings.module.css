@@ -1,0 +1,434 @@
+.panel {
+  display: grid;
+  gap: 18px;
+}
+
+.section {
+  padding: 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sectionHeader h2 {
+  margin: 0 0 5px;
+  color: var(--color-text);
+  font-size: 1.08rem;
+}
+
+.sectionHeader p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.modeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.modeOption,
+.modeOptionSelected {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 17px;
+  color: #667085;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 13px;
+  cursor: pointer;
+}
+
+.modeOption:hover {
+  border-color: #a5b4fc;
+  background: #fafaff;
+}
+
+.modeOptionSelected {
+  color: #4338ca;
+  background: #eef2ff;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.modeOption input,
+.modeOptionSelected input {
+  margin-top: 3px;
+  accent-color: #4f46e5;
+}
+
+.modeContent {
+  display: grid;
+  gap: 4px;
+}
+
+.modeContent strong {
+  color: #344054;
+  font-size: 0.92rem;
+}
+
+.modeContent small {
+  color: #667085;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.formField {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.formField > span {
+  color: #344054;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.formField input,
+.formField select,
+.formatRow input,
+.formatRow select,
+.newFormatRow input,
+.newFormatRow select {
+  width: 100%;
+  height: 44px;
+  padding: 0 11px;
+  box-sizing: border-box;
+  color: #101828;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  font: inherit;
+}
+
+.formField input:focus,
+.formField select:focus,
+.formatRow input:focus,
+.formatRow select:focus,
+.newFormatRow input:focus,
+.newFormatRow select:focus {
+  border-color: #6366f1;
+  outline: 3px solid rgba(99, 102, 241, 0.12);
+}
+
+.checkboxField {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #344054;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.checkboxField input {
+  width: 18px;
+  height: 18px;
+  accent-color: #4f46e5;
+}
+
+.fieldHint {
+  margin: 0;
+  color: #98a2b3;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 18px;
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerButton,
+.iconButton {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.primaryButton {
+  color: #ffffff;
+  background: #4f46e5;
+  border: 1px solid #4f46e5;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.secondaryButton {
+  color: #4338ca;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+}
+
+.dangerButton {
+  color: #b42318;
+  background: #ffffff;
+  border: 1px solid #fda29b;
+}
+
+.iconButton {
+  width: 42px;
+  padding: 0;
+  color: #667085;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled,
+.iconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.formatList {
+  display: grid;
+  gap: 10px;
+}
+
+.sortableItem {
+  position: relative;
+  z-index: 0;
+}
+
+.sortableItemDragging {
+  position: relative;
+  z-index: 10;
+  opacity: 0.88;
+}
+
+.sortableItemDragging .formatRow {
+  background: #eef2ff;
+  border-color: #818cf8;
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.18);
+}
+
+.formatRow,
+.newFormatRow {
+  display: grid;
+  grid-template-columns:
+    104px minmax(110px, 1fr)
+    minmax(100px, 1fr)
+    minmax(135px, auto)
+    auto;
+  align-items: end;
+  gap: 10px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+}
+
+.newFormatRow {
+  grid-template-columns:
+    124px minmax(110px, 1fr)
+    minmax(100px, 1fr)
+    minmax(135px, auto)
+    auto;
+  margin-top: 14px;
+  background: #ffffff;
+  border-style: dashed;
+}
+
+.orderCell,
+.newFormatOrder {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #667085;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.orderCell strong,
+.newFormatOrder strong {
+  color: #4338ca;
+  font-size: 1rem;
+}
+
+.dragHandle {
+  width: 34px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #667085;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragHandle:hover:not(:disabled) {
+  color: #4338ca;
+  background: #e0e7ff;
+}
+
+.dragHandle:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.dragHandle:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.18);
+}
+
+.dragHandle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.formatSaveBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-top: 16px;
+}
+
+.formatSaveBar span {
+  color: #b54708;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.compactField {
+  display: grid;
+  gap: 6px;
+}
+
+.compactField > span {
+  color: #667085;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.formatCheckbox {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #475467;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.formatCheckbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: #4f46e5;
+}
+
+.emptyFormats {
+  padding: 28px 20px;
+  margin: 0;
+  color: #667085;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px dashed #d0d5dd;
+  border-radius: 12px;
+  font-size: 0.86rem;
+}
+
+.notice,
+.success,
+.error {
+  padding: 12px 14px;
+  margin: 0;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.notice {
+  color: #344054;
+  background: #f2f4f7;
+  border: 1px solid #e4e7ec;
+}
+
+.success {
+  color: #067647;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+}
+
+.error {
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+}
+
+.loading {
+  padding: 40px;
+  color: #667085;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .formatRow,
+  .newFormatRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .formatCheckbox {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 620px) {
+  .section {
+    padding: 17px;
+  }
+
+  .modeGrid,
+  .formGrid,
+  .formatRow,
+  .newFormatRow {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions,
+  .formatSaveBar,
+  .formActions button,
+  .formatSaveBar button,
+  .formatRow button,
+  .newFormatRow button {
+    width: 100%;
+  }
+}
