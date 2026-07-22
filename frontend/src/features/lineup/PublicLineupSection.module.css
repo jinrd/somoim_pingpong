@@ -1,0 +1,270 @@
+.section {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 18px;
+  background: #f8fafc;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.header h2 {
+  margin: 0 0 6px;
+  color: #101828;
+  font-size: 1rem;
+}
+
+.header p {
+  margin: 0;
+  color: #667085;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.iconButton {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 42px;
+  color: #475467;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.teamSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px;
+  color: #475467;
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 11px;
+}
+
+.teamSummary strong {
+  margin-left: auto;
+  color: #4338ca;
+}
+
+.matchList {
+  display: grid;
+  gap: 9px;
+}
+
+.matchButton,
+.matchButtonActive {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 14px;
+  color: #475467;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.matchButtonActive {
+  background: #eef2ff;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.matchButton span {
+  font-size: 0.75rem;
+}
+
+.matchButton strong,
+.matchButtonActive strong {
+  color: #101828;
+}
+
+.matchButton small,
+.matchButtonActive small {
+  color: #667085;
+}
+
+.editor {
+  display: grid;
+  gap: 15px;
+  padding-top: 18px;
+  border-top: 1px solid #d0d5dd;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editorHeader span {
+  color: #667085;
+  font-size: 0.76rem;
+}
+
+.editorHeader h3 {
+  margin: 5px 0 0;
+  color: #101828;
+  font-size: 1rem;
+}
+
+.lineupStatus {
+  padding: 5px 9px;
+  color: #4338ca !important;
+  background: #eef2ff;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.gameList {
+  display: grid;
+  gap: 12px;
+}
+
+.gameCard {
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+}
+
+.gameCard header > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gameCard header span {
+  color: #667085;
+  font-size: 0.76rem;
+}
+
+.memberGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.memberButton,
+.memberSelected {
+  min-height: 52px;
+  display: grid;
+  gap: 3px;
+  padding: 9px 11px;
+  color: #344054;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.memberSelected {
+  color: #4338ca;
+  background: #eef2ff;
+  border-color: #818cf8;
+}
+
+.memberButton small,
+.memberSelected small {
+  color: #667085;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.draftButton,
+.confirmButton {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.draftButton {
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+}
+
+.confirmButton {
+  color: #ffffff;
+  background: #4f46e5;
+  border: 1px solid #4f46e5;
+}
+
+.draftButton:disabled,
+.confirmButton:disabled,
+.iconButton:disabled,
+.matchButton:disabled,
+.matchButtonActive:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.error,
+.success,
+.empty,
+.confirmedBy {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.error {
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+}
+
+.success {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #067647;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+}
+
+.empty,
+.confirmedBy {
+  color: #667085;
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+}
+
+@media (max-width: 520px) {
+  .memberGrid,
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 15px;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RefreshCw, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { ClientResponseError } from "pocketbase";
 
 import {
   getMembers,
@@ -38,6 +39,34 @@ const getParticipantTypeLabel = (participant: EventParticipant): string => {
   }
 
   return "회원";
+};
+
+const isInactiveMember = (
+  participant: EventParticipantWithMember,
+): boolean =>
+  participant.participant_type === "member" &&
+  participant.expand?.member?.status === "inactive";
+
+const getParticipantLabel = (
+  participant: EventParticipantWithMember,
+): string => {
+  if (isInactiveMember(participant)) {
+    return "비활동 회원";
+  }
+
+  return getParticipantTypeLabel(participant);
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof ClientResponseError) {
+    return error.response?.message || error.message || fallback;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
 };
 
 const excludeRegisteredMembers = (
@@ -214,6 +243,11 @@ export default function ParticipantManager({ eventId }: Props) {
     participant: EventParticipantWithMember,
     status: GameParticipationStatus,
   ) => {
+    if (isInactiveMember(participant)) {
+      setError("비활동 회원은 게임 참가 상태를 변경할 수 없습니다.");
+      return;
+    }
+
     setIsWorking(true);
     setError("");
 
@@ -238,11 +272,12 @@ export default function ParticipantManager({ eventId }: Props) {
         }),
       );
     } catch (caughtError) {
-      if (caughtError instanceof Error) {
-        setError(caughtError.message);
-      } else {
-        setError("게임 참가 상태를 변경하지 못했습니다.");
-      }
+      setError(
+        getErrorMessage(
+          caughtError,
+          "게임 참가 상태를 변경하지 못했습니다.",
+        ),
+      );
     } finally {
       setIsWorking(false);
     }
@@ -273,7 +308,7 @@ export default function ParticipantManager({ eventId }: Props) {
 
       if (
         participant.participant_type === "member" &&
-        participant.expand?.member
+        participant.expand?.member?.status === "active"
       ) {
         setAvailableMembers((currentMembers) => [
           ...currentMembers,
@@ -448,7 +483,7 @@ export default function ParticipantManager({ eventId }: Props) {
 
                       <small>
                         {participant.rank_snapshot}부 ·{" "}
-                        {getParticipantTypeLabel(participant)}
+                        {getParticipantLabel(participant)}
                       </small>
                     </div>
                   </div>
@@ -465,8 +500,13 @@ export default function ParticipantManager({ eventId }: Props) {
                       id={`participant-status-${participant.id}`}
                       className={styles.statusSelect}
                       value={participant.game_participation_status}
-                      disabled={isWorking}
+                      disabled={isWorking || isInactiveMember(participant)}
                       aria-label={`${participant.display_name} 게임 참가 상태`}
+                      title={
+                        isInactiveMember(participant)
+                          ? "비활동 회원은 게임에 참가할 수 없습니다."
+                          : undefined
+                      }
                       onChange={(changeEvent) => {
                         void handleStatusChange(
                           participant,

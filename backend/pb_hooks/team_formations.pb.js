@@ -121,7 +121,7 @@ routerAdd(
       throw new BadRequestError("한 참가자가 여러 팀에 포함되어 있습니다.");
     }
 
-    const playingParticipants = $app
+    const playingParticipantCandidates = $app
       .dao()
       .findRecordsByFilter(
         "event_participants",
@@ -136,6 +136,24 @@ routerAdd(
           status: "playing",
         },
       );
+
+    const playingParticipants = playingParticipantCandidates.filter(
+      (participant) => {
+        if (participant.getString("participant_type") !== "member") {
+          return true;
+        }
+
+        try {
+          const member = $app
+            .dao()
+            .findRecordById("members", participant.getString("member"));
+
+          return member.getString("status") === "active";
+        } catch {
+          return false;
+        }
+      },
+    );
 
     const playingParticipantIds = new Set(
       playingParticipants.map((participant) => participant.id),

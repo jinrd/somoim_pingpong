@@ -16,7 +16,7 @@ import { getPublicEvent } from "../../features/events/api";
 
 import PublicIdentityForm from "../../features/events/PublicIdentityForm";
 import PublicParticipationForm from "../../features/events/PublicParticipationForm";
-
+import PublicLineupSection from "../../features/lineup/PublicLineupSection";
 import {
   EVENT_STATUS_LABELS,
   type PublicEventResponse,
@@ -304,6 +304,12 @@ export default function PublicEvent() {
                       );
                     }}
                   />
+                  {identity.participant.gameParticipationStatus ===
+                    "playing" && (
+                    <PublicLineupSection
+                      responseToken={identity.responseToken}
+                    />
+                  )}
                 </div>
               )}
             </section>

@@ -329,6 +329,12 @@ export const addMembersToEvent = async (
   };
 
   for (const member of members) {
+    if (member.status !== "active") {
+      throw new Error(
+        `${member.nickname || member.name}님은 비활동 회원이므로 회차에 추가할 수 없습니다.`,
+      );
+    }
+
     if (existingMemberIds.has(member.id)) {
       result.skipped.push(member);
       continue;

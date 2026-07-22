@@ -516,6 +516,28 @@ routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
   }
 
   /*
+   * 토큰을 발급받은 뒤 회원이 비활동으로 변경될 수도 있으므로
+   * 실제 참가 상태 저장 직전에 회원 상태를 다시 확인합니다.
+   */
+  if (participantRecord.getString("participant_type") === "member") {
+    let memberRecord;
+
+    try {
+      memberRecord = $app
+        .dao()
+        .findRecordById("members", participantRecord.getString("member"));
+    } catch {
+      throw new NotFoundError("회원 정보를 찾을 수 없습니다.");
+    }
+
+    if (memberRecord.getString("status") !== "active") {
+      throw new BadRequestError(
+        "비활동 회원은 게임 참가 여부를 변경할 수 없습니다.",
+      );
+    }
+  }
+
+  /*
    * 참가자가 속한 회차를 확인합니다.
    */
   const eventId = participantRecord.getString("event");

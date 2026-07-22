@@ -50,7 +50,7 @@ const buildContextResponse = function (dao, gameSettingRecord) {
 
   const gameSettingId = gameSettingRecord.id;
 
-  const participantRecords = dao.findRecordsByFilter(
+  const participantCandidates = dao.findRecordsByFilter(
     "event_participants",
     ["event = {:eventId}", "game_participation_status = {:status}"].join(
       " && ",
@@ -63,6 +63,23 @@ const buildContextResponse = function (dao, gameSettingRecord) {
       status: "playing",
     },
   );
+
+  const participantRecords = participantCandidates.filter((participant) => {
+    if (participant.getString("participant_type") !== "member") {
+      return true;
+    }
+
+    try {
+      const member = dao.findRecordById(
+        "members",
+        participant.getString("member"),
+      );
+
+      return member.getString("status") === "active";
+    } catch {
+      return false;
+    }
+  });
 
   const participants = participantRecords.map((participant) => ({
     participantId: participant.id,
