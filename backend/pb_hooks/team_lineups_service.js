@@ -542,9 +542,15 @@ const saveLineup = function (teamMatchId, responseToken, input) {
 
     const bothConfirmed =
       matchLineups.length === 2 &&
-      matchLineups.every(
-        (currentLineup) => currentLineup.getString("status") === "confirmed",
-      );
+      // matchLineups.every(
+      //   (currentLineup) => currentLineup.getString("status") === "confirmed",
+      // );
+      matchLineups.every((currentLineup) => {
+        if (currentLineup.id === context.lineup.id) {
+          return status === "confirmed";
+        }
+        return currentLineup.getString("status") === "confirmed";
+      });
 
     const teamMatchRecord = transactionDao.findRecordById(
       "team_matches",

@@ -145,10 +145,7 @@ export default function TeamSchedulePanel({ setting }: Props) {
       .catch((caughtError) => {
         if (!cancelled) {
           setError(
-            getErrorMessage(
-              caughtError,
-              "대진 정보를 불러오지 못했습니다.",
-            ),
+            getErrorMessage(caughtError, "대진 정보를 불러오지 못했습니다."),
           );
         }
       })
