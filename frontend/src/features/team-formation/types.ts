@@ -111,3 +111,14 @@ export interface SaveTeamFormationInput {
     participantIds: string[];
   }>;
 }
+
+export interface GenerateTeamFormationOptions {
+  participants: FormationParticipant[];
+  targetTeamSize: number;
+  method: TeamFormationMethod;
+
+  /**
+   * 무작위 편성 테스트에서 고정 난수를 주입하기 위해 사용합니다.
+   */
+  random?: () => number;
+}
