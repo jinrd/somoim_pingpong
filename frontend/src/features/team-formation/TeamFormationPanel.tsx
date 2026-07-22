@@ -1,0 +1,685 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+
+import { CSS } from "@dnd-kit/utilities";
+
+import {
+  GripVertical,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Shuffle,
+  Users,
+} from "lucide-react";
+
+import type { EventGameSetting } from "../game-settings/types";
+
+import { getTeamFormationContext, saveTeamFormation } from "./api";
+
+import {
+  calculateTeamQuality,
+  generateTeamFormation,
+} from "./generateTeamFormation";
+
+import {
+  TEAM_FORMATION_METHOD_LABELS,
+  TEAM_FORMATION_STATUS_LABELS,
+} from "./constants";
+
+import type {
+  TeamDraft,
+  TeamFormationContext,
+  TeamFormationMethod,
+  TeamFormationStatus,
+  TeamMemberDraft,
+} from "./types";
+
+import styles from "./TeamFormationPanel.module.css";
+
+interface Props {
+  setting: EventGameSetting | null;
+}
+
+interface TeamMemberCardProps {
+  member: TeamMemberDraft;
+  teamKey: string;
+  disabled: boolean;
+}
+
+interface TeamColumnProps {
+  team: TeamDraft;
+  disabled: boolean;
+  onNameChange: (name: string) => void;
+}
+
+const cloneTeams = (teams: TeamDraft[]): TeamDraft[] =>
+  teams.map((team) => ({
+    ...team,
+    members: team.members.map((member) => ({
+      ...member,
+    })),
+  }));
+
+const calculateAverageRank = (team: TeamDraft): number => {
+  if (team.members.length === 0) {
+    return 0;
+  }
+
+  const total = team.members.reduce(
+    (sum, member) => sum + member.rankSnapshot,
+    0,
+  );
+
+  return Math.round((total / team.members.length) * 100) / 100;
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+function TeamMemberCard({ member, teamKey, disabled }: TeamMemberCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `member:${member.participantId}`,
+      data: {
+        teamKey,
+      },
+      disabled,
+    });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={isDragging ? styles.memberCardDragging : styles.memberCard}
+      style={{
+        transform: CSS.Translate.toString(transform),
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical size={17} aria-hidden="true" />
+
+      <div>
+        <strong>{member.displayName}</strong>
+
+        <span>
+          {member.rankSnapshot}부 ·{" "}
+          {member.participantType === "guest" ? "게스트" : "회원"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TeamColumn({ team, disabled, onNameChange }: TeamColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `team:${team.key}`,
+    disabled,
+  });
+
+  const averageRank = calculateAverageRank(team);
+
+  return (
+    <article
+      ref={setNodeRef}
+      className={isOver ? styles.teamColumnOver : styles.teamColumn}
+    >
+      <header className={styles.teamHeader}>
+        <input
+          value={team.name}
+          maxLength={30}
+          disabled={disabled}
+          aria-label={`${team.name} 팀 이름`}
+          onChange={(event) => {
+            onNameChange(event.target.value);
+          }}
+        />
+
+        <div className={styles.teamStats}>
+          <span>{team.members.length}명</span>
+          <span>평균 {averageRank || "-"}부</span>
+        </div>
+      </header>
+
+      <div className={styles.memberList}>
+        {team.members.length === 0 ? (
+          <p className={styles.emptyTeam}>이곳에 팀원을 놓으세요.</p>
+        ) : (
+          team.members.map((member) => (
+            <TeamMemberCard
+              key={member.key}
+              member={member}
+              teamKey={team.key}
+              disabled={disabled}
+            />
+          ))
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default function TeamFormationPanel({ setting }: Props) {
+  const [context, setContext] = useState<TeamFormationContext | null>(null);
+
+  const [teams, setTeams] = useState<TeamDraft[]>([]);
+
+  const [history, setHistory] = useState<TeamDraft[][]>([]);
+
+  const [method, setMethod] = useState<TeamFormationMethod>("balanced");
+
+  const [status, setStatus] = useState<TeamFormationStatus>("draft");
+
+  const [warnings, setWarnings] = useState<string[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [isWorking, setIsWorking] = useState(false);
+
+  const [isDirty, setIsDirty] = useState(false);
+
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor),
+  );
+
+  const metrics = useMemo(() => calculateTeamQuality(teams), [teams]);
+
+  const loadContext = useCallback(async () => {
+    if (!setting || setting.competition_type !== "team_league") {
+      return;
+    }
+
+    try {
+      const loaded = await getTeamFormationContext(setting.id);
+
+      setContext(loaded);
+      setTeams(cloneTeams(loaded.teams));
+      setHistory([]);
+      setWarnings([]);
+      setIsDirty(false);
+
+      if (loaded.formation) {
+        setMethod(loaded.formation.method);
+        setStatus(loaded.formation.status);
+      } else {
+        setMethod(setting.auto_team_balance ? "balanced" : "random");
+
+        setStatus("draft");
+      }
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "팀 편성 정보를 불러오지 못했습니다."),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setting]);
+
+  useEffect(() => {
+    if (!setting || setting.competition_type !== "team_league") {
+      return;
+    }
+
+    let cancelled = false;
+
+    getTeamFormationContext(setting.id)
+      .then((loaded) => {
+        if (cancelled) {
+          return;
+        }
+
+        setContext(loaded);
+        setTeams(cloneTeams(loaded.teams));
+        setHistory([]);
+        setWarnings([]);
+        setIsDirty(false);
+
+        if (loaded.formation) {
+          setMethod(loaded.formation.method);
+          setStatus(loaded.formation.status);
+        } else {
+          setMethod(setting.auto_team_balance ? "balanced" : "random");
+          setStatus("draft");
+        }
+      })
+      .catch((caughtError) => {
+        if (!cancelled) {
+          setError(
+            getErrorMessage(
+              caughtError,
+              "팀 편성 정보를 불러오지 못했습니다.",
+            ),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setting]);
+
+  const handleReload = () => {
+    setIsLoading(true);
+    setError("");
+    setMessage("");
+
+    void loadContext();
+  };
+
+  const rememberCurrentTeams = () => {
+    if (teams.length === 0) {
+      return;
+    }
+
+    setHistory((current) => [...current.slice(-9), cloneTeams(teams)]);
+  };
+
+  const handleGenerate = () => {
+    if (!context) {
+      return;
+    }
+
+    try {
+      const result = generateTeamFormation({
+        participants: context.participants,
+        targetTeamSize: setting?.team_size ?? 1,
+        method,
+      });
+
+      rememberCurrentTeams();
+
+      setTeams(result.teams);
+      setWarnings(result.warnings);
+      setIsDirty(true);
+      setError("");
+      setMessage(
+        `${result.participantCount}명을 ${result.teamCount}팀으로 편성했습니다.`,
+      );
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError, "팀을 자동 편성하지 못했습니다."));
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const overId = event.over ? String(event.over.id) : "";
+
+    if (!overId.startsWith("team:")) {
+      return;
+    }
+
+    const participantId = String(event.active.id).replace(/^member:/, "");
+
+    const targetTeamKey = overId.replace(/^team:/, "");
+
+    const sourceTeam = teams.find((team) =>
+      team.members.some((member) => member.participantId === participantId),
+    );
+
+    if (!sourceTeam || sourceTeam.key === targetTeamKey) {
+      return;
+    }
+
+    const member = sourceTeam.members.find(
+      (current) => current.participantId === participantId,
+    );
+
+    if (!member) {
+      return;
+    }
+
+    rememberCurrentTeams();
+
+    const nextTeams = teams.map((team) => {
+      if (team.key === sourceTeam.key) {
+        return {
+          ...team,
+          members: team.members.filter(
+            (current) => current.participantId !== participantId,
+          ),
+        };
+      }
+
+      if (team.key === targetTeamKey) {
+        return {
+          ...team,
+          members: [...team.members, member],
+        };
+      }
+
+      return team;
+    });
+
+    setTeams(nextTeams);
+    setWarnings(
+      nextTeams.some((team) => team.members.length === 0)
+        ? ["팀원이 없는 팀은 저장할 수 없습니다."]
+        : [],
+    );
+
+    setIsDirty(true);
+    setError("");
+    setMessage(`${member.displayName} 님을 이동했습니다.`);
+  };
+
+  const handleUndo = () => {
+    const previous = history[history.length - 1];
+
+    if (!previous) {
+      return;
+    }
+
+    setTeams(cloneTeams(previous));
+    setHistory((current) => current.slice(0, -1));
+    setWarnings([]);
+    setIsDirty(true);
+    setError("");
+    setMessage("직전 편성으로 되돌렸습니다.");
+  };
+
+  const handleSave = async () => {
+    if (!context || !setting) {
+      return;
+    }
+
+    setIsWorking(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const saved = await saveTeamFormation(setting.id, {
+        method,
+        status,
+
+        expectedVersion: context.formation?.version ?? 0,
+
+        teams: teams.map((team) => ({
+          id: team.id,
+          name: team.name,
+
+          participantIds: team.members.map((member) => member.participantId),
+        })),
+      });
+
+      setContext(saved);
+      setTeams(cloneTeams(saved.teams));
+      setMethod(saved.formation?.method ?? method);
+      setStatus(saved.formation?.status ?? status);
+      setIsDirty(false);
+      setWarnings([]);
+      setMessage("팀 편성을 저장했습니다.");
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError, "팀 편성을 저장하지 못했습니다."));
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  if (!setting) {
+    return (
+      <section className={styles.panel}>
+        <h2>팀 편성</h2>
+
+        <p className={styles.notice}>
+          팀을 편성하려면 먼저 게임 설정을 저장해 주세요.
+        </p>
+      </section>
+    );
+  }
+
+  if (setting.competition_type !== "team_league") {
+    return (
+      <section className={styles.panel}>
+        <h2>팀 편성</h2>
+
+        <p className={styles.notice}>
+          개인 단식 풀리그는 팀을 편성하지 않습니다.
+        </p>
+      </section>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <section className={styles.panel}>
+        팀 편성 정보를 불러오는 중입니다…
+      </section>
+    );
+  }
+
+  if (!context) {
+    return (
+      <section className={styles.panel}>
+        <p className={styles.error}>
+          {error || "팀 편성 정보를 불러오지 못했습니다."}
+        </p>
+
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          onClick={handleReload}
+        >
+          다시 불러오기
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className={styles.panel}>
+      <header className={styles.panelHeader}>
+        <div>
+          <h2>팀 편성</h2>
+
+          <p>
+            게임 참가자만 대상으로 자동 편성하고 팀원을 드래그하여 조정할 수
+            있습니다.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={isWorking}
+          onClick={handleReload}
+        >
+          <RefreshCw size={17} aria-hidden="true" />
+          최신 명단
+        </button>
+      </header>
+
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+
+      {message && (
+        <p className={styles.success} role="status">
+          {message}
+        </p>
+      )}
+
+      {warnings.map((warning) => (
+        <p key={warning} className={styles.warning}>
+          {warning}
+        </p>
+      ))}
+
+      <div className={styles.summaryGrid}>
+        <div>
+          <Users size={20} aria-hidden="true" />
+          <span>게임 참가자</span>
+          <strong>{context.participants.length}명</strong>
+        </div>
+
+        <div>
+          <span>팀 수</span>
+          <strong>{teams.length}팀</strong>
+        </div>
+
+        <div>
+          <span>품질 점수</span>
+          <strong>{metrics.qualityScore}점</strong>
+        </div>
+
+        <div>
+          <span>평균 부수 차이</span>
+          <strong>{metrics.averageRankDifference}</strong>
+        </div>
+      </div>
+
+      <div className={styles.controls}>
+        <label>
+          <span>자동 편성 방식</span>
+
+          <select
+            value={method}
+            disabled={isWorking}
+            onChange={(event) => {
+              setMethod(event.target.value as TeamFormationMethod);
+            }}
+          >
+            {Object.entries(TEAM_FORMATION_METHOD_LABELS).map(
+              ([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+
+        <label>
+          <span>편성 상태</span>
+
+          <select
+            value={status}
+            disabled={isWorking}
+            onChange={(event) => {
+              setStatus(event.target.value as TeamFormationStatus);
+
+              setIsDirty(true);
+            }}
+          >
+            {Object.entries(TEAM_FORMATION_STATUS_LABELS).map(
+              ([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          className={styles.primaryButton}
+          disabled={isWorking || context.participants.length === 0}
+          onClick={handleGenerate}
+        >
+          <Shuffle size={18} aria-hidden="true" />팀 자동 편성
+        </button>
+
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={isWorking || history.length === 0}
+          onClick={handleUndo}
+        >
+          <RotateCcw size={18} aria-hidden="true" />
+          되돌리기
+        </button>
+      </div>
+
+      {teams.length === 0 ? (
+        <div className={styles.emptyFormation}>
+          <Users size={30} aria-hidden="true" />
+
+          <strong>아직 편성된 팀이 없습니다.</strong>
+
+          <span>자동 편성 버튼을 눌러 주세요.</span>
+        </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={pointerWithin}
+          onDragEnd={handleDragEnd}
+        >
+          <div className={styles.teamGrid}>
+            {teams.map((team) => (
+              <TeamColumn
+                key={team.key}
+                team={team}
+                disabled={isWorking}
+                onNameChange={(name) => {
+                  setTeams((current) =>
+                    current.map((item) =>
+                      item.key === team.key
+                        ? {
+                            ...item,
+                            name,
+                          }
+                        : item,
+                    ),
+                  );
+
+                  setIsDirty(true);
+                }}
+              />
+            ))}
+          </div>
+        </DndContext>
+      )}
+
+      <footer className={styles.saveBar}>
+        {isDirty && <span>저장하지 않은 변경 사항이 있습니다.</span>}
+
+        <button
+          type="button"
+          className={styles.primaryButton}
+          disabled={
+            isWorking ||
+            !isDirty ||
+            teams.length === 0 ||
+            teams.some((team) => team.members.length === 0)
+          }
+          onClick={() => {
+            void handleSave();
+          }}
+        >
+          <Save size={18} aria-hidden="true" />
+
+          {isWorking ? "저장 중…" : "팀 편성 전체 저장"}
+        </button>
+      </footer>
+    </section>
+  );
+}

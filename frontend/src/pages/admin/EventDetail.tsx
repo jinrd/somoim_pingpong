@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CalendarDays, Trophy, Users } from "lucide-react";
 
 import { useNavigate, useParams } from "react-router-dom";
+import TeamFormationPanel from "../../features/team-formation/TeamFormationPanel";
 
+import type { EventGameSetting } from "../../features/game-settings/types";
 import ParticipantManager from "../../features/events/ParticipantManager";
 import PublicLinkManager from "../../features/events/PublicLinkManager";
 import { getEvent } from "../../features/events/api";
@@ -44,6 +46,7 @@ export default function EventDetail() {
   const [activeTab, setActiveTab] = useState<"participants" | "game-settings">(
     "participants",
   );
+  const [gameSetting, setGameSetting] = useState<EventGameSetting | null>(null);
 
   useEffect(() => {
     if (!eventId) {
@@ -194,8 +197,15 @@ export default function EventDetail() {
       <div style={{ display: activeTab === "participants" ? "block" : "none" }}>
         <ParticipantManager eventId={eventId} />
       </div>
-      <div style={{ display: activeTab === "game-settings" ? "block" : "none" }}>
-        <GameSettingsPanel eventId={eventId} />
+      <div
+        style={{ display: activeTab === "game-settings" ? "block" : "none" }}
+      >
+        <GameSettingsPanel
+          eventId={eventId}
+          onSettingChanged={setGameSetting}
+        />
+
+        <TeamFormationPanel setting={gameSetting} />
       </div>
     </section>
   );

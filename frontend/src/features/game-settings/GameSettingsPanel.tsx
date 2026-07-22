@@ -54,6 +54,7 @@ import styles from "./GameSettings.module.css";
 
 interface Props {
   eventId: string;
+  onSettingChanged?: (setting: EventGameSetting | null) => void;
 }
 
 interface MatchFormatRowProps {
@@ -207,12 +208,14 @@ function MatchFormatRow({
           <Trash2 size={18} aria-hidden="true" />
         </button>
       </div>
-
     </div>
   );
 }
 
-export default function GameSettingsPanel({ eventId }: Props) {
+export default function GameSettingsPanel({
+  eventId,
+  onSettingChanged,
+}: Props) {
   const [setting, setSetting] = useState<EventGameSetting | null>(null);
 
   const [matchFormats, setMatchFormats] = useState<MatchFormatDraft[]>([]);
@@ -253,13 +256,13 @@ export default function GameSettingsPanel({ eventId }: Props) {
         }
 
         setSetting(configuration.setting);
+        onSettingChanged?.(configuration.setting);
         setMatchFormats(configuration.matchFormats.map(toMatchFormatDraft));
         setAreFormatsDirty(false);
 
         if (configuration.setting) {
           setFormData(toGameSettingInput(configuration.setting));
         }
-
       })
       .catch((caughtError) => {
         if (!cancelled) {
@@ -277,7 +280,7 @@ export default function GameSettingsPanel({ eventId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [eventId]);
+  }, [eventId, onSettingChanged]);
 
   const handleSaveSetting = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -321,6 +324,7 @@ export default function GameSettingsPanel({ eventId }: Props) {
         : await createEventGameSetting(eventId, formData);
 
       setSetting(savedSetting);
+      onSettingChanged?.(savedSetting);
       setFormData(toGameSettingInput(savedSetting));
 
       setMessage("게임 설정을 저장했습니다.");
