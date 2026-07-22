@@ -26,24 +26,41 @@ const findParticipantByResponseToken = function (responseToken) {
     throw new NotFoundError("유효하지 않은 본인 확인 정보입니다.");
   }
 
-  if (participantRecord.getString("participant_type") !== "member") {
+  // 1) 기존의 'member 가 아니면 에러' 조건문을 제거
+  // if (participantRecord.getString("participant_type") !== "member") {
+  //   throw new BadRequestError(
+  //     "본인 확인을 완료한 회원만 라인업을 작성할 수 있습니다.",
+  //   );
+  // }
+  // let memberRecord;
+  // try {
+  //   memberRecord = $app
+  //     .dao()
+  //     .findRecordById("members", participantRecord.getString("member"));
+  // } catch {
+  //   throw new NotFoundError("회원 정보를 찾을 수 없습니다.");
+  // }
+
+  // 2) member(회원)인 경우에만 members 테이블 상태 검사 진행
+  if (participantRecord.getString("participant_type") === "member") {
+    let memberRecord;
+    try {
+      memberRecord = $app
+        .dao()
+        .findRecordById("members", participantRecord.getString("member"));
+    } catch {
+      throw new NotFoundError("회원 정보를 찾을 수 없습니다.");
+    }
+    if (memberRecord.getString("status") !== "active") {
+      throw new BadRequestError("비활동 회원은 라인업을 작성할 수 없습니다.");
+    }
+  }
+
+  // 3) 회원/게스트 공통: 게임 참가 상태('playing')인지만 확인 후 진행
+  if (participantRecord.getString("game_participation_status") !== "playing") {
     throw new BadRequestError(
-      "본인 확인을 완료한 회원만 라인업을 작성할 수 있습니다.",
+      "게임 참가 상태인 참가자만 라인업을 작성할 수 있습니다.",
     );
-  }
-
-  let memberRecord;
-
-  try {
-    memberRecord = $app
-      .dao()
-      .findRecordById("members", participantRecord.getString("member"));
-  } catch {
-    throw new NotFoundError("회원 정보를 찾을 수 없습니다.");
-  }
-
-  if (memberRecord.getString("status") !== "active") {
-    throw new BadRequestError("비활동 회원은 라인업을 작성할 수 없습니다.");
   }
 
   if (participantRecord.getString("game_participation_status") !== "playing") {

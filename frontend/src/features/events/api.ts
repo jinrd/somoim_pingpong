@@ -498,3 +498,18 @@ export const updateOwnGameParticipation = async (
     },
   );
 };
+
+export const identifyPublicGuest = async (
+  publicToken: string,
+  guestName: string,
+): Promise<PublicIdentityResult> => {
+  return pb.send<PublicIdentityResult>(
+    `/api/somoim/public/events/${encodeURIComponent(publicToken)}/identify-guest`,
+    {
+      method: "POST",
+      body: {
+        guestName,
+      },
+    },
+  );
+};

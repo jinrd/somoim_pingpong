@@ -588,3 +588,92 @@ routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
     respondedAt,
   });
 });
+
+/**
+ * 공개 사용자: 게스트 이름으로 본인 확인 및 개인 토큰 발급
+ * POST /api/somoim/public/events/:token/identify-guest
+ *
+ * body: { "guestName": "김게스트" }
+ */
+routerAdd(
+  "POST",
+  "/api/somoim/public/events/:token/identify-guest",
+  (context) => {
+    const config = require(`${__hooks}/config.js`);
+    const publicToken = context.pathParam("token");
+
+    // 1. 공용 회차 토큰 검증
+    if (
+      !publicToken ||
+      publicToken.length !== config.PUBLIC_LINK_TOKEN_LENGTH
+    ) {
+      throw new NotFoundError("유효하지 않은 참석 링크입니다.");
+    }
+
+    const publicTokenHash = $security.sha256(publicToken);
+    let eventRecord;
+
+    try {
+      eventRecord = $app
+        .dao()
+        .findFirstRecordByFilter("events", "public_token_hash = {:tokenHash}", {
+          tokenHash: publicTokenHash,
+        });
+    } catch {
+      throw new NotFoundError("유효하지 않은 참석 링크입니다.");
+    }
+
+    if (!eventRecord.getBool("public_access_enabled")) {
+      throw new NotFoundError("비활성화된 참석 링크입니다.");
+    }
+
+    const requestData = new DynamicModel({ guestName: "" });
+    context.bind(requestData);
+    const guestName = String(requestData.guestName || "").trim();
+
+    if (!guestName) {
+      throw new BadRequestError("게스트 이름을 입력하거나 선택해 주세요.");
+    }
+
+    // 2. 해당 회차에 등록된 게스트 참가자 조회
+    const matchingGuests = $app
+      .dao()
+      .findRecordsByFilter(
+        "event_participants",
+        "event = {:eventId} && participant_type = 'guest' && display_name = {:guestName}",
+        "",
+        2,
+        0,
+        { eventId: eventRecord.id, guestName },
+      );
+
+    if (matchingGuests.length === 0) {
+      throw new BadRequestError(
+        "입력한 이름의 게스트 참가자를 찾을 수 없습니다.",
+      );
+    }
+
+    const participantRecord = matchingGuests[0];
+
+    // 3. 본인 응답용 개인 토큰 발급
+    const responseToken = $security.randomString(
+      config.PARTICIPATION_TOKEN_LENGTH,
+    );
+    participantRecord.set(
+      "participation_token_hash",
+      $security.sha256(responseToken),
+    );
+    $app.dao().saveRecord(participantRecord);
+
+    return context.json(200, {
+      responseToken,
+      participant: {
+        displayName: participantRecord.getString("display_name"),
+        rank: participantRecord.getInt("rank_snapshot"),
+        gameParticipationStatus: participantRecord.getString(
+          "game_participation_status",
+        ),
+      },
+    });
+  },
+);
