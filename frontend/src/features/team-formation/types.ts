@@ -104,12 +104,34 @@ export interface SaveTeamFormationInput {
   method: TeamFormationMethod;
   status: TeamFormationStatus;
 
+  /**
+   * 새 편성이면 0, 기존 편성이면 조회한 version을 전달합니다.
+   */
+  expectedVersion: number;
+
   teams: Array<{
     id?: string;
     name: string;
-
     participantIds: string[];
   }>;
+}
+
+export interface TeamFormationSnapshot {
+  id: string;
+  eventId: string;
+  gameSettingId: string;
+
+  method: TeamFormationMethod;
+  status: TeamFormationStatus;
+
+  qualityScore: number;
+  version: number;
+}
+
+export interface TeamFormationContext {
+  participants: FormationParticipant[];
+  formation: TeamFormationSnapshot | null;
+  teams: TeamDraft[];
 }
 
 export interface GenerateTeamFormationOptions {
