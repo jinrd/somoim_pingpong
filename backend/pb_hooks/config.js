@@ -13,4 +13,22 @@ module.exports = Object.freeze({
 
     return $security.sha256(secret).slice(0, 32);
   },
+
+  createMemberPhoneEncryptionKey: function (secret) {
+    if (!secret) {
+      throw new Error("PB_ENCRYPTION_KEY is required.");
+    }
+
+    return $security
+      .sha256(`somoim:member-phone:encryption:${secret}`)
+      .slice(0, 32);
+  },
+
+  createMemberPhoneHashKey: function (secret) {
+    if (!secret) {
+      throw new Error("PB_ENCRYPTION_KEY is required.");
+    }
+
+    return $security.sha256(`somoim:member-phone:lookup:${secret}`);
+  },
 });

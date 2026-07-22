@@ -332,6 +332,10 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
     "-" +
     phoneDigits.slice(7, 11);
 
+  const privacy = require(`${__hooks}/member_privacy.js`);
+
+  const phoneHash = privacy.hashPhone(formattedPhone);
+
   /*
    * 3. 이름과 연락처가 모두 일치하는 활성 회원 조회
    */
@@ -339,13 +343,17 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
     .dao()
     .findRecordsByFilter(
       "members",
-      ["name = {:name}", "phone = {:phone}", "status = {:status}"].join(" && "),
+      [
+        "name = {:name}",
+        "phone_hash = {:phoneHash}",
+        "status = {:status}",
+      ].join(" && "),
       "",
       2,
       0,
       {
         name,
-        phone: formattedPhone,
+        phoneHash,
         status: "active",
       },
     );
