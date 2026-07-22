@@ -511,6 +511,7 @@
 .participantLayout {
   display: grid;
   grid-template-columns: minmax(280px, 0.8fr) minmax(380px, 1.2fr);
+  align-items: start;
   gap: 18px;
 }
 
@@ -576,6 +577,7 @@
 .participantList {
   max-height: 480px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .memberSelectionList {
@@ -736,8 +738,25 @@
 }
 
 @media (max-width: 600px) {
+  .backButton {
+    min-height: 40px;
+    margin-bottom: 10px;
+  }
+
+  .detailHeader {
+    padding: 20px 17px;
+    margin-bottom: 12px;
+    border-radius: 15px;
+  }
+
+  .detailHeader h1 {
+    margin-top: 10px;
+    font-size: 1.45rem;
+  }
+
   .participantSummaryGrid {
     grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   .summaryCard {
@@ -748,16 +767,41 @@
   }
 
   .detailTabs {
+    position: sticky;
+    top: 8px;
+    z-index: 20;
     justify-content: flex-start;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
   }
 
   .detailTab {
     flex: 0 0 auto;
+    min-height: 42px;
+    padding: 0 11px;
+    font-size: 0.78rem;
+  }
+
+  .memberPicker,
+  .participantPanel {
+    overflow: visible;
+    border-radius: 14px;
+  }
+
+  .memberSelectionList,
+  .participantList {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .panelHeader {
+    padding: 17px;
   }
 
   .participantItem {
     align-items: stretch;
     flex-direction: column;
+    padding: 14px 16px;
   }
 
   .participantControls {

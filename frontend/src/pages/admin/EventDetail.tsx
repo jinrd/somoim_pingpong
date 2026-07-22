@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 
-import { ArrowLeft, CalendarDays, Trophy, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ListOrdered,
+  Trophy,
+  Users,
+} from "lucide-react";
+
+import TeamSchedulePanel from "../../features/match-schedule/TeamSchedulePanel";
 
 import { useNavigate, useParams } from "react-router-dom";
 import TeamFormationPanel from "../../features/team-formation/TeamFormationPanel";
@@ -43,9 +51,10 @@ export default function EventDetail() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"participants" | "game-settings">(
-    "participants",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "participants" | "game-settings" | "schedule"
+  >("participants");
+
   const [gameSetting, setGameSetting] = useState<EventGameSetting | null>(null);
 
   useEffect(() => {
@@ -188,9 +197,18 @@ export default function EventDetail() {
           게임 설정/팀 편성
         </button>
 
-        <button type="button" className={styles.detailTab} disabled>
+        <button
+          type="button"
+          className={`${styles.detailTab} ${
+            activeTab === "schedule" ? styles.detailTabActive : ""
+          }`}
+          aria-current={activeTab === "schedule" ? "page" : undefined}
+          onClick={() => {
+            setActiveTab("schedule");
+          }}
+        >
+          <ListOrdered size={18} aria-hidden="true" />
           대진표/결과
-          <small>준비 중</small>
         </button>
       </nav>
 
@@ -207,6 +225,7 @@ export default function EventDetail() {
 
         <TeamFormationPanel setting={gameSetting} />
       </div>
+      {activeTab === "schedule" && <TeamSchedulePanel setting={gameSetting} />}
     </section>
   );
 }
