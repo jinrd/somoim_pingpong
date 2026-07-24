@@ -126,6 +126,7 @@ export interface PublicIdentifiedParticipant {
 
 export interface PublicIdentityResult {
   responseToken: string;
+  competitionType: string;
   participant: PublicIdentifiedParticipant;
 }
 

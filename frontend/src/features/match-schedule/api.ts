@@ -181,3 +181,94 @@ export const getTeamSchedule = async (
     },
   );
 };
+
+export interface SaveIndividualScheduleInput {
+  expectedScheduleVersion: number;
+  schedule: RoundRobinSchedule;
+}
+export interface SaveIndividualScheduleResult {
+  scheduleVersion: number;
+  totalRoundCount: number;
+  totalMatchCount: number;
+}
+
+export const saveIndividualSchedule = async (
+  gameSettingId: string,
+  input: SaveIndividualScheduleInput,
+): Promise<SaveIndividualScheduleResult> => {
+  if (!gameSettingId) {
+    throw new Error("게임 설정 정보가 없습니다.");
+  }
+  if (
+    !Number.isInteger(input.expectedScheduleVersion) ||
+    input.expectedScheduleVersion < 0
+  ) {
+    throw new Error("대진표 버전 정보가 올바르지 않습니다.");
+  }
+  if (input.schedule.matches.length === 0) {
+    throw new Error("저장할 대진이 없습니다.");
+  }
+
+  input.schedule.matches.forEach(validateMatch);
+
+  return pb.send<SaveIndividualScheduleResult>(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(gameSettingId)}/individual-schedule`,
+    {
+      method: "PUT",
+      body: {
+        expectedScheduleVersion: input.expectedScheduleVersion,
+        matches: input.schedule.matches.map((match) => ({
+          // 백엔드는 ParticipantId로 받지만, 프론트엔드의 공통 대진 생성기(generateRoundRobin)는
+          // 일관되게 TeamId 속성명을 사용하므로 이를 매핑해줍니다.
+          homeParticipantId: match.homeTeamId,
+          awayParticipantId: match.awayTeamId,
+          round: match.round,
+          sortOrder: match.sortOrder,
+        })),
+      },
+    },
+  );
+};
+
+export interface StoredIndividualMatch {
+  id: string;
+  pairKey: string;
+  round: number;
+  sortOrder: number;
+  status: TeamMatchStatus;
+  version: number;
+  bestOf: number;
+  countsForRanking: boolean;
+  homeParticipant: RoundRobinTeam;
+  awayParticipant: RoundRobinTeam;
+}
+export interface StoredIndividualScheduleRound {
+  round: number;
+  matches: StoredIndividualMatch[];
+  byeParticipant: RoundRobinTeam | null;
+}
+export interface IndividualScheduleContext {
+  eventId: string;
+  gameSettingId: string;
+
+  participants: RoundRobinTeam[];
+
+  scheduleVersion: number;
+  totalRoundCount: number;
+  totalMatchCount: number;
+
+  canRegenerate: boolean;
+  rounds: StoredIndividualScheduleRound[];
+}
+export const getIndividualSchedule = async (
+  gameSettingId: string,
+): Promise<IndividualScheduleContext> => {
+  return pb.send<IndividualScheduleContext>(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(
+      gameSettingId,
+    )}/individual-schedule`,
+    {
+      method: "GET",
+    },
+  );
+};

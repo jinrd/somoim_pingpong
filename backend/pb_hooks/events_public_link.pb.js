@@ -437,8 +437,23 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
 
   $app.dao().saveRecord(participantRecord);
 
+  let competitionType = "unknown";
+  try {
+    const gameSettingRecord = $app
+      .dao()
+      .findFirstRecordByFilter(
+        "event_game_settings",
+        "event = {:eventId} && status = 'confirmed'",
+        { eventId: eventRecord.id },
+      );
+    competitionType = gameSettingRecord.getString("competition_type");
+  } catch {
+    // 확정된 게임 설정이 없으면 unknown 유지
+  }
+
   return context.json(200, {
     responseToken,
+    competitionType,
     participant: {
       displayName: participantRecord.getString("display_name"),
       rank: participantRecord.getInt("rank_snapshot"),
@@ -665,8 +680,23 @@ routerAdd(
     );
     $app.dao().saveRecord(participantRecord);
 
+    let competitionType = "unknown";
+    try {
+      const gameSettingRecord = $app
+        .dao()
+        .findFirstRecordByFilter(
+          "event_game_settings",
+          "event = {:eventId} && status = 'confirmed'",
+          { eventId: eventRecord.id },
+        );
+      competitionType = gameSettingRecord.getString("competition_type");
+    } catch {
+      // 확정된 게임 설정이 없으면 unknown 유지
+    }
+
     return context.json(200, {
       responseToken,
+      competitionType,
       participant: {
         displayName: participantRecord.getString("display_name"),
         rank: participantRecord.getInt("rank_snapshot"),

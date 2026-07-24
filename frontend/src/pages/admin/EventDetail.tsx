@@ -18,6 +18,8 @@ import ParticipantManager from "../../features/events/ParticipantManager";
 import PublicLinkManager from "../../features/events/PublicLinkManager";
 import { getEvent } from "../../features/events/api";
 import GameSettingsPanel from "../../features/game-settings/GameSettingsPanel";
+import IndividualSchedulePanel from "../../features/match-schedule/IndividualSchedulePanel";
+
 import {
   EVENT_STATUS_LABELS,
   type SomoimEvent,
@@ -142,7 +144,6 @@ export default function EventDetail() {
         <ArrowLeft size={18} aria-hidden="true" />
         회차 목록
       </button>
-
       <header className={styles.detailHeader}>
         <div>
           <span className={styles.detailStatus}>
@@ -211,7 +212,6 @@ export default function EventDetail() {
           대진표/결과
         </button>
       </nav>
-
       <div style={{ display: activeTab === "participants" ? "block" : "none" }}>
         <ParticipantManager eventId={eventId} />
       </div>
@@ -225,7 +225,15 @@ export default function EventDetail() {
 
         <TeamFormationPanel setting={gameSetting} />
       </div>
-      {activeTab === "schedule" && <TeamSchedulePanel setting={gameSetting} />}
+
+      {activeTab === "schedule" &&
+        gameSetting?.competition_type === "team_league" && (
+          <TeamSchedulePanel setting={gameSetting} />
+        )}
+      {activeTab === "schedule" &&
+        gameSetting?.competition_type === "individual_singles" && (
+          <IndividualSchedulePanel setting={gameSetting} />
+        )}
     </section>
   );
 }

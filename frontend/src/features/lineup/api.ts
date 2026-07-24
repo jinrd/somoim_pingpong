@@ -49,3 +49,17 @@ export const savePublicLineup = async (
     },
   );
 };
+
+export const getMyIndividualMatches = async (
+  responseToken: string,
+): Promise<PublicParticipantMatchesResponse> => {
+  return pb.send<PublicParticipantMatchesResponse>(
+    "/api/somoim/public/individual-matches/mine",
+    {
+      method: "POST",
+      body: {
+        responseToken,
+      },
+    },
+  );
+};

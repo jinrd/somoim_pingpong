@@ -16,7 +16,8 @@ import { getPublicEvent } from "../../features/events/api";
 
 import PublicIdentityForm from "../../features/events/PublicIdentityForm";
 import PublicParticipationForm from "../../features/events/PublicParticipationForm";
-import PublicLineupSection from "../../features/lineup/PublicLineupSection";
+import PublicTeamLineupSection from "../../features/lineup/PublicTeamLineupSection";
+import PublicIndividualLineupSection from "../../features/lineup/PublicIndividualLineupSection";
 import {
   EVENT_STATUS_LABELS,
   type PublicEventResponse,
@@ -86,7 +87,11 @@ const getStoredIdentity = (
 
     const parsedValue = JSON.parse(storedValue) as PublicIdentityResult;
 
-    if (!parsedValue.responseToken || !parsedValue.participant) {
+    if (
+      !parsedValue.responseToken ||
+      !parsedValue.participant ||
+      !parsedValue.competitionType
+    ) {
       return null;
     }
 
@@ -304,12 +309,18 @@ export default function PublicEvent() {
                       );
                     }}
                   />
-                  {identity.participant.gameParticipationStatus ===
-                    "playing" && (
-                    <PublicLineupSection
-                      responseToken={identity.responseToken}
-                    />
-                  )}
+                  {identity.participant.gameParticipationStatus === "playing" &&
+                    identity.competitionType === "team_league" && (
+                      <PublicTeamLineupSection
+                        responseToken={identity.responseToken}
+                      />
+                    )}
+                  {identity.participant.gameParticipationStatus === "playing" &&
+                    identity.competitionType === "individual_singles" && (
+                      <PublicIndividualLineupSection
+                        responseToken={identity.responseToken}
+                      />
+                    )}
                 </div>
               )}
             </section>
