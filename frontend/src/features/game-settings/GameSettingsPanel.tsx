@@ -33,6 +33,8 @@ import {
   updateEventGameSetting,
 } from "./api";
 
+import { checkMatchIntegrity } from "../events/api";
+
 import {
   DEFAULT_GAME_SETTING_INPUT,
   DEFAULT_MATCH_FORMAT_INPUT,
@@ -245,9 +247,19 @@ export default function GameSettingsPanel({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+  const [matchIntegrity, setMatchIntegrity] = useState({
+    hasMatches: false,
+    hasInProgressOrCompletedMatches: false,
+  });
+
+  useEffect(() => {
+    checkMatchIntegrity(eventId).then(setMatchIntegrity).catch(console.error);
+  }, [eventId]);
 
   useEffect(() => {
     let cancelled = false;
+
+    checkMatchIntegrity(eventId).then(setMatchIntegrity).catch(console.error);
 
     getEventGameConfiguration(eventId)
       .then((configuration) => {
@@ -482,7 +494,7 @@ export default function GameSettingsPanel({
               name="competition-type"
               value="team_league"
               checked={formData.competitionType === "team_league"}
-              disabled={isWorking}
+              disabled={isWorking || matchIntegrity.hasMatches}
               onChange={() => {
                 setFormData((current) => ({
                   ...current,

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /// <reference path="../pb_data/types.d.ts" />
 
 /*
@@ -412,11 +413,11 @@ routerAdd("POST", "/api/somoim/public/individual-matches/mine", (context) => {
     "",
     500,
     0,
-    { eventId }
+    { eventId },
   );
-  
+
   const participantsById = new Map();
-  allParticipantRecords.forEach(p => {
+  allParticipantRecords.forEach((p) => {
     participantsById.set(p.id, p);
   });
 
@@ -427,13 +428,13 @@ routerAdd("POST", "/api/somoim/public/individual-matches/mine", (context) => {
     "sort_order",
     500,
     0,
-    { participantId: participantRecord.id }
+    { participantId: participantRecord.id },
   );
 
-  const matches = matchRecords.map(matchRecord => {
+  const matches = matchRecords.map((matchRecord) => {
     const homeId = matchRecord.getString("home_participant");
     const awayId = matchRecord.getString("away_participant");
-    
+
     const opponentId = homeId === participantRecord.id ? awayId : homeId;
     const opponentRecord = participantsById.get(opponentId);
 
@@ -442,13 +443,15 @@ routerAdd("POST", "/api/somoim/public/individual-matches/mine", (context) => {
       round: matchRecord.getInt("round"),
       sortOrder: matchRecord.getInt("sort_order"),
       status: matchRecord.getString("status"),
-      isHomeTeam: homeId === participantRecord.id, 
-      opponentTeam: { 
+      isHomeTeam: homeId === participantRecord.id,
+      opponentTeam: {
         id: opponentRecord ? opponentRecord.id : opponentId,
-        name: opponentRecord ? opponentRecord.getString("display_name") : "삭제된 참가자",
+        name: opponentRecord
+          ? opponentRecord.getString("display_name")
+          : "삭제된 참가자",
       },
-      ownLineupStatus: "confirmed", 
-      opponentLineupStatus: "confirmed"
+      ownLineupStatus: "confirmed",
+      opponentLineupStatus: "confirmed",
     };
   });
 

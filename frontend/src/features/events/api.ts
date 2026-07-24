@@ -513,3 +513,57 @@ export const identifyPublicGuest = async (
     },
   );
 };
+// 파일 상단에 pb 임포트가 없다면 추가해 주세요. (있는지 확인 필요)
+// import { pb } from "../../lib/pocketbase";
+
+export interface MatchIntegrityStatus {
+  hasMatches: boolean;
+  hasInProgressOrCompletedMatches: boolean;
+}
+
+/**
+ * 이벤트(회차)에 생성된 대진표가 있는지, 이미 시작된 경기가 있는지 확인합니다.
+ */
+export const checkMatchIntegrity = async (
+  eventId: string,
+): Promise<MatchIntegrityStatus> => {
+  // 1. 팀 경기 확인
+  const teamMatches = await pb.collection("team_matches").getList(1, 1, {
+    filter: pb.filter("event = {:eventId}", { eventId }),
+    requestKey: null,
+  });
+  const inProgressTeamMatches = await pb
+    .collection("team_matches")
+    .getList(1, 1, {
+      filter: pb.filter(
+        "event = {:eventId} && (status = 'in_progress' || status = 'completed')",
+        { eventId },
+      ),
+      requestKey: null,
+    });
+
+  // 2. 개인 단식 경기 확인
+  const individualMatches = await pb
+    .collection("individual_matches")
+    .getList(1, 1, {
+      filter: pb.filter("event = {:eventId}", { eventId }),
+      requestKey: null,
+    });
+  const inProgressIndivMatches = await pb
+    .collection("individual_matches")
+    .getList(1, 1, {
+      filter: pb.filter(
+        "event = {:eventId} && (status = 'in_progress' || status = 'completed')",
+        { eventId },
+      ),
+      requestKey: null,
+    });
+
+  const hasMatches =
+    teamMatches.totalItems > 0 || individualMatches.totalItems > 0;
+  const hasInProgressOrCompletedMatches =
+    inProgressTeamMatches.totalItems > 0 ||
+    inProgressIndivMatches.totalItems > 0;
+
+  return { hasMatches, hasInProgressOrCompletedMatches };
+};

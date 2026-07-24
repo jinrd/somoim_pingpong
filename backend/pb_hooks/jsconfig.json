@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "esnext",
+    "checkJs": true,
+    "lib": ["esnext"]
+  },
+  "include": ["**/*.js", "**/*.pb.js", "../pb_data/types.d.ts"]
+}

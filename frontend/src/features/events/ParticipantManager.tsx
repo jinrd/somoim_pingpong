@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { RefreshCw, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { RefreshCw, Search, Trash2, UserPlus, Users, X } from "lucide-react";
 import { ClientResponseError } from "pocketbase";
 
 import {
@@ -16,6 +16,7 @@ import {
   getEventParticipants,
   removeEventParticipant,
   updateGameParticipationStatus,
+  checkMatchIntegrity,
 } from "./api";
 
 import GuestFormModal from "./GuestFormModal";
@@ -41,9 +42,7 @@ const getParticipantTypeLabel = (participant: EventParticipant): string => {
   return "회원";
 };
 
-const isInactiveMember = (
-  participant: EventParticipantWithMember,
-): boolean =>
+const isInactiveMember = (participant: EventParticipantWithMember): boolean =>
   participant.participant_type === "member" &&
   participant.expand?.member?.status === "inactive";
 
@@ -111,6 +110,12 @@ export default function ParticipantManager({ eventId }: Props) {
 
   const [isGuestModalOpen, setGuestModalOpen] = useState(false);
 
+  const [matchIntegrity, setMatchIntegrity] = useState({
+    hasMatches: false,
+    hasInProgressOrCompletedMatches: false,
+  });
+  const [hideWarning, setHideWarning] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -118,8 +123,9 @@ export default function ParticipantManager({ eventId }: Props) {
       getEventParticipants(eventId),
       getMembers(),
       getRankSettings(),
+      checkMatchIntegrity(eventId),
     ])
-      .then(([participantRecords, memberRecords, settings]) => {
+      .then(([participantRecords, memberRecords, settings, integrity]) => {
         if (cancelled) {
           return;
         }
@@ -129,6 +135,7 @@ export default function ParticipantManager({ eventId }: Props) {
           excludeRegisteredMembers(memberRecords, participantRecords),
         );
         setRankSettings(settings ?? DEFAULT_RANK_SETTINGS);
+        setMatchIntegrity(integrity);
       })
       .catch(() => {
         if (!cancelled) {
@@ -178,11 +185,13 @@ export default function ParticipantManager({ eventId }: Props) {
     setError("");
 
     try {
-      const [participantRecords, memberRecords, settings] = await Promise.all([
-        getEventParticipants(eventId),
-        getMembers(),
-        getRankSettings(),
-      ]);
+      const [participantRecords, memberRecords, settings, integrity] =
+        await Promise.all([
+          getEventParticipants(eventId),
+          getMembers(),
+          getRankSettings(),
+          checkMatchIntegrity(eventId),
+        ]);
 
       setParticipants(participantRecords);
       setAvailableMembers(
@@ -190,6 +199,8 @@ export default function ParticipantManager({ eventId }: Props) {
       );
       setRankSettings(settings ?? DEFAULT_RANK_SETTINGS);
       setSelectedMemberIds(new Set());
+      setMatchIntegrity(integrity);
+      setHideWarning(false);
     } catch {
       setError("참석자 정보를 다시 불러오지 못했습니다.");
     } finally {
@@ -228,6 +239,7 @@ export default function ParticipantManager({ eventId }: Props) {
       await addMembersToEvent(eventId, selectedMembers);
 
       await refreshParticipants();
+      setHideWarning(false);
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setError(caughtError.message);
@@ -271,12 +283,10 @@ export default function ParticipantManager({ eventId }: Props) {
           };
         }),
       );
+      setHideWarning(false);
     } catch (caughtError) {
       setError(
-        getErrorMessage(
-          caughtError,
-          "게임 참가 상태를 변경하지 못했습니다.",
-        ),
+        getErrorMessage(caughtError, "게임 참가 상태를 변경하지 못했습니다."),
       );
     } finally {
       setIsWorking(false);
@@ -315,6 +325,7 @@ export default function ParticipantManager({ eventId }: Props) {
           participant.expand!.member!,
         ]);
       }
+      setHideWarning(false);
     } catch {
       setError("참석자를 제거하지 못했습니다.");
     } finally {
@@ -365,6 +376,51 @@ export default function ParticipantManager({ eventId }: Props) {
           </button>
         </div>
       )}
+
+      {matchIntegrity.hasInProgressOrCompletedMatches ? (
+        <div className={styles.errorPanel} role="alert">
+          <p>
+            ⚠️ 이미 진행 중이거나 완료된 경기가 있어 참석자를 변경할 수
+            없습니다.
+          </p>
+        </div>
+      ) : matchIntegrity.hasMatches && !hideWarning ? (
+        <div
+          className={styles.errorPanel}
+          role="alert"
+          style={{
+            backgroundColor: "#fef3c7",
+            color: "#92400e",
+            borderColor: "#fde68a",
+            position: "relative",
+          }}
+        >
+          <p style={{ paddingRight: "24px" }}>
+            ⚠️ 이미 생성된 대진표가 있습니다. 참석자를 변경하면 대진표를 다시
+            짜야 할 수 있습니다.
+          </p>
+          <button
+            type="button"
+            onClick={() => setHideWarning(true)}
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-label="경고 숨기기"
+          >
+            <X size={18} color="#92400e" />
+          </button>
+        </div>
+      ) : null}
 
       <div className={styles.participantLayout}>
         <section className={styles.memberPicker}>
@@ -500,7 +556,11 @@ export default function ParticipantManager({ eventId }: Props) {
                       id={`participant-status-${participant.id}`}
                       className={styles.statusSelect}
                       value={participant.game_participation_status}
-                      disabled={isWorking || isInactiveMember(participant)}
+                      disabled={
+                        isWorking ||
+                        isInactiveMember(participant) ||
+                        matchIntegrity.hasInProgressOrCompletedMatches
+                      }
                       aria-label={`${participant.display_name} 게임 참가 상태`}
                       title={
                         isInactiveMember(participant)
@@ -529,7 +589,10 @@ export default function ParticipantManager({ eventId }: Props) {
                       onClick={() => {
                         void handleRemoveParticipant(participant);
                       }}
-                      disabled={isWorking}
+                      disabled={
+                        isWorking ||
+                        matchIntegrity.hasInProgressOrCompletedMatches
+                      }
                       aria-label={`${participant.display_name} 참석자 제거`}
                     >
                       <Trash2 size={18} aria-hidden="true" />
