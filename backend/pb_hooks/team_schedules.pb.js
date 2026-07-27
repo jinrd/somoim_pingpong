@@ -11,6 +11,7 @@ routerAdd(
   (context) => {
     const gameSettingId = context.pathParam("gameSettingId");
 
+    /** @type {any} */
     const requestData = new DynamicModel({
       expectedFormationVersion: 0,
       expectedScheduleVersion: 0,
@@ -436,7 +437,7 @@ routerAdd(
       matchFormatCount: formatSnapshot.length,
     });
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 
 /*
@@ -668,5 +669,5 @@ routerAdd(
       rounds,
     });
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );

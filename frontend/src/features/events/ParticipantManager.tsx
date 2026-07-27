@@ -326,8 +326,8 @@ export default function ParticipantManager({ eventId }: Props) {
         ]);
       }
       setHideWarning(false);
-    } catch {
-      setError("참석자를 제거하지 못했습니다.");
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError, "참석자를 제거하지 못했습니다."));
     } finally {
       setIsWorking(false);
     }

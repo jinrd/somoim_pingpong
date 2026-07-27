@@ -36,11 +36,15 @@ routerAdd(
 
     formats.forEach((format, index) => {
       if (!format || typeof format !== "object") {
-        throw new BadRequestError(`${index + 1}번째 경기 형식이 올바르지 않습니다.`);
+        throw new BadRequestError(
+          `${index + 1}번째 경기 형식이 올바르지 않습니다.`,
+        );
       }
 
       if (format.matchType !== "singles" && format.matchType !== "doubles") {
-        throw new BadRequestError(`${index + 1}번째 경기 방식을 확인해 주세요.`);
+        throw new BadRequestError(
+          `${index + 1}번째 경기 방식을 확인해 주세요.`,
+        );
       }
 
       if (
@@ -162,5 +166,5 @@ routerAdd(
       })),
     );
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );

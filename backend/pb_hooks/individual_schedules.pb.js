@@ -173,13 +173,17 @@ routerAdd(
     });
 
     /*
-     * 5. 중복 검사
+     * 5. 전체 대결 조합 검증
+     *
+     * pairKey는 두 참가자 ID를 정렬해서 만든 값입니다.
+     * 홈과 원정 순서가 바뀌더라도 같은 대결로 판단합니다.
      */
     const submittedPairKeys = normalizedMatches.map((match) => match.pairKey);
 
-    // submittedPairKeys 가 뭘 지징하는거지?
-    if (new Set(submittedPairKeys).size !== submittedPairKeys.length) {
-      throw new BadRequestError("동일한 대결 조합이 중복되어 있습니다.");
+    const submittedPairKeySet = new Set(submittedPairKeys);
+
+    if (submittedPairKeySet.size !== submittedPairKeys.length) {
+      throw new BadRequestError("동일한 참가자 대결 조합이 중복되어 있습니다.");
     }
 
     const expectedPairKeys = [];
@@ -201,14 +205,149 @@ routerAdd(
         );
       }
     }
-    if (
-      expectedPairKeys.some((pairKey) => !submittedPairKeys.includes(pairKey))
-    ) {
-      throw new BadRequestError("일부 대결 조합이 대진표에서 누락되었습니다.");
+
+    const hasMissingPair = expectedPairKeys.some(
+      (pairKey) => !submittedPairKeySet.has(pairKey),
+    );
+
+    const hasUnknownPair = submittedPairKeys.some(
+      (pairKey) => !expectedPairKeys.includes(pairKey),
+    );
+
+    if (hasMissingPair || hasUnknownPair) {
+      throw new BadRequestError("전체 참가자 대결 조합이 올바르지 않습니다.");
     }
 
     /*
-     * 6. 대진표 트랜잭션 저장
+     * 6. 전체 경기 순서 검증
+     *
+     * sortOrder는 대진표 전체에서 1부터 경기 수까지
+     * 중복이나 누락 없이 연속되어야 합니다.
+     */
+    const sortedSortOrders = normalizedMatches
+      .map((match) => match.sortOrder)
+      .sort((left, right) => left - right);
+
+    for (
+      let orderIndex = 0;
+      orderIndex < sortedSortOrders.length;
+      orderIndex += 1
+    ) {
+      const expectedSortOrder = orderIndex + 1;
+
+      if (sortedSortOrders[orderIndex] !== expectedSortOrder) {
+        throw new BadRequestError(
+          `경기 순서는 1부터 ${normalizedMatches.length}까지 중복 없이 연속되어야 합니다.`,
+        );
+      }
+    }
+
+    /*
+     * 7. 라운드 구조 검증
+     *
+     * 짝수 참가자:
+     * - 전체 라운드 수: 참가자 수 - 1
+     * - 라운드당 경기 수: 참가자 수 / 2
+     * - 휴식자 없음
+     *
+     * 홀수 참가자:
+     * - 전체 라운드 수: 참가자 수
+     * - 라운드당 경기 수: (참가자 수 - 1) / 2
+     * - 라운드마다 정확히 한 명 휴식
+     */
+    const participantCount = participantRecords.length;
+
+    const expectedRoundCount =
+      participantCount % 2 === 0 ? participantCount - 1 : participantCount;
+
+    const expectedMatchesPerRound = Math.floor(participantCount / 2);
+
+    const submittedRoundNumbers = new Set(
+      normalizedMatches.map((match) => match.round),
+    );
+
+    /*
+     * 존재하지 않아야 할 라운드 번호가 포함되었는지 검사합니다.
+     */
+    if (normalizedMatches.some((match) => match.round > expectedRoundCount)) {
+      throw new BadRequestError(
+        `라운드 번호는 1부터 ${expectedRoundCount}까지여야 합니다.`,
+      );
+    }
+
+    /*
+     * 1부터 expectedRoundCount까지 모든 라운드가 있는지 검사합니다.
+     */
+    for (
+      let roundNumber = 1;
+      roundNumber <= expectedRoundCount;
+      roundNumber += 1
+    ) {
+      if (!submittedRoundNumbers.has(roundNumber)) {
+        throw new BadRequestError(
+          `${roundNumber}라운드가 대진표에서 누락되었습니다.`,
+        );
+      }
+
+      const roundMatches = normalizedMatches.filter(
+        (match) => match.round === roundNumber,
+      );
+
+      if (roundMatches.length !== expectedMatchesPerRound) {
+        throw new BadRequestError(
+          `${roundNumber}라운드는 ${expectedMatchesPerRound}경기여야 합니다.`,
+        );
+      }
+
+      /*
+       * 해당 라운드에 배치된 모든 참가자 ID를 모읍니다.
+       */
+      const roundParticipantIds = [];
+
+      roundMatches.forEach((match) => {
+        roundParticipantIds.push(match.homeParticipantId);
+        roundParticipantIds.push(match.awayParticipantId);
+      });
+
+      const uniqueRoundParticipantIds = new Set(roundParticipantIds);
+
+      /*
+       * 배열 길이와 Set 크기가 다르면 같은 참가자가
+       * 해당 라운드에 두 번 이상 배치된 것입니다.
+       */
+      if (uniqueRoundParticipantIds.size !== roundParticipantIds.length) {
+        throw new BadRequestError(
+          `${roundNumber}라운드에 두 번 이상 배치된 참가자가 있습니다.`,
+        );
+      }
+
+      if (
+        participantCount % 2 === 0 &&
+        uniqueRoundParticipantIds.size !== participantCount
+      ) {
+        throw new BadRequestError(
+          `${roundNumber}라운드에는 모든 참가자가 정확히 한 번씩 출전해야 합니다.`,
+        );
+      }
+
+      if (
+        participantCount % 2 !== 0 &&
+        uniqueRoundParticipantIds.size !== participantCount - 1
+      ) {
+        throw new BadRequestError(
+          `${roundNumber}라운드에는 정확히 한 명의 휴식자가 있어야 합니다.`,
+        );
+      }
+    }
+
+    if (submittedRoundNumbers.size !== expectedRoundCount) {
+      throw new BadRequestError(
+        `전체 라운드는 ${expectedRoundCount}개여야 합니다.`,
+      );
+    }
+
+    /*
+     * 8. 대진표 트랜잭션 저장
      */
     const nextScheduleVersion = currentScheduleVersion + 1;
     const individualBestOf = gameSetting.getInt("individual_best_of") || 3;
@@ -256,11 +395,11 @@ routerAdd(
 
     return context.json(200, {
       scheduleVersion: nextScheduleVersion,
-      totalRoundCount: Math.max(...normalizedMatches.map((m) => m.round)),
+      totalRoundCount: expectedRoundCount,
       totalMatchCount: normalizedMatches.length,
     });
   } /* middlewares */,
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 
 /*
@@ -382,7 +521,7 @@ routerAdd(
       rounds,
     });
   } /* middlewares */,
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 
 /*

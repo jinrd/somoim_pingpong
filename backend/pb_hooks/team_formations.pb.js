@@ -13,6 +13,7 @@ routerAdd(
 
     const gameSettingId = context.pathParam("gameSettingId");
 
+    /** @type {any} */
     const requestData = new DynamicModel({
       method: "",
       status: "",
@@ -372,7 +373,7 @@ routerAdd(
       service.buildContextResponse($app.dao(), gameSettingRecord),
     );
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 /*
  * 게임 참가자 및 현재 팀 편성 조회
@@ -398,5 +399,5 @@ routerAdd(
       service.buildContextResponse($app.dao(), gameSettingRecord),
     );
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );

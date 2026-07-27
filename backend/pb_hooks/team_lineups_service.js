@@ -1,71 +1,91 @@
+/**
+ * 참가자 개인 응답 토큰을 검증합니다.
+ *
+ * 참가자뿐 아니라 참가자가 속한 회차의 공개 접근 정책도 함께 검사합니다.
+ * 이 함수를 사용하는 모든 공개 API는 동일한 만료 정책을 적용받습니다.
+ */
 const findParticipantByResponseToken = function (responseToken) {
   const config = require(`${__hooks}/config.js`);
+  const dao = $app.dao();
 
   const normalizedToken = String(responseToken || "").trim();
 
+  const invalidTokenMessage = "유효하지 않거나 만료된 본인 확인 정보입니다.";
+
+  /*
+   * 1. 토큰 형식 검사
+   */
   if (
     !normalizedToken ||
     normalizedToken.length !== config.PARTICIPATION_TOKEN_LENGTH
   ) {
-    throw new NotFoundError("유효하지 않은 본인 확인 정보입니다.");
+    throw new NotFoundError(invalidTokenMessage);
   }
 
+  /*
+   * 2. 토큰 hash로 참가자 조회
+   */
   let participantRecord;
 
   try {
-    participantRecord = $app
-      .dao()
-      .findFirstRecordByFilter(
-        "event_participants",
-        "participation_token_hash = {:tokenHash}",
-        {
-          tokenHash: $security.sha256(normalizedToken),
-        },
-      );
+    participantRecord = dao.findFirstRecordByFilter(
+      "event_participants",
+      "participation_token_hash = {:tokenHash}",
+      {
+        tokenHash: $security.sha256(normalizedToken),
+      },
+    );
   } catch {
-    throw new NotFoundError("유효하지 않은 본인 확인 정보입니다.");
+    throw new NotFoundError(invalidTokenMessage);
   }
 
-  // 1) 기존의 'member 가 아니면 에러' 조건문을 제거
-  // if (participantRecord.getString("participant_type") !== "member") {
-  //   throw new BadRequestError(
-  //     "본인 확인을 완료한 회원만 라인업을 작성할 수 있습니다.",
-  //   );
-  // }
-  // let memberRecord;
-  // try {
-  //   memberRecord = $app
-  //     .dao()
-  //     .findRecordById("members", participantRecord.getString("member"));
-  // } catch {
-  //   throw new NotFoundError("회원 정보를 찾을 수 없습니다.");
-  // }
+  /*
+   * 3. 참가자가 속한 회차 조회
+   */
+  const eventId = participantRecord.getString("event");
 
-  // 2) member(회원)인 경우에만 members 테이블 상태 검사 진행
+  let eventRecord;
+
+  try {
+    eventRecord = dao.findRecordById("events", eventId);
+  } catch {
+    throw new NotFoundError(invalidTokenMessage);
+  }
+
+  const publicAccess = require(`${__hooks}/public_event_access.js`);
+
+  publicAccess.assertEventPublicAccess(eventRecord);
+
+  /*
+   * 7. 회원 참가자는 현재도 활동 중인지 검사
+   *
+   * 게스트는 members 레코드가 없으므로 이 검사를 하지 않습니다.
+   */
   if (participantRecord.getString("participant_type") === "member") {
     let memberRecord;
+
     try {
-      memberRecord = $app
-        .dao()
-        .findRecordById("members", participantRecord.getString("member"));
+      memberRecord = dao.findRecordById(
+        "members",
+        participantRecord.getString("member"),
+      );
     } catch {
-      throw new NotFoundError("회원 정보를 찾을 수 없습니다.");
+      throw new NotFoundError(invalidTokenMessage);
     }
+
     if (memberRecord.getString("status") !== "active") {
-      throw new BadRequestError("비활동 회원은 라인업을 작성할 수 없습니다.");
+      throw new BadRequestError(
+        "비활동 회원은 경기 정보에 접근할 수 없습니다.",
+      );
     }
   }
 
-  // 3) 회원/게스트 공통: 게임 참가 상태('playing')인지만 확인 후 진행
+  /*
+   * 8. 현재 게임 참가 상태인지 검사
+   */
   if (participantRecord.getString("game_participation_status") !== "playing") {
     throw new BadRequestError(
-      "게임 참가 상태인 참가자만 라인업을 작성할 수 있습니다.",
-    );
-  }
-
-  if (participantRecord.getString("game_participation_status") !== "playing") {
-    throw new BadRequestError(
-      "게임 참가 상태인 회원만 라인업을 작성할 수 있습니다.",
+      "게임 참가 상태인 참가자만 경기 정보에 접근할 수 있습니다.",
     );
   }
 
@@ -481,6 +501,22 @@ const saveLineup = function (teamMatchId, responseToken, input) {
       );
     }
 
+    /*
+     * 라인업 조회 이후 경기가 시작됐을 수 있으므로
+     * transaction 안에서 최신 경기 상태를 다시 확인합니다.
+     */
+    const teamMatchRecord = transactionDao.findRecordById(
+      "team_matches",
+      teamMatchId,
+    );
+
+    if (!["scheduled", "ready"].includes(teamMatchRecord.getString("status"))) {
+      throw new ApiError(
+        409,
+        "경기가 이미 시작되었거나 종료되어 라인업을 변경할 수 없습니다.",
+      );
+    }
+
     const currentPlayers = transactionDao.findRecordsByFilter(
       "match_game_players",
       "lineup = {:lineupId}",
@@ -542,20 +578,12 @@ const saveLineup = function (teamMatchId, responseToken, input) {
 
     const bothConfirmed =
       matchLineups.length === 2 &&
-      // matchLineups.every(
-      //   (currentLineup) => currentLineup.getString("status") === "confirmed",
-      // );
       matchLineups.every((currentLineup) => {
         if (currentLineup.id === context.lineup.id) {
           return status === "confirmed";
         }
         return currentLineup.getString("status") === "confirmed";
       });
-
-    const teamMatchRecord = transactionDao.findRecordById(
-      "team_matches",
-      teamMatchId,
-    );
 
     teamMatchRecord.set("status", bothConfirmed ? "ready" : "scheduled");
 

@@ -26,7 +26,7 @@ routerAdd(
       config.createPublicTokenEncryptionKey(encryptionSecret);
 
     const eventId = context.pathParam("eventId");
-
+    /** @type {any} */
     const requestData = new DynamicModel({
       expiresAt: "",
     });
@@ -83,7 +83,7 @@ routerAdd(
       expiresAt: parsedExpiresAt.toISOString(),
     });
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 
 /**
@@ -157,7 +157,7 @@ routerAdd(
       expiresAt,
     });
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 
 /**
@@ -191,7 +191,7 @@ routerAdd(
 
     return context.noContent(204);
   },
-  $apis.requireRecordAuth("users"),
+  require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
 
 /**
@@ -203,41 +203,13 @@ routerAdd(
  * 공개해도 되는 회차 정보만 DTO 형태로 반환합니다.
  */
 routerAdd("GET", "/api/somoim/public/events/:token", (context) => {
-  const config = require(`${__hooks}/config.js`);
+  const publicAccess = require(`${__hooks}/public_event_access.js`);
 
-  const publicToken = context.pathParam("token");
-
-  if (!publicToken || publicToken.length !== config.PUBLIC_LINK_TOKEN_LENGTH) {
-    throw new NotFoundError("유효하지 않은 참석 링크입니다.");
-  }
-
-  const tokenHash = $security.sha256(publicToken);
-
-  let eventRecord;
-
-  try {
-    eventRecord = $app
-      .dao()
-      .findFirstRecordByFilter("events", "public_token_hash = {:tokenHash}", {
-        tokenHash,
-      });
-  } catch {
-    throw new NotFoundError("유효하지 않은 참석 링크입니다.");
-  }
-
-  if (!eventRecord.getBool("public_access_enabled")) {
-    throw new NotFoundError("비활성화된 참석 링크입니다.");
-  }
+  const eventRecord = publicAccess.findEventByPublicToken(
+    context.pathParam("token"),
+  );
 
   const expiresAt = eventRecord.getString("public_expires_at");
-
-  if (!expiresAt || new Date(expiresAt).getTime() <= Date.now()) {
-    throw new NotFoundError("만료된 참석 링크입니다.");
-  }
-
-  if (eventRecord.getString("status") === "archived") {
-    throw new NotFoundError("종료된 참석 링크입니다.");
-  }
 
   return context.json(200, {
     event: {
@@ -265,46 +237,19 @@ routerAdd("GET", "/api/somoim/public/events/:token", (context) => {
 routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
   const config = require(`${__hooks}/config.js`);
 
-  const publicToken = context.pathParam("token");
-
   /*
    * 1. 공용 회차 토큰 검증
    */
-  if (!publicToken || publicToken.length !== config.PUBLIC_LINK_TOKEN_LENGTH) {
-    throw new NotFoundError("유효하지 않은 참석 링크입니다.");
-  }
+  const publicAccess = require(`${__hooks}/public_event_access.js`);
 
-  const publicTokenHash = $security.sha256(publicToken);
-
-  let eventRecord;
-
-  try {
-    eventRecord = $app
-      .dao()
-      .findFirstRecordByFilter("events", "public_token_hash = {:tokenHash}", {
-        tokenHash: publicTokenHash,
-      });
-  } catch {
-    throw new NotFoundError("유효하지 않은 참석 링크입니다.");
-  }
-
-  if (!eventRecord.getBool("public_access_enabled")) {
-    throw new NotFoundError("비활성화된 참석 링크입니다.");
-  }
-
-  const publicExpiresAt = eventRecord.getString("public_expires_at");
-
-  if (!publicExpiresAt || new Date(publicExpiresAt).getTime() <= Date.now()) {
-    throw new NotFoundError("만료된 참석 링크입니다.");
-  }
-
-  if (eventRecord.getString("status") === "archived") {
-    throw new NotFoundError("종료된 참석 링크입니다.");
-  }
+  const eventRecord = publicAccess.findEventByPublicToken(
+    context.pathParam("token"),
+  );
 
   /*
    * 2. 요청 body 확인
    */
+  /** @type {any} */
   const requestData = new DynamicModel({
     name: "",
     phone: "",
@@ -389,6 +334,10 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
    * 5. 참석자가 없다면 새로 생성
    */
   if (!participantRecord) {
+    const matchIntegrity = require(`${__hooks}/event_match_integrity.js`);
+
+    matchIntegrity.assertEventRosterEditable($app.dao(), eventRecord.id);
+
     const participantsCollection = $app
       .dao()
       .findCollectionByNameOrId("event_participants");
@@ -478,6 +427,7 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
 routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
   const config = require(`${__hooks}/config.js`);
 
+  /** @type {any} */
   const requestData = new DynamicModel({
     responseToken: "",
     gameParticipationStatus: "",
@@ -565,19 +515,17 @@ routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
     throw new NotFoundError("회차 정보를 찾을 수 없습니다.");
   }
 
-  if (!eventRecord.getBool("public_access_enabled")) {
-    throw new NotFoundError("비활성화된 참석 링크입니다.");
-  }
+  const publicAccess = require(`${__hooks}/public_event_access.js`);
 
-  const expiresAt = eventRecord.getString("public_expires_at");
+  publicAccess.assertEventPublicAccess(eventRecord);
 
-  if (!expiresAt || new Date(expiresAt).getTime() <= Date.now()) {
-    throw new NotFoundError("참석 응답 기간이 만료됐습니다.");
-  }
+  /*
+   * 공개 endpoint의 내부 저장은 일반 Record API용 수정 hook을
+   * 통과하지 않을 수 있으므로 여기서도 경기 시작 여부를 검사합니다.
+   */
+  const matchIntegrity = require(`${__hooks}/event_match_integrity.js`);
 
-  if (eventRecord.getString("status") === "archived") {
-    throw new NotFoundError("종료된 회차입니다.");
-  }
+  matchIntegrity.assertEventRosterEditable($app.dao(), eventId);
 
   /*
    * 게임 참가 상태와 응답 시간을 저장합니다.
@@ -615,33 +563,16 @@ routerAdd(
   "/api/somoim/public/events/:token/identify-guest",
   (context) => {
     const config = require(`${__hooks}/config.js`);
-    const publicToken = context.pathParam("token");
+    /*
+     * 1. 공용 회차 토큰 검증
+     */
+    const publicAccess = require(`${__hooks}/public_event_access.js`);
 
-    // 1. 공용 회차 토큰 검증
-    if (
-      !publicToken ||
-      publicToken.length !== config.PUBLIC_LINK_TOKEN_LENGTH
-    ) {
-      throw new NotFoundError("유효하지 않은 참석 링크입니다.");
-    }
+    const eventRecord = publicAccess.findEventByPublicToken(
+      context.pathParam("token"),
+    );
 
-    const publicTokenHash = $security.sha256(publicToken);
-    let eventRecord;
-
-    try {
-      eventRecord = $app
-        .dao()
-        .findFirstRecordByFilter("events", "public_token_hash = {:tokenHash}", {
-          tokenHash: publicTokenHash,
-        });
-    } catch {
-      throw new NotFoundError("유효하지 않은 참석 링크입니다.");
-    }
-
-    if (!eventRecord.getBool("public_access_enabled")) {
-      throw new NotFoundError("비활성화된 참석 링크입니다.");
-    }
-
+    /** @type {any} */
     const requestData = new DynamicModel({ guestName: "" });
     context.bind(requestData);
     const guestName = String(requestData.guestName || "").trim();
