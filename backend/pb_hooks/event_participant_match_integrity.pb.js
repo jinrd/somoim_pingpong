@@ -52,6 +52,10 @@ onRecordBeforeDeleteRequest((event) => {
 
   const participantId = participantRecord.id;
   const eventId = participantRecord.getString("event");
+  const eventRecord = dao.findRecordById("events", eventId);
+  const workflow = require(`${__hooks}/event_workflow_service.js`);
+
+  workflow.assertRegistrationOpen(eventRecord);
 
   /*
    * 경기 시작 후에는 어떤 참가자도 삭제할 수 없습니다.

@@ -59,3 +59,23 @@ export const saveTeamFormation = async (
     },
   );
 };
+
+export interface UnlockTeamFormationResult {
+  formationId: string;
+  status: "draft";
+  version: number;
+  schedulesReset: boolean;
+}
+
+export const unlockTeamFormation = async (
+  gameSettingId: string,
+  expectedVersion: number,
+): Promise<UnlockTeamFormationResult> => {
+  return pb.send<UnlockTeamFormationResult>(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(gameSettingId)}/team-formation/unlock`,
+    {
+      method: "POST",
+      body: { expectedVersion },
+    },
+  );
+};

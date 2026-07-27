@@ -218,6 +218,10 @@ routerAdd("GET", "/api/somoim/public/events/:token", (context) => {
       eventDate: eventRecord.getString("event_date"),
       notice: eventRecord.getString("notice"),
       status: eventRecord.getString("status"),
+      participationStatus: eventRecord.getString("participation_status"),
+      participationClosedAt: eventRecord.getString(
+        "participation_closed_at",
+      ),
     },
     expiresAt,
   });
@@ -334,9 +338,10 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
    * 5. 참석자가 없다면 새로 생성
    */
   if (!participantRecord) {
-    const matchIntegrity = require(`${__hooks}/event_match_integrity.js`);
+    const workflow = require(`${__hooks}/event_workflow_service.js`);
 
-    matchIntegrity.assertEventRosterEditable($app.dao(), eventRecord.id);
+    workflow.assertRegistrationOpen(eventRecord);
+    workflow.assertSetupEditable($app.dao(), eventRecord.id);
 
     const participantsCollection = $app
       .dao()
@@ -408,6 +413,9 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
       rank: participantRecord.getInt("rank_snapshot"),
       gameParticipationStatus: participantRecord.getString(
         "game_participation_status",
+      ),
+      hasResponded: Boolean(
+        participantRecord.getString("participation_responded_at"),
       ),
     },
   });
@@ -519,34 +527,57 @@ routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
 
   publicAccess.assertEventPublicAccess(eventRecord);
 
-  /*
-   * 공개 endpoint의 내부 저장은 일반 Record API용 수정 hook을
-   * 통과하지 않을 수 있으므로 여기서도 경기 시작 여부를 검사합니다.
-   */
-  const matchIntegrity = require(`${__hooks}/event_match_integrity.js`);
+  const workflow = require(`${__hooks}/event_workflow_service.js`);
 
-  matchIntegrity.assertEventRosterEditable($app.dao(), eventId);
+  workflow.assertRegistrationOpen(eventRecord);
+  workflow.assertSetupEditable($app.dao(), eventId);
 
   /*
-   * 게임 참가 상태와 응답 시간을 저장합니다.
+   * 한 번만 응답할 수 있도록 조회와 저장을 같은 트랜잭션에서 처리합니다.
    */
-  const respondedAt = new Date().toISOString();
+  let respondedAt = "";
+  let savedParticipant = null;
 
-  participantRecord.set("game_participation_status", gameParticipationStatus);
+  $app.dao().runInTransaction((transactionDao) => {
+    const currentParticipant = transactionDao.findRecordById(
+      "event_participants",
+      participantRecord.id,
+    );
+    const currentEvent = transactionDao.findRecordById("events", eventId);
 
-  participantRecord.set("participation_responded_at", respondedAt);
+    workflow.assertRegistrationOpen(currentEvent);
+    workflow.assertSetupEditable(transactionDao, eventId);
 
-  participantRecord.set("version", participantRecord.getInt("version") + 1);
+    if (currentParticipant.getString("participation_responded_at")) {
+      throw new BadRequestError(
+        "이미 참가 여부를 제출했습니다. 변경이 필요하면 운영진에게 문의해 주세요.",
+      );
+    }
 
-  $app.dao().saveRecord(participantRecord);
+    respondedAt = new Date().toISOString();
+
+    currentParticipant.set(
+      "game_participation_status",
+      gameParticipationStatus,
+    );
+    currentParticipant.set("participation_responded_at", respondedAt);
+    currentParticipant.set(
+      "version",
+      currentParticipant.getInt("version") + 1,
+    );
+
+    transactionDao.saveRecord(currentParticipant);
+    savedParticipant = currentParticipant;
+  });
 
   return context.json(200, {
     participant: {
-      displayName: participantRecord.getString("display_name"),
-      rank: participantRecord.getInt("rank_snapshot"),
-      gameParticipationStatus: participantRecord.getString(
+      displayName: savedParticipant.getString("display_name"),
+      rank: savedParticipant.getInt("rank_snapshot"),
+      gameParticipationStatus: savedParticipant.getString(
         "game_participation_status",
       ),
+      hasResponded: true,
     },
     respondedAt,
   });
@@ -633,6 +664,9 @@ routerAdd(
         rank: participantRecord.getInt("rank_snapshot"),
         gameParticipationStatus: participantRecord.getString(
           "game_participation_status",
+        ),
+        hasResponded: Boolean(
+          participantRecord.getString("participation_responded_at"),
         ),
       },
     });

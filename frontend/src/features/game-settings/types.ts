@@ -38,7 +38,6 @@ export interface GameSettingInput {
   individualBestOf: number;
   individualCountsForRanking: boolean;
 
-  status: GameSettingStatus;
 }
 
 export interface MatchFormatInput {
@@ -59,11 +58,6 @@ export interface EventGameConfiguration {
 export const COMPETITION_TYPE_LABELS: Record<CompetitionType, string> = {
   team_league: "팀 리그전",
   individual_singles: "개인 단식 풀리그",
-};
-
-export const GAME_SETTING_STATUS_LABELS: Record<GameSettingStatus, string> = {
-  draft: "설정 중",
-  confirmed: "설정 완료",
 };
 
 export const MATCH_TYPE_LABELS: Record<MatchType, string> = {

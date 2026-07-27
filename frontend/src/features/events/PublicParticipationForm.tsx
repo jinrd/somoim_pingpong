@@ -63,6 +63,16 @@ export default function PublicParticipationForm({
       return;
     }
 
+    if (
+      !window.confirm(
+        `${
+          selectedStatus === "playing" ? "게임 참가" : "게임 미참가"
+        }로 최종 제출할까요?\n\n제출 후에는 직접 수정할 수 없습니다. 변경이 필요하면 운영진에게 문의해야 합니다.`,
+      )
+    ) {
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
     setMessage("");
@@ -77,8 +87,8 @@ export default function PublicParticipationForm({
 
       setMessage(
         selectedStatus === "playing"
-          ? "게임 참가로 저장했습니다."
-          : "게임 미참가로 저장했습니다.",
+          ? "게임 참가로 최종 제출했습니다."
+          : "게임 미참가로 최종 제출했습니다.",
       );
     } catch (caughtError) {
       setError(getUpdateErrorMessage(caughtError));
@@ -93,7 +103,7 @@ export default function PublicParticipationForm({
         <h2>게임 참가 여부</h2>
 
         <p className={styles.participationHelp}>
-          모임에는 참석하지만 게임에 참여하지 않을 수도 있습니다.
+          한 번 제출하면 직접 수정할 수 없습니다. 신중하게 선택해 주세요.
         </p>
       </div>
 
@@ -167,7 +177,7 @@ export default function PublicParticipationForm({
         className={styles.identityButton}
         disabled={isSubmitting || !selectedStatus}
       >
-        {isSubmitting ? "저장 중…" : "게임 참가 여부 저장"}
+        {isSubmitting ? "제출 중…" : "게임 참가 여부 최종 제출"}
       </button>
     </form>
   );

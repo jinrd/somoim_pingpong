@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import TeamSchedulePanel from "../../features/match-schedule/TeamSchedulePanel";
 
 import { useNavigate, useParams } from "react-router-dom";
 import TeamFormationPanel from "../../features/team-formation/TeamFormationPanel";
+import type { TeamFormationStatus } from "../../features/team-formation/types";
 
 import type { EventGameSetting } from "../../features/game-settings/types";
 import ParticipantManager from "../../features/events/ParticipantManager";
@@ -19,6 +20,10 @@ import PublicLinkManager from "../../features/events/PublicLinkManager";
 import { getEvent } from "../../features/events/api";
 import GameSettingsPanel from "../../features/game-settings/GameSettingsPanel";
 import IndividualSchedulePanel from "../../features/match-schedule/IndividualSchedulePanel";
+import {
+  getIndividualSchedule,
+  getTeamSchedule,
+} from "../../features/match-schedule/api";
 
 import {
   EVENT_STATUS_LABELS,
@@ -62,6 +67,75 @@ export default function EventDetail() {
   >("participants");
 
   const [gameSetting, setGameSetting] = useState<EventGameSetting | null>(null);
+  const [formationStatus, setFormationStatus] =
+    useState<TeamFormationStatus | null>(null);
+  const [hasSchedule, setHasSchedule] = useState(false);
+  const [configurationRevision, setConfigurationRevision] = useState(0);
+
+  const handleGameConfigurationReset = useCallback(() => {
+    setGameSetting(null);
+    setFormationStatus(null);
+    setHasSchedule(false);
+    setConfigurationRevision((current) => current + 1);
+  }, []);
+
+  const handleSettingChanged = useCallback(
+    (nextSetting: EventGameSetting | null) => {
+      setGameSetting(nextSetting);
+      setHasSchedule(false);
+
+      if (
+        !nextSetting ||
+        nextSetting.status !== "confirmed" ||
+        nextSetting.competition_type !== "team_league"
+      ) {
+        setFormationStatus(null);
+      }
+    },
+    [],
+  );
+
+  const handleSettingConfigurationReset = useCallback(() => {
+    setFormationStatus(null);
+    setHasSchedule(false);
+  }, []);
+
+  const handleScheduleReset = useCallback(() => {
+    setHasSchedule(false);
+  }, []);
+
+  const isScheduleAvailable =
+    gameSetting?.status === "confirmed" &&
+    (gameSetting.competition_type === "individual_singles" ||
+      formationStatus === "confirmed");
+
+  useEffect(() => {
+    if (!gameSetting || !isScheduleAvailable) {
+      return;
+    }
+
+    let cancelled = false;
+    const request =
+      gameSetting.competition_type === "team_league"
+        ? getTeamSchedule(gameSetting.id)
+        : getIndividualSchedule(gameSetting.id);
+
+    request
+      .then((schedule) => {
+        if (!cancelled) {
+          setHasSchedule(schedule.totalMatchCount > 0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHasSchedule(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gameSetting, isScheduleAvailable]);
 
   useEffect(() => {
     if (!eventId) {
@@ -208,8 +282,18 @@ export default function EventDetail() {
             activeTab === "schedule" ? styles.detailTabActive : ""
           }`}
           aria-current={activeTab === "schedule" ? "page" : undefined}
+          disabled={!isScheduleAvailable}
+          title={
+            isScheduleAvailable
+              ? undefined
+              : gameSetting?.competition_type === "team_league"
+                ? "게임 설정과 팀 편성을 최종 확정해 주세요."
+                : "게임 설정을 최종 확정해 주세요."
+          }
           onClick={() => {
-            setActiveTab("schedule");
+            if (isScheduleAvailable) {
+              setActiveTab("schedule");
+            }
           }}
         >
           <ListOrdered size={18} aria-hidden="true" />
@@ -221,8 +305,14 @@ export default function EventDetail() {
             activeTab === "monitor" ? styles.detailTabActive : ""
           }`}
           aria-current={activeTab === "monitor" ? "page" : undefined}
+          disabled={!hasSchedule}
+          title={
+            hasSchedule ? undefined : "대진표를 저장한 후 경기 진행을 시작할 수 있습니다."
+          }
           onClick={() => {
-            setActiveTab("monitor");
+            if (hasSchedule) {
+              setActiveTab("monitor");
+            }
           }}
         >
           <Activity size={18} aria-hidden="true" />
@@ -230,30 +320,51 @@ export default function EventDetail() {
         </button>
       </nav>
       <div style={{ display: activeTab === "participants" ? "block" : "none" }}>
-        <ParticipantManager eventId={eventId} />
+        <ParticipantManager
+          eventRecord={eventRecord}
+          hasGameConfiguration={Boolean(gameSetting)}
+          onEventUpdated={setEventRecord}
+          onGameConfigurationReset={handleGameConfigurationReset}
+        />
       </div>
       <div
         style={{ display: activeTab === "game-settings" ? "block" : "none" }}
       >
         <GameSettingsPanel
+          key={`settings-${configurationRevision}`}
           eventId={eventId}
-          onSettingChanged={setGameSetting}
+          participationStatus={eventRecord.participation_status}
+          onSettingChanged={handleSettingChanged}
+          onConfigurationReset={handleSettingConfigurationReset}
         />
 
-        <TeamFormationPanel setting={gameSetting} />
+        <TeamFormationPanel
+          key={`formation-${configurationRevision}-${gameSetting?.id ?? "none"}`}
+          setting={gameSetting}
+          onFormationChanged={setFormationStatus}
+          onScheduleReset={handleScheduleReset}
+        />
       </div>
 
       {activeTab === "schedule" &&
         gameSetting?.competition_type === "team_league" && (
-          <TeamSchedulePanel setting={gameSetting} />
+          <TeamSchedulePanel
+            setting={gameSetting}
+            onScheduleChanged={setHasSchedule}
+          />
         )}
 
       {activeTab === "schedule" &&
         gameSetting?.competition_type === "individual_singles" && (
-          <IndividualSchedulePanel setting={gameSetting} />
+          <IndividualSchedulePanel
+            setting={gameSetting}
+            onScheduleChanged={setHasSchedule}
+          />
         )}
 
-      {activeTab === "monitor" && <MatchMonitorPanel setting={gameSetting} />}
+      {activeTab === "monitor" && hasSchedule && (
+        <MatchMonitorPanel setting={gameSetting} />
+      )}
     </section>
   );
 }

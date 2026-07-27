@@ -27,13 +27,12 @@ import {
 } from "lucide-react";
 
 import {
-  createEventGameSetting,
+  confirmEventGameSetting,
   getEventGameConfiguration,
   saveMatchFormats,
-  updateEventGameSetting,
+  saveEventGameSettingDraft,
+  unlockEventGameSetting,
 } from "./api";
-
-import { checkMatchIntegrity } from "../events/api";
 
 import {
   DEFAULT_GAME_SETTING_INPUT,
@@ -42,7 +41,6 @@ import {
 
 import {
   COMPETITION_TYPE_LABELS,
-  GAME_SETTING_STATUS_LABELS,
   MATCH_TYPE_LABELS,
   type EventGameSetting,
   type EventMatchFormat,
@@ -56,7 +54,9 @@ import styles from "./GameSettings.module.css";
 
 interface Props {
   eventId: string;
+  participationStatus: "open" | "closed";
   onSettingChanged?: (setting: EventGameSetting | null) => void;
+  onConfigurationReset?: () => void;
 }
 
 interface MatchFormatRowProps {
@@ -77,8 +77,6 @@ const toGameSettingInput = (setting: EventGameSetting): GameSettingInput => ({
   individualBestOf: setting.individual_best_of,
 
   individualCountsForRanking: setting.individual_counts_for_ranking,
-
-  status: setting.status,
 });
 
 const toMatchFormatDraft = (format: EventMatchFormat): MatchFormatDraft => ({
@@ -216,7 +214,9 @@ function MatchFormatRow({
 
 export default function GameSettingsPanel({
   eventId,
+  participationStatus,
   onSettingChanged,
+  onConfigurationReset,
 }: Props) {
   const [setting, setSetting] = useState<EventGameSetting | null>(null);
 
@@ -247,28 +247,8 @@ export default function GameSettingsPanel({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-  const [matchIntegrity, setMatchIntegrity] = useState({
-    hasMatches: false,
-    hasInProgressOrCompletedMatches: false,
-  });
-
-  useEffect(() => {
-    const fetchIntegrity = () => {
-      checkMatchIntegrity(eventId).then(setMatchIntegrity).catch(console.error);
-    };
-
-    fetchIntegrity();
-
-    window.addEventListener("scheduleDeleted", fetchIntegrity);
-    return () => {
-      window.removeEventListener("scheduleDeleted", fetchIntegrity);
-    };
-  }, [eventId]);
-
   useEffect(() => {
     let cancelled = false;
-
-    checkMatchIntegrity(eventId).then(setMatchIntegrity).catch(console.error);
 
     getEventGameConfiguration(eventId)
       .then((configuration) => {
@@ -303,28 +283,25 @@ export default function GameSettingsPanel({
     };
   }, [eventId, onSettingChanged]);
 
+  const isConfirmed = setting?.status === "confirmed";
+  const hasUnsavedSettingChanges =
+    !setting ||
+    formData.competitionType !== setting.competition_type ||
+    formData.teamSize !== setting.team_size ||
+    formData.autoTeamBalance !== setting.auto_team_balance ||
+    formData.individualBestOf !== setting.individual_best_of ||
+    formData.individualCountsForRanking !==
+      setting.individual_counts_for_ranking;
+
+  const canConfirmSetting =
+    Boolean(setting) &&
+    !hasUnsavedSettingChanges &&
+    !areFormatsDirty &&
+    (formData.competitionType === "individual_singles" ||
+      matchFormats.length > 0);
+
   const handleSaveSetting = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (
-      formData.competitionType === "team_league" &&
-      formData.status === "confirmed" &&
-      matchFormats.length === 0
-    ) {
-      setError(
-        "팀 리그 설정을 완료하려면 세부 경기를 한 개 이상 추가해 주세요.",
-      );
-      return;
-    }
-
-    if (
-      formData.competitionType === "team_league" &&
-      formData.status === "confirmed" &&
-      areFormatsDirty
-    ) {
-      setError("변경한 세부 경기를 먼저 전체 저장해 주세요.");
-      return;
-    }
 
     if (
       formData.competitionType === "team_league" &&
@@ -340,18 +317,133 @@ export default function GameSettingsPanel({
     setMessage("");
 
     try {
-      const savedSetting = setting
-        ? await updateEventGameSetting(setting.id, formData, setting.version)
-        : await createEventGameSetting(eventId, formData);
+      const savedSetting = await saveEventGameSettingDraft(
+        eventId,
+        formData,
+        setting?.version ?? 0,
+      );
 
       setSetting(savedSetting);
       onSettingChanged?.(savedSetting);
       setFormData(toGameSettingInput(savedSetting));
 
-      setMessage("게임 설정을 저장했습니다.");
+      if (
+        savedSetting.competition_type === "individual_singles" ||
+        (setting && savedSetting.id !== setting.id)
+      ) {
+        setMatchFormats([]);
+        setAreFormatsDirty(false);
+      }
+
+      setMessage("게임 설정 초안을 저장했습니다.");
     } catch (caughtError) {
       setError(
         getErrorMessage(caughtError, "게임 설정을 저장하지 못했습니다."),
+      );
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const handleConfirmSetting = async () => {
+    if (!setting) {
+      setError("게임 설정 초안을 먼저 저장해 주세요.");
+      return;
+    }
+
+    if (hasUnsavedSettingChanges) {
+      setError(
+        "변경한 게임 설정을 먼저 '게임 설정 임시 저장'으로 저장해 주세요.",
+      );
+      return;
+    }
+
+    if (
+      formData.competitionType === "team_league" &&
+      matchFormats.length === 0
+    ) {
+      setError("팀 대결 세부 경기를 한 개 이상 저장해 주세요.");
+      return;
+    }
+
+    if (areFormatsDirty) {
+      setError("변경한 세부 경기를 먼저 전체 저장해 주세요.");
+      return;
+    }
+
+    if (
+      formData.competitionType === "team_league" &&
+      formData.teamSize < 2 &&
+      matchFormats.some((format) => format.matchType === "doubles")
+    ) {
+      setError("복식 경기가 있으므로 팀당 인원은 2명 이상이어야 합니다.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "게임 설정을 최종 확정할까요?\n\n확정 후 수정하려면 팀 편성, 대진표와 라인업을 포함한 기존 경기 구성이 모두 초기화됩니다.",
+      )
+    ) {
+      return;
+    }
+
+    setIsWorking(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const confirmedSetting = await confirmEventGameSetting(
+        setting.id,
+        setting.version,
+      );
+
+      setSetting(confirmedSetting);
+      setFormData(toGameSettingInput(confirmedSetting));
+      onSettingChanged?.(confirmedSetting);
+      setMessage("게임 설정을 최종 확정했습니다.");
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "게임 설정을 확정하지 못했습니다."),
+      );
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const handleUnlockSetting = async () => {
+    if (!setting || setting.status !== "confirmed") {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "게임 설정 수정을 시작할까요?\n\n세부 경기, 팀 편성, 대진표와 라인업이 모두 초기화되며 되돌릴 수 없습니다. 현재 기본 설정은 새 초안으로 유지됩니다.",
+      )
+    ) {
+      return;
+    }
+
+    setIsWorking(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const draftSetting = await unlockEventGameSetting(
+        setting.id,
+        setting.version,
+      );
+
+      setSetting(draftSetting);
+      setFormData(toGameSettingInput(draftSetting));
+      setMatchFormats([]);
+      setAreFormatsDirty(false);
+      onSettingChanged?.(draftSetting);
+      onConfigurationReset?.();
+      setMessage("기존 경기 구성을 초기화하고 게임 설정을 초안으로 전환했습니다.");
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "게임 설정 수정을 시작하지 못했습니다."),
       );
     } finally {
       setIsWorking(false);
@@ -434,10 +526,10 @@ export default function GameSettingsPanel({
 
     const previousFormats = matchFormats;
     const oldIndex = previousFormats.findIndex(
-      (format) => format.id === active.id,
+      (format) => format.key === active.id,
     );
     const newIndex = previousFormats.findIndex(
-      (format) => format.id === over.id,
+      (format) => format.key === over.id,
     );
 
     if (oldIndex < 0 || newIndex < 0) {
@@ -463,6 +555,20 @@ export default function GameSettingsPanel({
 
   if (isLoading) {
     return <div className={styles.loading}>게임 설정을 불러오는 중입니다…</div>;
+  }
+
+  if (participationStatus !== "closed") {
+    return (
+      <section className={styles.panel}>
+        <div className={styles.notice}>
+          <strong>참가 신청 마감 후 게임 설정을 시작할 수 있습니다.</strong>
+          <p>
+            참석자 관리에서 미정 상태를 모두 확정하고 참가 신청 최종 마감을
+            진행해 주세요.
+          </p>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -503,7 +609,7 @@ export default function GameSettingsPanel({
               name="competition-type"
               value="team_league"
               checked={formData.competitionType === "team_league"}
-              disabled={isWorking || matchIntegrity.hasMatches}
+              disabled={isWorking || isConfirmed}
               onChange={() => {
                 setFormData((current) => ({
                   ...current,
@@ -533,7 +639,7 @@ export default function GameSettingsPanel({
               name="competition-type"
               value="individual_singles"
               checked={formData.competitionType === "individual_singles"}
-              disabled={isWorking}
+              disabled={isWorking || isConfirmed}
               onChange={() => {
                 setFormData((current) => ({
                   ...current,
@@ -562,7 +668,7 @@ export default function GameSettingsPanel({
                   type="number"
                   min={1}
                   value={formData.teamSize}
-                  disabled={isWorking}
+                  disabled={isWorking || isConfirmed}
                   onChange={(event) => {
                     setFormData((current) => ({
                       ...current,
@@ -584,7 +690,7 @@ export default function GameSettingsPanel({
                   <input
                     type="checkbox"
                     checked={formData.autoTeamBalance}
-                    disabled={isWorking}
+                    disabled={isWorking || isConfirmed}
                     onChange={(event) => {
                       setFormData((current) => ({
                         ...current,
@@ -606,7 +712,7 @@ export default function GameSettingsPanel({
                   min={1}
                   step={2}
                   value={formData.individualBestOf}
-                  disabled={isWorking}
+                  disabled={isWorking || isConfirmed}
                   onChange={(event) => {
                     setFormData((current) => ({
                       ...current,
@@ -627,7 +733,7 @@ export default function GameSettingsPanel({
                   <input
                     type="checkbox"
                     checked={formData.individualCountsForRanking}
-                    disabled={isWorking}
+                    disabled={isWorking || isConfirmed}
                     onChange={(event) => {
                       setFormData((current) => ({
                         ...current,
@@ -641,44 +747,52 @@ export default function GameSettingsPanel({
             </>
           )}
 
-          <label className={styles.formField}>
-            <span>설정 상태</span>
-
-            <select
-              value={formData.status}
-              disabled={isWorking}
-              onChange={(event) => {
-                setFormData((current) => ({
-                  ...current,
-                  status: event.target.value as GameSettingInput["status"],
-                }));
-              }}
-            >
-              {Object.entries(GAME_SETTING_STATUS_LABELS).map(
-                ([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
         </div>
 
         <div className={styles.formActions}>
-          <button
-            type="submit"
-            className={styles.primaryButton}
-            disabled={isWorking}
-          >
-            <Save size={18} aria-hidden="true" />
-
-            {isWorking
-              ? "저장 중…"
-              : setting
-                ? "게임 설정 저장"
-                : "게임 설정 만들기"}
-          </button>
+          {isConfirmed ? (
+            <button
+              type="button"
+              className={styles.dangerButton}
+              disabled={isWorking}
+              onClick={() => void handleUnlockSetting()}
+            >
+              게임 설정 수정
+            </button>
+          ) : (
+            <>
+              <button
+                type="submit"
+                className={styles.secondaryButton}
+                disabled={
+                  isWorking || (Boolean(setting) && !hasUnsavedSettingChanges)
+                }
+              >
+                <Save size={18} aria-hidden="true" />
+                {isWorking ? "저장 중…" : "게임 설정 임시 저장"}
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={isWorking || !canConfirmSetting}
+                title={
+                  canConfirmSetting
+                    ? undefined
+                    : hasUnsavedSettingChanges
+                      ? "변경한 게임 설정을 먼저 임시 저장해 주세요."
+                      : areFormatsDirty
+                        ? "변경한 세부 경기를 먼저 전체 저장해 주세요."
+                        : formData.competitionType === "team_league" &&
+                            matchFormats.length === 0
+                          ? "팀 대결 세부 경기를 한 개 이상 저장해 주세요."
+                          : "게임 설정을 먼저 임시 저장해 주세요."
+                }
+                onClick={() => void handleConfirmSetting()}
+              >
+                게임 설정 최종 확정
+              </button>
+            </>
+          )}
         </div>
       </form>
 
@@ -718,7 +832,7 @@ export default function GameSettingsPanel({
                           key={format.key}
                           format={format}
                           position={index + 1}
-                          disabled={isWorking}
+                          disabled={isWorking || isConfirmed}
                           onChange={(updatedFormat) => {
                             setMatchFormats((currentFormats) =>
                               currentFormats.map((current) =>
@@ -740,78 +854,82 @@ export default function GameSettingsPanel({
                 </DndContext>
               )}
 
-              <div className={styles.newFormatRow}>
-                <div className={styles.newFormatOrder}>
-                  <strong>{matchFormats.length + 1}</strong>
-                  <span>번째 경기 추가</span>
-                </div>
+              {!isConfirmed && (
+                <div className={styles.newFormatRow}>
+                  <div className={styles.newFormatOrder}>
+                    <strong>{matchFormats.length + 1}</strong>
+                    <span>번째 경기 추가</span>
+                  </div>
 
-                <label className={styles.compactField}>
-                  <span>경기 방식</span>
+                  <label className={styles.compactField}>
+                    <span>경기 방식</span>
 
-                  <select
-                    value={newFormat.matchType}
+                    <select
+                      value={newFormat.matchType}
+                      disabled={isWorking}
+                      onChange={(event) => {
+                        setNewFormat((current) => ({
+                          ...current,
+                          matchType: event.target.value as MatchType,
+                        }));
+                      }}
+                    >
+                      {Object.entries(MATCH_TYPE_LABELS).map(
+                        ([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
+
+                  <label className={styles.compactField}>
+                    <span>총 판수</span>
+
+                    <input
+                      type="number"
+                      min={1}
+                      step={2}
+                      value={newFormat.bestOf}
+                      disabled={isWorking}
+                      onChange={(event) => {
+                        setNewFormat((current) => ({
+                          ...current,
+                          bestOf: Number(event.target.value),
+                        }));
+                      }}
+                    />
+                  </label>
+
+                  <label className={styles.formatCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={newFormat.countsForRanking}
+                      disabled={isWorking}
+                      onChange={(event) => {
+                        setNewFormat((current) => ({
+                          ...current,
+                          countsForRanking: event.target.checked,
+                        }));
+                      }}
+                    />
+                    부수 승강 반영
+                  </label>
+
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
                     disabled={isWorking}
-                    onChange={(event) => {
-                      setNewFormat((current) => ({
-                        ...current,
-                        matchType: event.target.value as MatchType,
-                      }));
-                    }}
+                    onClick={handleAddFormat}
                   >
-                    {Object.entries(MATCH_TYPE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <Plus size={18} aria-hidden="true" />
+                    경기 추가
+                  </button>
+                </div>
+              )}
 
-                <label className={styles.compactField}>
-                  <span>총 판수</span>
-
-                  <input
-                    type="number"
-                    min={1}
-                    step={2}
-                    value={newFormat.bestOf}
-                    disabled={isWorking}
-                    onChange={(event) => {
-                      setNewFormat((current) => ({
-                        ...current,
-                        bestOf: Number(event.target.value),
-                      }));
-                    }}
-                  />
-                </label>
-
-                <label className={styles.formatCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={newFormat.countsForRanking}
-                    disabled={isWorking}
-                    onChange={(event) => {
-                      setNewFormat((current) => ({
-                        ...current,
-                        countsForRanking: event.target.checked,
-                      }));
-                    }}
-                  />
-                  부수 승강 반영
-                </label>
-
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  disabled={isWorking}
-                  onClick={handleAddFormat}
-                >
-                  <Plus size={18} aria-hidden="true" />
-                  경기 추가
-                </button>
-              </div>
-
-              <div className={styles.formatSaveBar}>
+              {!isConfirmed && <div className={styles.formatSaveBar}>
                 {areFormatsDirty && (
                   <span>저장하지 않은 변경 사항이 있습니다.</span>
                 )}
@@ -827,7 +945,7 @@ export default function GameSettingsPanel({
                   <Save size={18} aria-hidden="true" />
                   {isWorking ? "저장 중…" : "세부 경기 전체 저장"}
                 </button>
-              </div>
+              </div>}
             </>
           )}
         </section>

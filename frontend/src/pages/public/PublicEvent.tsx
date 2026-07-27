@@ -290,25 +290,40 @@ export default function PublicEvent() {
                     </div>
                   </div>
 
-                  <PublicParticipationForm
-                    responseToken={identity.responseToken}
-                    participant={identity.participant}
-                    onUpdated={(
-                      updatedParticipant: PublicIdentifiedParticipant,
-                    ) => {
-                      const updatedIdentity = {
-                        ...identity,
-                        participant: updatedParticipant,
-                      };
+                  {event.participationStatus === "open" &&
+                  !identity.participant.hasResponded ? (
+                    <PublicParticipationForm
+                      responseToken={identity.responseToken}
+                      participant={identity.participant}
+                      onUpdated={(
+                        updatedParticipant: PublicIdentifiedParticipant,
+                      ) => {
+                        const updatedIdentity = {
+                          ...identity,
+                          participant: updatedParticipant,
+                        };
 
-                      setIdentity(updatedIdentity);
+                        setIdentity(updatedIdentity);
 
-                      sessionStorage.setItem(
-                        `event-participant:${token}`,
-                        JSON.stringify(updatedIdentity),
-                      );
-                    }}
-                  />
+                        sessionStorage.setItem(
+                          `event-participant:${token}`,
+                          JSON.stringify(updatedIdentity),
+                        );
+                      }}
+                    />
+                  ) : (
+                    <div className={styles.lockedNotice}>
+                      <strong>
+                        {event.participationStatus === "closed"
+                          ? "참가 신청이 최종 마감되었습니다."
+                          : "참가 여부 제출이 완료되었습니다."}
+                      </strong>
+                      <p>
+                        저장한 참가 여부는 직접 수정할 수 없습니다. 변경이
+                        필요하면 운영진에게 문의해 주세요.
+                      </p>
+                    </div>
+                  )}
                   {identity.participant.gameParticipationStatus === "playing" &&
                     identity.competitionType === "team_league" && (
                       <PublicTeamLineupSection

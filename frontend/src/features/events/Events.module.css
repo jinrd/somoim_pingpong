@@ -479,6 +479,31 @@
   width: 100%;
 }
 
+.workflowNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  color: #344054;
+  background: #f8fafc;
+  border: 1px solid #dce2ea;
+  border-radius: 14px;
+}
+
+.workflowNotice strong {
+  flex: 0 0 auto;
+}
+
+.workflowNotice p {
+  flex: 1;
+  margin: 0;
+  color: #667085;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
 .participantSummaryGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -513,6 +538,10 @@
   grid-template-columns: minmax(280px, 0.8fr) minmax(380px, 1.2fr);
   align-items: start;
   gap: 18px;
+}
+
+.participantLayoutClosed {
+  grid-template-columns: 1fr;
 }
 
 .memberPicker,
@@ -738,6 +767,11 @@
 }
 
 @media (max-width: 600px) {
+  .workflowNotice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .backButton {
     min-height: 40px;
     margin-bottom: 10px;

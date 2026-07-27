@@ -141,13 +141,16 @@ export default function MatchMonitorPanel({ setting }: Props) {
   );
 
   useEffect(() => {
-    void loadMatches(true);
+    const initialLoadId = window.setTimeout(() => {
+      void loadMatches(true);
+    }, 0);
 
     const intervalId = window.setInterval(() => {
       void loadMatches(false);
     }, MATCH_MONITOR_REFRESH_INTERVAL_MS);
 
     return () => {
+      window.clearTimeout(initialLoadId);
       window.clearInterval(intervalId);
     };
   }, [loadMatches]);

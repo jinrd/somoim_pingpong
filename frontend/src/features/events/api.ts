@@ -23,6 +23,8 @@ import type {
   PublicIdentityResult,
   PublicParticipationUpdateInput,
   PublicParticipationUpdateResult,
+  CloseParticipationResult,
+  AdminParticipationUpdateResult,
 } from "./types";
 
 const EVENTS_COLLECTION = "events";
@@ -121,6 +123,8 @@ export const createEvent = async (
     event_date: toPocketBaseDate(input.eventDate),
     status: input.status ?? "draft",
     notice: validateNotice(input.notice ?? ""),
+    participation_status: "open",
+    participation_closed_at: "",
 
     public_token_hash: "",
     public_access_enabled: false,
@@ -418,23 +422,32 @@ export const updateGameParticipationStatus = async (
   participantId: string,
   status: GameParticipationStatus,
   expectedVersion: number,
-): Promise<EventParticipant> => {
-  const currentParticipant = await pb
-    .collection(PARTICIPANTS_COLLECTION)
-    .getOne<EventParticipant>(participantId);
+  confirmReset = false,
+): Promise<AdminParticipationUpdateResult> => {
+  return pb.send<AdminParticipationUpdateResult>(
+    `/api/somoim/admin/participants/${encodeURIComponent(participantId)}/game-status`,
+    {
+      method: "PATCH",
+      body: {
+        gameParticipationStatus: status,
+        expectedVersion,
+        confirmReset,
+      },
+    },
+  );
+};
 
-  if (currentParticipant.version !== expectedVersion) {
-    throw new Error(
-      "다른 운영진이 먼저 참가 상태를 변경했습니다. 최신 정보를 다시 불러와 주세요.",
-    );
-  }
-
-  return pb
-    .collection(PARTICIPANTS_COLLECTION)
-    .update<EventParticipant>(participantId, {
-      game_participation_status: status,
-      version: currentParticipant.version + 1,
-    });
+export const closeEventParticipation = async (
+  eventId: string,
+  expectedVersion: number,
+): Promise<CloseParticipationResult> => {
+  return pb.send<CloseParticipationResult>(
+    `/api/somoim/admin/events/${encodeURIComponent(eventId)}/participation/close`,
+    {
+      method: "POST",
+      body: { expectedVersion },
+    },
+  );
 };
 
 /**

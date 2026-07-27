@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Loader2, RefreshCcw, Save, Trash2, Shuffle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, RefreshCcw, Save, Trash2 } from "lucide-react";
 import type { EventGameSetting } from "../game-settings/types";
 import {
   type IndividualScheduleContext,
   type StoredIndividualScheduleRound,
+  deleteSchedule,
   getIndividualSchedule,
   saveIndividualSchedule,
 } from "./api";
@@ -16,6 +17,7 @@ import { ClientResponseError } from "pocketbase";
 
 interface Props {
   setting: EventGameSetting | null;
+  onScheduleChanged?: (hasSchedule: boolean) => void;
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -56,33 +58,40 @@ const getMatchOrderSignature = (
     .map((match) => match.pairKey)
     .join("|");
 
-export default function IndividualSchedulePanel({ setting }: Props) {
+export default function IndividualSchedulePanel({
+  setting,
+  onScheduleChanged,
+}: Props) {
   const [context, setContext] = useState<IndividualScheduleContext | null>(
     null,
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
   const [preview, setPreview] = useState<RoundRobinSchedule | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const applyLoadedSchedule = (loadedContext: IndividualScheduleContext) => {
-    setContext(loadedContext);
-    setPreview(null);
-    setError("");
+  const applyLoadedSchedule = useCallback(
+    (loadedContext: IndividualScheduleContext) => {
+      setContext(loadedContext);
+      onScheduleChanged?.(loadedContext.totalMatchCount > 0);
+      setPreview(null);
+      setError("");
 
-    if (loadedContext.participants.length < 2) {
-      setError("게임 참가(playing) 상태인 인원이 최소 2명 필요합니다.");
-      return;
-    }
+      if (loadedContext.participants.length < 2) {
+        setError("게임 참가(playing) 상태인 인원이 최소 2명 필요합니다.");
+        return;
+      }
 
-    if (loadedContext.totalMatchCount === 0) {
-      setMessage("등록된 대진표가 없습니다. [대진표 재생성]을 눌러 주세요.");
-    } else {
-      setMessage("");
-    }
-  };
+      if (loadedContext.totalMatchCount === 0) {
+        setMessage("등록된 대진표가 없습니다. [대진표 재생성]을 눌러 주세요.");
+      } else {
+        setMessage("");
+      }
+    },
+    [onScheduleChanged],
+  );
 
   useEffect(() => {
     if (!setting || setting.competition_type !== "individual_singles") {
@@ -90,8 +99,6 @@ export default function IndividualSchedulePanel({ setting }: Props) {
     }
 
     let cancelled = false;
-    setIsLoading(true);
-    setError("");
 
     getIndividualSchedule(setting.id)
       .then((loadedContext) => {
@@ -115,7 +122,7 @@ export default function IndividualSchedulePanel({ setting }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [setting]);
+  }, [applyLoadedSchedule, setting]);
 
   const handleGeneratePreview = () => {
     if (!context) return;
@@ -178,6 +185,7 @@ export default function IndividualSchedulePanel({ setting }: Props) {
       setMessage(
         `${result.totalRoundCount}라운드, ${result.totalMatchCount}경기를 저장했습니다.`,
       );
+      onScheduleChanged?.(result.totalMatchCount > 0);
       void getIndividualSchedule(setting.id)
         .then(applyLoadedSchedule)
         .catch(() => {});
@@ -190,10 +198,10 @@ export default function IndividualSchedulePanel({ setting }: Props) {
 
   const handleDeleteSchedule = async () => {
     if (!setting || !context) return;
-    
+
     if (
       !window.confirm(
-        "정말로 기존 대진표를 완전히 삭제하시겠습니까?\n삭제 후에는 운영 방식을 변경할 수 있습니다.",
+        "저장된 개인 단식 대진표를 모두 삭제할까요?",
       )
     ) {
       return;
@@ -204,14 +212,14 @@ export default function IndividualSchedulePanel({ setting }: Props) {
     setMessage("");
 
     try {
-      const { deleteSchedule } = await import("./api");
       await deleteSchedule(setting.id);
-      
+
       setMessage("대진표가 완전히 삭제되었습니다.");
       setContext(null);
-      
+      onScheduleChanged?.(false);
+
       window.dispatchEvent(new Event("scheduleDeleted"));
-      
+
       void getIndividualSchedule(setting.id)
         .then(applyLoadedSchedule)
         .catch(() => {});

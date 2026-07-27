@@ -5,6 +5,13 @@
  * 비활동 회원을 회차에 새로 추가할 수 없게 합니다.
  */
 onRecordBeforeCreateRequest((event) => {
+  const workflow = require(`${__hooks}/event_workflow_service.js`);
+  const eventRecord = $app
+    .dao()
+    .findRecordById("events", event.record.getString("event"));
+
+  workflow.assertRegistrationOpen(eventRecord);
+
   const integrity = require(`${__hooks}/event_participant_integrity.js`);
 
   integrity.ensureActiveParticipantMember(event.record);
@@ -17,6 +24,17 @@ onRecordBeforeCreateRequest((event) => {
  * not_playing 상태 저장은 비활동 전환 동기화에 필요하므로 허용합니다.
  */
 onRecordBeforeUpdateRequest((event) => {
+  const workflow = require(`${__hooks}/event_workflow_service.js`);
+  const eventRecord = $app
+    .dao()
+    .findRecordById("events", event.record.getString("event"));
+
+  if (eventRecord.getString("participation_status") === "closed") {
+    throw new BadRequestError(
+      "참가 신청이 마감되었습니다. 참가 상태는 참석자 관리 화면의 전용 변경 기능을 사용해 주세요.",
+    );
+  }
+
   if (event.record.getString("game_participation_status") === "not_playing") {
     return;
   }
@@ -25,6 +43,50 @@ onRecordBeforeUpdateRequest((event) => {
 
   integrity.ensureActiveParticipantMember(event.record);
 }, "event_participants");
+
+/*
+ * 회원을 비활동으로 바꾸는 작업이 확정된 경기 구성을 조용히 깨뜨리지
+ * 않도록, 관련 회차에 게임 설정이 있으면 먼저 참석자 관리에서
+ * 게임 미참가로 변경하도록 안내합니다.
+ */
+onRecordBeforeUpdateRequest((event) => {
+  const dao = $app.dao();
+  const originalRecord = dao.findRecordById("members", event.record.id);
+
+  if (
+    originalRecord.getString("status") === "inactive" ||
+    event.record.getString("status") !== "inactive"
+  ) {
+    return;
+  }
+
+  const workflow = require(`${__hooks}/event_workflow_service.js`);
+  const participantRecords = dao.findRecordsByFilter(
+    "event_participants",
+    "member = {:memberId}",
+    "",
+    500,
+    0,
+    { memberId: event.record.id },
+  );
+
+  participantRecords.forEach((participantRecord) => {
+    const eventId = participantRecord.getString("event");
+    const somoimEvent = dao.findRecordById("events", eventId);
+
+    if (!["draft", "active"].includes(somoimEvent.getString("status"))) {
+      return;
+    }
+
+    workflow.assertSetupEditable(dao, eventId);
+
+    if (workflow.findGameSetting(dao, eventId)) {
+      throw new BadRequestError(
+        `${somoimEvent.getString("title")} 회차에 게임 구성이 저장되어 있습니다. 해당 회차의 참석자 관리에서 먼저 게임 미참가로 변경해 주세요.`,
+      );
+    }
+  });
+}, "members");
 
 /*
  * 회원을 비활동으로 변경하면 준비 중/진행 중 회차에서 즉시 제외합니다.
@@ -48,8 +110,6 @@ onRecordAfterUpdateRequest((event) => {
       memberId: event.record.id,
     },
   );
-
-  const invalidatedFormationIds = new Set();
 
   participantRecords.forEach((participantRecord) => {
     let eventRecord;
@@ -83,41 +143,5 @@ onRecordAfterUpdateRequest((event) => {
       dao.saveRecord(participantRecord);
     }
 
-    /*
-     * 이미 팀에 들어간 회원이라면 기존 편성을 draft로 되돌립니다.
-     * 팀과 대진 기록은 즉시 삭제하지 않고 운영자가 재편성하도록 막습니다.
-     */
-    const teamMemberRecords = dao.findRecordsByFilter(
-      "team_members",
-      "participant = {:participantId}",
-      "",
-      100,
-      0,
-      {
-        participantId: participantRecord.id,
-      },
-    );
-
-    teamMemberRecords.forEach((teamMemberRecord) => {
-      const formationId = teamMemberRecord.getString("formation");
-
-      if (!formationId || invalidatedFormationIds.has(formationId)) {
-        return;
-      }
-
-      let formationRecord;
-
-      try {
-        formationRecord = dao.findRecordById("team_formations", formationId);
-      } catch {
-        return;
-      }
-
-      formationRecord.set("status", "draft");
-      formationRecord.set("version", formationRecord.getInt("version") + 1);
-
-      dao.saveRecord(formationRecord);
-      invalidatedFormationIds.add(formationId);
-    });
   });
 }, "members");

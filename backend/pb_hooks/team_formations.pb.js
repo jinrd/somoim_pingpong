@@ -55,6 +55,18 @@ routerAdd(
     }
 
     const eventId = gameSettingRecord.getString("event");
+    const workflow = require(`${__hooks}/event_workflow_service.js`);
+    const eventRecord = $app.dao().findRecordById("events", eventId);
+
+    workflow.assertRegistrationClosed(eventRecord);
+    workflow.assertNoUndecidedParticipants($app.dao(), eventId);
+    workflow.assertSetupEditable($app.dao(), eventId);
+
+    if (gameSettingRecord.getString("status") !== "confirmed") {
+      throw new BadRequestError(
+        "게임 설정을 최종 확정한 후 팀을 편성해 주세요.",
+      );
+    }
 
     const normalizedTeams = teams.map((team, teamIndex) => {
       if (!team || typeof team !== "object") {
@@ -222,6 +234,15 @@ routerAdd(
       );
     }
 
+    if (
+      currentFormation &&
+      currentFormation.getString("status") === "confirmed"
+    ) {
+      throw new BadRequestError(
+        "확정된 팀 편성입니다. 먼저 '팀 편성 수정'을 눌러 대진표와 라인업을 초기화해 주세요.",
+      );
+    }
+
     const currentTeams = currentFormation
       ? $app
           .dao()
@@ -252,6 +273,13 @@ routerAdd(
     let savedFormationId = currentFormation ? currentFormation.id : "";
 
     $app.dao().runInTransaction((transactionDao) => {
+      if (
+        currentFormation &&
+        currentFormation.getString("status") === "draft"
+      ) {
+        workflow.deleteTeamSchedules(transactionDao, currentFormation.id);
+      }
+
       const formationCollection =
         transactionDao.findCollectionByNameOrId("team_formations");
 
@@ -375,6 +403,26 @@ routerAdd(
   },
   require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
+
+["team_formations", "teams", "team_members"].forEach((collectionName) => {
+  onRecordBeforeCreateRequest(() => {
+    throw new BadRequestError(
+      "팀 편성은 팀 편성 화면의 일괄 저장 기능을 사용해 주세요.",
+    );
+  }, collectionName);
+
+  onRecordBeforeUpdateRequest(() => {
+    throw new BadRequestError(
+      "팀 편성은 팀 편성 화면의 일괄 저장 기능을 사용해 주세요.",
+    );
+  }, collectionName);
+
+  onRecordBeforeDeleteRequest(() => {
+    throw new BadRequestError(
+      "팀 편성은 팀 편성 화면의 수정 또는 초기화 절차를 사용해 주세요.",
+    );
+  }, collectionName);
+});
 /*
  * 게임 참가자 및 현재 팀 편성 조회
  */

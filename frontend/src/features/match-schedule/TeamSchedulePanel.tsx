@@ -7,6 +7,7 @@ import { RefreshCw, Save, Shuffle, Trash2 } from "lucide-react";
 import type { EventGameSetting } from "../game-settings/types";
 
 import {
+  deleteSchedule,
   getTeamSchedule,
   saveTeamSchedule,
   type StoredScheduleRound,
@@ -23,6 +24,7 @@ import styles from "./TeamSchedulePanel.module.css";
 
 interface Props {
   setting: EventGameSetting | null;
+  onScheduleChanged?: (hasSchedule: boolean) => void;
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -77,7 +79,10 @@ const getMatchOrderSignature = (
     .map((match) => match.pairKey)
     .join("|");
 
-export default function TeamSchedulePanel({ setting }: Props) {
+export default function TeamSchedulePanel({
+  setting,
+  onScheduleChanged,
+}: Props) {
   const [context, setContext] = useState<TeamScheduleContext | null>(null);
 
   const [preview, setPreview] = useState<RoundRobinSchedule | null>(null);
@@ -90,6 +95,7 @@ export default function TeamSchedulePanel({ setting }: Props) {
 
   const applyLoadedSchedule = useCallback((loaded: TeamScheduleContext) => {
     setContext(loaded);
+    onScheduleChanged?.(loaded.totalMatchCount > 0);
 
     if (
       loaded.totalMatchCount === 0 &&
@@ -100,7 +106,7 @@ export default function TeamSchedulePanel({ setting }: Props) {
     } else {
       setPreview(null);
     }
-  }, []);
+  }, [onScheduleChanged]);
 
   const loadSchedule = useCallback(async () => {
     if (!setting || setting.competition_type !== "team_league") {
@@ -234,6 +240,7 @@ export default function TeamSchedulePanel({ setting }: Props) {
       setMessage(
         `${result.totalRoundCount}라운드, ${result.totalMatchCount}경기를 저장했습니다.`,
       );
+      onScheduleChanged?.(result.totalMatchCount > 0);
 
       await loadSchedule();
     } catch (caughtError) {
@@ -245,10 +252,10 @@ export default function TeamSchedulePanel({ setting }: Props) {
 
   const handleDeleteSchedule = async () => {
     if (!setting || !context) return;
-    
+
     if (
       !window.confirm(
-        "정말로 기존 대진표를 완전히 삭제하시겠습니까?\n삭제 후에는 운영 방식을 변경할 수 있습니다.",
+        "저장된 대진표와 작성 중인 라인업을 모두 삭제할까요?",
       )
     ) {
       return;
@@ -259,14 +266,14 @@ export default function TeamSchedulePanel({ setting }: Props) {
     setMessage("");
 
     try {
-      const { deleteSchedule } = await import("./api");
       await deleteSchedule(setting.id);
-      
+
       setMessage("대진표가 완전히 삭제되었습니다.");
       setContext(null);
-      
+      onScheduleChanged?.(false);
+
       window.dispatchEvent(new Event("scheduleDeleted"));
-      
+
       void loadSchedule();
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, "대진표를 삭제하지 못했습니다."));
@@ -332,7 +339,7 @@ export default function TeamSchedulePanel({ setting }: Props) {
     return (
       <section className={styles.panel}>
         <h2>대진표</h2>
-        <p>팀 편성 상태를 확정한 후 대진을 만들 수 있습니다.</p>
+        <p>팀 편성을 최종 확정한 후 대진을 만들 수 있습니다.</p>
       </section>
     );
   }

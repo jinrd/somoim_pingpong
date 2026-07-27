@@ -237,7 +237,8 @@
 }
 
 .primaryButton,
-.secondaryButton {
+.secondaryButton,
+.dangerButton {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -262,8 +263,15 @@
   border: 1px solid #c7d2fe;
 }
 
+.dangerButton {
+  color: #b42318;
+  background: #ffffff;
+  border: 1px solid #fda29b;
+}
+
 .primaryButton:disabled,
-.secondaryButton:disabled {
+.secondaryButton:disabled,
+.dangerButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }

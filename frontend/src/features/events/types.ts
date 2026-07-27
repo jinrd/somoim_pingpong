@@ -2,6 +2,7 @@ import type { RecordModel } from "pocketbase";
 import type { Member } from "../members/api";
 
 export type EventStatus = "draft" | "active" | "completed" | "archived";
+export type ParticipationStatus = "open" | "closed";
 
 export type ParticipantType = "member" | "guest";
 
@@ -12,6 +13,8 @@ export interface SomoimEvent extends RecordModel {
   event_date: string;
   status: EventStatus;
   notice?: string;
+  participation_status: ParticipationStatus;
+  participation_closed_at?: string;
 
   public_token_hash?: string;
   public_access_enabled: boolean;
@@ -99,6 +102,8 @@ export interface PublicEventInfo {
   eventDate: string;
   notice: string;
   status: EventStatus;
+  participationStatus: ParticipationStatus;
+  participationClosedAt: string;
 }
 
 export interface PublicEventResponse {
@@ -122,6 +127,7 @@ export interface PublicIdentifiedParticipant {
   displayName: string;
   rank: number;
   gameParticipationStatus: GameParticipationStatus;
+  hasResponded: boolean;
 }
 
 export interface PublicIdentityResult {
@@ -140,4 +146,15 @@ export interface PublicParticipationUpdateInput {
 export interface PublicParticipationUpdateResult {
   participant: PublicIdentifiedParticipant;
   respondedAt: string;
+}
+
+export interface CloseParticipationResult {
+  participation_status: "closed";
+  participation_closed_at: string;
+  version: number;
+}
+
+export interface AdminParticipationUpdateResult {
+  participant: EventParticipant;
+  gameConfigurationReset: boolean;
 }

@@ -25,7 +25,11 @@ import {
 
 import type { EventGameSetting } from "../game-settings/types";
 
-import { getTeamFormationContext, saveTeamFormation } from "./api";
+import {
+  getTeamFormationContext,
+  saveTeamFormation,
+  unlockTeamFormation,
+} from "./api";
 
 import {
   calculateTeamQuality,
@@ -34,7 +38,6 @@ import {
 
 import {
   TEAM_FORMATION_METHOD_LABELS,
-  TEAM_FORMATION_STATUS_LABELS,
 } from "./constants";
 
 import type {
@@ -49,6 +52,8 @@ import styles from "./TeamFormationPanel.module.css";
 
 interface Props {
   setting: EventGameSetting | null;
+  onFormationChanged?: (status: TeamFormationStatus | null) => void;
+  onScheduleReset?: () => void;
 }
 
 interface TeamMemberCardProps {
@@ -174,7 +179,11 @@ function TeamColumn({ team, disabled, onNameChange }: TeamColumnProps) {
   );
 }
 
-export default function TeamFormationPanel({ setting }: Props) {
+export default function TeamFormationPanel({
+  setting,
+  onFormationChanged,
+  onScheduleReset,
+}: Props) {
   const [context, setContext] = useState<TeamFormationContext | null>(null);
 
   const [teams, setTeams] = useState<TeamDraft[]>([]);
@@ -208,7 +217,11 @@ export default function TeamFormationPanel({ setting }: Props) {
   const metrics = useMemo(() => calculateTeamQuality(teams), [teams]);
 
   const loadContext = useCallback(async () => {
-    if (!setting || setting.competition_type !== "team_league") {
+    if (
+      !setting ||
+      setting.competition_type !== "team_league" ||
+      setting.status !== "confirmed"
+    ) {
       return;
     }
 
@@ -224,10 +237,12 @@ export default function TeamFormationPanel({ setting }: Props) {
       if (loaded.formation) {
         setMethod(loaded.formation.method);
         setStatus(loaded.formation.status);
+        onFormationChanged?.(loaded.formation.status);
       } else {
         setMethod(setting.auto_team_balance ? "balanced" : "random");
 
         setStatus("draft");
+        onFormationChanged?.(null);
       }
     } catch (caughtError) {
       setError(
@@ -236,10 +251,14 @@ export default function TeamFormationPanel({ setting }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [setting]);
+  }, [onFormationChanged, setting]);
 
   useEffect(() => {
-    if (!setting || setting.competition_type !== "team_league") {
+    if (
+      !setting ||
+      setting.competition_type !== "team_league" ||
+      setting.status !== "confirmed"
+    ) {
       return;
     }
 
@@ -260,9 +279,11 @@ export default function TeamFormationPanel({ setting }: Props) {
         if (loaded.formation) {
           setMethod(loaded.formation.method);
           setStatus(loaded.formation.status);
+          onFormationChanged?.(loaded.formation.status);
         } else {
           setMethod(setting.auto_team_balance ? "balanced" : "random");
           setStatus("draft");
+          onFormationChanged?.(null);
         }
       })
       .catch((caughtError) => {
@@ -284,7 +305,7 @@ export default function TeamFormationPanel({ setting }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [setting]);
+  }, [onFormationChanged, setting]);
 
   const handleReload = () => {
     setIsLoading(true);
@@ -404,8 +425,17 @@ export default function TeamFormationPanel({ setting }: Props) {
     setMessage("직전 편성으로 되돌렸습니다.");
   };
 
-  const handleSave = async () => {
+  const handleSave = async (nextStatus: TeamFormationStatus) => {
     if (!context || !setting) {
+      return;
+    }
+
+    if (
+      nextStatus === "confirmed" &&
+      !window.confirm(
+        "팀 편성을 최종 확정할까요?\n\n확정 후 수정하려면 저장된 대진표와 라인업이 모두 초기화됩니다.",
+      )
+    ) {
       return;
     }
 
@@ -416,7 +446,7 @@ export default function TeamFormationPanel({ setting }: Props) {
     try {
       const saved = await saveTeamFormation(setting.id, {
         method,
-        status,
+        status: nextStatus,
 
         expectedVersion: context.formation?.version ?? 0,
 
@@ -432,11 +462,51 @@ export default function TeamFormationPanel({ setting }: Props) {
       setTeams(cloneTeams(saved.teams));
       setMethod(saved.formation?.method ?? method);
       setStatus(saved.formation?.status ?? status);
+      onFormationChanged?.(saved.formation?.status ?? null);
       setIsDirty(false);
       setWarnings([]);
-      setMessage("팀 편성을 저장했습니다.");
+      setMessage(
+        nextStatus === "confirmed"
+          ? "팀 편성을 최종 확정했습니다."
+          : "팀 편성 초안을 저장했습니다.",
+      );
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, "팀 편성을 저장하지 못했습니다."));
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!setting || !context?.formation || status !== "confirmed") {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "팀 편성 수정을 시작할까요?\n\n저장된 대진표와 라인업이 모두 초기화되며 되돌릴 수 없습니다. 현재 팀 편성은 초안으로 유지됩니다.",
+      )
+    ) {
+      return;
+    }
+
+    setIsWorking(true);
+    setError("");
+    setMessage("");
+
+    try {
+      await unlockTeamFormation(
+        setting.id,
+        context.formation.version,
+      );
+      onScheduleReset?.();
+      onFormationChanged?.("draft");
+      await loadContext();
+      setMessage("대진표와 라인업을 초기화하고 팀 편성을 초안으로 전환했습니다.");
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "팀 편성 수정을 시작하지 못했습니다."),
+      );
     } finally {
       setIsWorking(false);
     }
@@ -461,6 +531,17 @@ export default function TeamFormationPanel({ setting }: Props) {
 
         <p className={styles.notice}>
           개인 단식 풀리그는 팀을 편성하지 않습니다.
+        </p>
+      </section>
+    );
+  }
+
+  if (setting.status !== "confirmed") {
+    return (
+      <section className={styles.panel}>
+        <h2>팀 편성</h2>
+        <p className={styles.notice}>
+          게임 설정을 최종 확정하면 팀 편성을 시작할 수 있습니다.
         </p>
       </section>
     );
@@ -562,7 +643,7 @@ export default function TeamFormationPanel({ setting }: Props) {
 
           <select
             value={method}
-            disabled={isWorking}
+            disabled={isWorking || status === "confirmed"}
             onChange={(event) => {
               setMethod(event.target.value as TeamFormationMethod);
             }}
@@ -577,32 +658,14 @@ export default function TeamFormationPanel({ setting }: Props) {
           </select>
         </label>
 
-        <label>
-          <span>편성 상태</span>
-
-          <select
-            value={status}
-            disabled={isWorking}
-            onChange={(event) => {
-              setStatus(event.target.value as TeamFormationStatus);
-
-              setIsDirty(true);
-            }}
-          >
-            {Object.entries(TEAM_FORMATION_STATUS_LABELS).map(
-              ([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-
         <button
           type="button"
           className={styles.primaryButton}
-          disabled={isWorking || context.participants.length === 0}
+          disabled={
+            isWorking ||
+            status === "confirmed" ||
+            context.participants.length === 0
+          }
           onClick={handleGenerate}
         >
           <Shuffle size={18} aria-hidden="true" />팀 자동 편성
@@ -611,7 +674,9 @@ export default function TeamFormationPanel({ setting }: Props) {
         <button
           type="button"
           className={styles.secondaryButton}
-          disabled={isWorking || history.length === 0}
+          disabled={
+            isWorking || status === "confirmed" || history.length === 0
+          }
           onClick={handleUndo}
         >
           <RotateCcw size={18} aria-hidden="true" />
@@ -638,7 +703,7 @@ export default function TeamFormationPanel({ setting }: Props) {
               <TeamColumn
                 key={team.key}
                 team={team}
-                disabled={isWorking}
+                disabled={isWorking || status === "confirmed"}
                 onNameChange={(name) => {
                   setTeams((current) =>
                     current.map((item) =>
@@ -662,23 +727,45 @@ export default function TeamFormationPanel({ setting }: Props) {
       <footer className={styles.saveBar}>
         {isDirty && <span>저장하지 않은 변경 사항이 있습니다.</span>}
 
-        <button
-          type="button"
-          className={styles.primaryButton}
-          disabled={
-            isWorking ||
-            !isDirty ||
-            teams.length === 0 ||
-            teams.some((team) => team.members.length === 0)
-          }
-          onClick={() => {
-            void handleSave();
-          }}
-        >
-          <Save size={18} aria-hidden="true" />
-
-          {isWorking ? "저장 중…" : "팀 편성 전체 저장"}
-        </button>
+        {status === "confirmed" ? (
+          <button
+            type="button"
+            className={styles.dangerButton}
+            disabled={isWorking}
+            onClick={() => void handleUnlock()}
+          >
+            팀 편성 수정
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              disabled={
+                isWorking ||
+                !isDirty ||
+                teams.length === 0 ||
+                teams.some((team) => team.members.length === 0)
+              }
+              onClick={() => void handleSave("draft")}
+            >
+              <Save size={18} aria-hidden="true" />
+              {isWorking ? "저장 중…" : "팀 편성 임시 저장"}
+            </button>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              disabled={
+                isWorking ||
+                teams.length < 2 ||
+                teams.some((team) => team.members.length === 0)
+              }
+              onClick={() => void handleSave("confirmed")}
+            >
+              팀 편성 최종 확정
+            </button>
+          </>
+        )}
       </footer>
     </section>
   );

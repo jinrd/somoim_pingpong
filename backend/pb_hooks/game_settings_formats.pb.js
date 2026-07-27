@@ -72,7 +72,22 @@ routerAdd(
       throw new BadRequestError("중복된 세부 경기가 포함되어 있습니다.");
     }
 
-    $app.dao().findRecordById("event_game_settings", gameSettingId);
+    const gameSettingRecord = $app
+      .dao()
+      .findRecordById("event_game_settings", gameSettingId);
+    const eventId = gameSettingRecord.getString("event");
+    const workflow = require(`${__hooks}/event_workflow_service.js`);
+    const eventRecord = $app.dao().findRecordById("events", eventId);
+
+    workflow.assertRegistrationClosed(eventRecord);
+    workflow.assertNoUndecidedParticipants($app.dao(), eventId);
+    workflow.assertSetupEditable($app.dao(), eventId);
+
+    if (gameSettingRecord.getString("status") !== "draft") {
+      throw new BadRequestError(
+        "확정된 게임 설정의 세부 경기는 변경할 수 없습니다. 먼저 '게임 설정 수정'을 눌러 주세요.",
+      );
+    }
 
     const currentRecords = $app
       .dao()
@@ -168,3 +183,23 @@ routerAdd(
   },
   require(`${__hooks}/admin_auth.js`).requireActiveAdmin,
 );
+
+["event_match_formats"].forEach((collectionName) => {
+  onRecordBeforeCreateRequest(() => {
+    throw new BadRequestError(
+      "세부 경기는 게임 설정 화면의 전체 저장 기능을 사용해 주세요.",
+    );
+  }, collectionName);
+
+  onRecordBeforeUpdateRequest(() => {
+    throw new BadRequestError(
+      "세부 경기는 게임 설정 화면의 전체 저장 기능을 사용해 주세요.",
+    );
+  }, collectionName);
+
+  onRecordBeforeDeleteRequest(() => {
+    throw new BadRequestError(
+      "세부 경기는 게임 설정 화면의 전체 저장 기능을 사용해 주세요.",
+    );
+  }, collectionName);
+});

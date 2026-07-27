@@ -11,7 +11,6 @@ import type {
 } from "./types";
 
 const GAME_SETTINGS_COLLECTION = "event_game_settings";
-
 const MATCH_FORMATS_COLLECTION = "event_match_formats";
 
 const validatePositiveInteger = (value: number, fieldName: string): number => {
@@ -109,68 +108,53 @@ export const getEventGameConfiguration = async (
 /**
  * 새 회차 게임 설정을 생성합니다.
  */
-export const createEventGameSetting = async (
+export const saveEventGameSettingDraft = async (
   eventId: string,
-  input: GameSettingInput,
-): Promise<EventGameSetting> => {
-  validateGameSettingInput(input);
-
-  return pb.collection(GAME_SETTINGS_COLLECTION).create<EventGameSetting>({
-    event: eventId,
-
-    competition_type: input.competitionType,
-
-    team_size: input.competitionType === "team_league" ? input.teamSize : 0,
-
-    auto_team_balance:
-      input.competitionType === "team_league" ? input.autoTeamBalance : false,
-
-    individual_best_of: input.individualBestOf,
-
-    individual_counts_for_ranking: input.individualCountsForRanking,
-
-    status: input.status,
-    version: 1,
-  });
-};
-
-/**
- * 기존 회차 게임 설정을 수정합니다.
- */
-export const updateEventGameSetting = async (
-  settingId: string,
   input: GameSettingInput,
   expectedVersion: number,
 ): Promise<EventGameSetting> => {
   validateGameSettingInput(input);
 
-  const currentSetting = await pb
-    .collection(GAME_SETTINGS_COLLECTION)
-    .getOne<EventGameSetting>(settingId);
+  return pb.send<EventGameSetting>(
+    `/api/somoim/admin/events/${encodeURIComponent(eventId)}/game-setting`,
+    {
+      method: "PUT",
+      body: {
+        competitionType: input.competitionType,
+        teamSize: input.teamSize,
+        autoTeamBalance: input.autoTeamBalance,
+        individualBestOf: input.individualBestOf,
+        individualCountsForRanking: input.individualCountsForRanking,
+        expectedVersion,
+      },
+    },
+  );
+};
 
-  if (currentSetting.version !== expectedVersion) {
-    throw new Error(
-      "다른 운영진이 먼저 게임 설정을 변경했습니다. 최신 정보를 다시 불러와 주세요.",
-    );
-  }
+export const confirmEventGameSetting = async (
+  settingId: string,
+  expectedVersion: number,
+): Promise<EventGameSetting> => {
+  return pb.send<EventGameSetting>(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(settingId)}/confirm`,
+    {
+      method: "POST",
+      body: { expectedVersion },
+    },
+  );
+};
 
-  return pb
-    .collection(GAME_SETTINGS_COLLECTION)
-    .update<EventGameSetting>(settingId, {
-      competition_type: input.competitionType,
-
-      team_size: input.competitionType === "team_league" ? input.teamSize : 0,
-
-      auto_team_balance:
-        input.competitionType === "team_league" ? input.autoTeamBalance : false,
-
-      individual_best_of: input.individualBestOf,
-
-      individual_counts_for_ranking: input.individualCountsForRanking,
-
-      status: input.status,
-      version: currentSetting.version + 1,
-    });
+export const unlockEventGameSetting = async (
+  settingId: string,
+  expectedVersion: number,
+): Promise<EventGameSetting> => {
+  return pb.send<EventGameSetting>(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(settingId)}/unlock`,
+    {
+      method: "POST",
+      body: { expectedVersion },
+    },
+  );
 };
 
 /**

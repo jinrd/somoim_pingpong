@@ -7,8 +7,6 @@ export const DEFAULT_GAME_SETTING_INPUT: GameSettingInput = {
 
   individualBestOf: 3,
   individualCountsForRanking: false,
-
-  status: "draft",
 };
 
 export const DEFAULT_MATCH_FORMAT_INPUT: MatchFormatInput = {
