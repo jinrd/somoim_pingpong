@@ -253,7 +253,16 @@ export default function GameSettingsPanel({
   });
 
   useEffect(() => {
-    checkMatchIntegrity(eventId).then(setMatchIntegrity).catch(console.error);
+    const fetchIntegrity = () => {
+      checkMatchIntegrity(eventId).then(setMatchIntegrity).catch(console.error);
+    };
+
+    fetchIntegrity();
+
+    window.addEventListener("scheduleDeleted", fetchIntegrity);
+    return () => {
+      window.removeEventListener("scheduleDeleted", fetchIntegrity);
+    };
   }, [eventId]);
 
   useEffect(() => {

@@ -230,6 +230,19 @@ export const saveIndividualSchedule = async (
   );
 };
 
+export const deleteSchedule = async (gameSettingId: string): Promise<void> => {
+  if (!gameSettingId) {
+    throw new Error("게임 설정 정보가 없습니다.");
+  }
+
+  return pb.send(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(gameSettingId)}/schedule`,
+    {
+      method: "DELETE",
+    },
+  );
+};
+
 export interface StoredIndividualMatch {
   id: string;
   pairKey: string;

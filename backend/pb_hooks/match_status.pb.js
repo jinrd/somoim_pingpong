@@ -83,16 +83,61 @@ const assertEventEditable = function (dao, matchRecord) {
 /**
  * 팀 경기 시작 전 양 팀 라인업 확정 여부를 검사합니다.
  */
+/**
+ * 경기 시작 시 참가자가 여전히 출전 가능한지 검사합니다.
+ */
+const assertParticipantEligible = function (dao, participantId) {
+  let participantRecord;
+
+  try {
+    participantRecord = dao.findRecordById("event_participants", participantId);
+  } catch {
+    throw new BadRequestError(
+      "라인업에 존재하지 않는 참가자가 포함되어 있습니다.",
+    );
+  }
+
+  if (participantRecord.getString("game_participation_status") !== "playing") {
+    throw new BadRequestError(
+      `${participantRecord.getString("display_name")}님은 현재 게임 참가 상태가 아닙니다.`,
+    );
+  }
+
+  if (participantRecord.getString("participant_type") === "member") {
+    let memberRecord;
+
+    try {
+      memberRecord = dao.findRecordById(
+        "members",
+        participantRecord.getString("member"),
+      );
+    } catch {
+      throw new BadRequestError(
+        "라인업에 연결된 회원 정보를 찾을 수 없습니다.",
+      );
+    }
+
+    if (memberRecord.getString("status") !== "active") {
+      throw new BadRequestError(
+        `${participantRecord.getString("display_name")}님은 비활동 회원입니다.`,
+      );
+    }
+  }
+};
+
+/**
+ * 팀 경기 시작 전 양 팀 라인업과 출전 선수를 검사합니다.
+ */
 const assertTeamLineupsConfirmed = function (dao, teamMatchRecord) {
+  const teamMatchId = teamMatchRecord.id;
+
   const lineupRecords = dao.findRecordsByFilter(
     "team_match_lineups",
     "team_match = {:teamMatchId}",
     "",
     3,
     0,
-    {
-      teamMatchId: teamMatchRecord.id,
-    },
+    { teamMatchId },
   );
 
   if (
@@ -105,6 +150,48 @@ const assertTeamLineupsConfirmed = function (dao, teamMatchRecord) {
       "양 팀의 라인업이 모두 확정되어야 경기를 시작할 수 있습니다.",
     );
   }
+
+  const matchGameRecords = dao.findRecordsByFilter(
+    "match_games",
+    "team_match = {:teamMatchId}",
+    "sequence",
+    100,
+    0,
+    { teamMatchId },
+  );
+
+  if (matchGameRecords.length === 0) {
+    throw new BadRequestError("팀 경기에 등록된 세부 경기가 없습니다.");
+  }
+
+  lineupRecords.forEach((lineupRecord) => {
+    matchGameRecords.forEach((matchGameRecord) => {
+      const playerRecords = dao.findRecordsByFilter(
+        "match_game_players",
+        ["lineup = {:lineupId}", "match_game = {:matchGameId}"].join(" && "),
+        "position",
+        3,
+        0,
+        {
+          lineupId: lineupRecord.id,
+          matchGameId: matchGameRecord.id,
+        },
+      );
+
+      const expectedPlayerCount =
+        matchGameRecord.getString("match_type") === "doubles" ? 2 : 1;
+
+      if (playerRecords.length !== expectedPlayerCount) {
+        throw new BadRequestError(
+          `${matchGameRecord.getInt("sequence")}번째 세부 경기의 출전 선수가 올바르게 확정되지 않았습니다.`,
+        );
+      }
+
+      playerRecords.forEach((playerRecord) => {
+        assertParticipantEligible(dao, playerRecord.getString("participant"));
+      });
+    });
+  });
 };
 
 /**
@@ -234,6 +321,21 @@ routerAdd(
         nextStatus,
         INDIVIDUAL_MATCH_TRANSITIONS,
       );
+
+      /*
+       * 경기 시작 시 양쪽 참가자가 여전히 출전 가능한지 확인합니다.
+       */
+      if (nextStatus === "in_progress") {
+        assertParticipantEligible(
+          transactionDao,
+          matchRecord.getString("home_participant"),
+        );
+
+        assertParticipantEligible(
+          transactionDao,
+          matchRecord.getString("away_participant"),
+        );
+      }
 
       const nextVersion = currentVersion + 1;
 

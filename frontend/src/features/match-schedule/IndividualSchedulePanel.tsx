@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, RefreshCcw, Save } from "lucide-react";
+import { Loader2, RefreshCcw, Save, Trash2, Shuffle } from "lucide-react";
 import type { EventGameSetting } from "../game-settings/types";
 import {
   type IndividualScheduleContext,
@@ -30,30 +30,31 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-const shuffleParticipants = <T,>(array: T[]): T[] => {
+const shuffleParticipants = <T extends { sortOrder: number }>(
+  array: T[],
+): T[] => {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
-  return result;
+  /*
+   * generateRoundRobin은 sortOrder 순으로 팀을 다시 정렬하므로
+   * 섞인 순서에 맞춰 임시 sortOrder를 새로 지정합니다.
+   */
+  return result.map((participant, index) => ({
+    ...participant,
+    sortOrder: index + 1,
+  }));
 };
 
 const getMatchOrderSignature = (
-  matches: {
-    homeTeamId?: string;
-    awayTeamId?: string;
-    homeParticipant?: { id: string };
-    awayParticipant?: { id: string };
-  }[],
-) => {
-  return matches
-    .map(
-      (m) =>
-        `${m.homeTeamId || m.homeParticipant?.id}:${m.awayTeamId || m.awayParticipant?.id}`,
-    )
-    .join(",");
-};
+  matches: Array<{ pairKey: string; sortOrder: number }>,
+): string =>
+  [...matches]
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((match) => match.pairKey)
+    .join("|");
 
 export default function IndividualSchedulePanel({ setting }: Props) {
   const [context, setContext] = useState<IndividualScheduleContext | null>(
@@ -160,9 +161,7 @@ export default function IndividualSchedulePanel({ setting }: Props) {
 
     if (
       context.totalMatchCount > 0 &&
-      !window.confirm(
-        "기존 대진과 작성 중인 라인업을 삭제하고 다시 생성할까요?",
-      )
+      !window.confirm("기존 대진을 삭제하고 다시 생성할까요?")
     ) {
       return;
     }
@@ -176,19 +175,61 @@ export default function IndividualSchedulePanel({ setting }: Props) {
         expectedScheduleVersion: context.scheduleVersion,
         schedule: preview,
       });
-
-      const updatedContext = await getIndividualSchedule(setting.id);
-      applyLoadedSchedule(updatedContext);
-
-      setMessage(`총 ${result.totalMatchCount}경기를 저장했습니다.`);
+      setMessage(
+        `${result.totalRoundCount}라운드, ${result.totalMatchCount}경기를 저장했습니다.`,
+      );
+      void getIndividualSchedule(setting.id)
+        .then(applyLoadedSchedule)
+        .catch(() => {});
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError, "대진표를 저장하지 못했습니다."));
+      setError(getErrorMessage(caughtError, "대진을 저장하지 못했습니다."));
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (!setting) return null;
+  const handleDeleteSchedule = async () => {
+    if (!setting || !context) return;
+    
+    if (
+      !window.confirm(
+        "정말로 기존 대진표를 완전히 삭제하시겠습니까?\n삭제 후에는 운영 방식을 변경할 수 있습니다.",
+      )
+    ) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const { deleteSchedule } = await import("./api");
+      await deleteSchedule(setting.id);
+      
+      setMessage("대진표가 완전히 삭제되었습니다.");
+      setContext(null);
+      
+      window.dispatchEvent(new Event("scheduleDeleted"));
+      
+      void getIndividualSchedule(setting.id)
+        .then(applyLoadedSchedule)
+        .catch(() => {});
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError, "대진을 삭제하지 못했습니다."));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!setting) {
+    return (
+      <section className={styles.panel}>
+        <h2>대진표</h2>
+        <p>게임 설정을 먼저 저장해 주세요.</p>
+      </section>
+    );
+  }
 
   if (setting.competition_type !== "individual_singles") {
     return (
@@ -215,6 +256,17 @@ export default function IndividualSchedulePanel({ setting }: Props) {
               ? "대진표 최초 생성"
               : "대진표 재생성"}
           </button>
+          {context && context.totalMatchCount > 0 && !preview && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={handleDeleteSchedule}
+              disabled={isLoading || isSaving}
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              삭제
+            </button>
+          )}
           <button
             type="button"
             className={styles.primaryButton}

@@ -27,6 +27,10 @@ import {
 
 import styles from "../../features/events/Events.module.css";
 
+import { Activity } from "lucide-react";
+
+import MatchMonitorPanel from "../../features/match-monitor/MatchMonitorPanel";
+
 const formatEventDate = (eventDate: string): string => {
   const parsedDate = new Date(eventDate);
 
@@ -54,7 +58,7 @@ export default function EventDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "participants" | "game-settings" | "schedule"
+    "participants" | "game-settings" | "schedule" | "monitor"
   >("participants");
 
   const [gameSetting, setGameSetting] = useState<EventGameSetting | null>(null);
@@ -211,6 +215,19 @@ export default function EventDetail() {
           <ListOrdered size={18} aria-hidden="true" />
           대진표/결과
         </button>
+        <button
+          type="button"
+          className={`${styles.detailTab} ${
+            activeTab === "monitor" ? styles.detailTabActive : ""
+          }`}
+          aria-current={activeTab === "monitor" ? "page" : undefined}
+          onClick={() => {
+            setActiveTab("monitor");
+          }}
+        >
+          <Activity size={18} aria-hidden="true" />
+          경기 진행
+        </button>
       </nav>
       <div style={{ display: activeTab === "participants" ? "block" : "none" }}>
         <ParticipantManager eventId={eventId} />
@@ -230,10 +247,13 @@ export default function EventDetail() {
         gameSetting?.competition_type === "team_league" && (
           <TeamSchedulePanel setting={gameSetting} />
         )}
+
       {activeTab === "schedule" &&
         gameSetting?.competition_type === "individual_singles" && (
           <IndividualSchedulePanel setting={gameSetting} />
         )}
+
+      {activeTab === "monitor" && <MatchMonitorPanel setting={gameSetting} />}
     </section>
   );
 }

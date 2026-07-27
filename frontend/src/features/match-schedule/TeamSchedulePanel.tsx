@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ClientResponseError } from "pocketbase";
 
-import { RefreshCw, Save, Shuffle } from "lucide-react";
+import { RefreshCw, Save, Shuffle, Trash2 } from "lucide-react";
 
 import type { EventGameSetting } from "../game-settings/types";
 
@@ -243,6 +243,38 @@ export default function TeamSchedulePanel({ setting }: Props) {
     }
   };
 
+  const handleDeleteSchedule = async () => {
+    if (!setting || !context) return;
+    
+    if (
+      !window.confirm(
+        "정말로 기존 대진표를 완전히 삭제하시겠습니까?\n삭제 후에는 운영 방식을 변경할 수 있습니다.",
+      )
+    ) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const { deleteSchedule } = await import("./api");
+      await deleteSchedule(setting.id);
+      
+      setMessage("대진표가 완전히 삭제되었습니다.");
+      setContext(null);
+      
+      window.dispatchEvent(new Event("scheduleDeleted"));
+      
+      void loadSchedule();
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError, "대진표를 삭제하지 못했습니다."));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!setting) {
     return (
       <section className={styles.panel}>
@@ -373,7 +405,6 @@ export default function TeamSchedulePanel({ setting }: Props) {
           onClick={handleGeneratePreview}
         >
           <Shuffle size={17} aria-hidden="true" />
-
           {context.totalMatchCount > 0
             ? "경기 순서 새로 구성"
             : "대진 미리보기"}
@@ -389,8 +420,21 @@ export default function TeamSchedulePanel({ setting }: Props) {
             }}
           >
             <Save size={17} aria-hidden="true" />
-
             {isSaving ? "저장 중…" : "이 대진으로 저장"}
+          </button>
+        )}
+
+        {!preview && context.totalMatchCount > 0 && (
+          <button
+            type="button"
+            className={styles.dangerButton || styles.secondaryButton}
+            disabled={isSaving}
+            onClick={() => {
+              void handleDeleteSchedule();
+            }}
+          >
+            <Trash2 size={17} aria-hidden="true" />
+            대진표 삭제 (초기화)
           </button>
         )}
       </div>
