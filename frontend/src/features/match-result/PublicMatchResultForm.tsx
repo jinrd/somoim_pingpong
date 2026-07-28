@@ -114,7 +114,13 @@ export default function PublicMatchResultForm({
   }, [applyContext, responseToken, targetId, targetType]);
 
   useEffect(() => {
-    void loadContext();
+    const loadId = window.setTimeout(() => {
+      void loadContext();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(loadId);
+    };
   }, [loadContext]);
 
   const handleSubmit = async () => {

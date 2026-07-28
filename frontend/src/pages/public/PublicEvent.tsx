@@ -24,7 +24,7 @@ import {
   type PublicIdentityResult,
   type PublicIdentifiedParticipant,
 } from "../../features/events/types";
-
+import LeagueStandingsPanel from "../../features/standings/LeagueStandingsPanel";
 import styles from "./PublicEvent.module.css";
 
 const formatDate = (value: string): string => {
@@ -115,7 +115,9 @@ export default function PublicEvent() {
   const [identity, setIdentity] = useState<PublicIdentityResult | null>(() =>
     getStoredIdentity(token),
   );
-
+  const [activePublicTab, setActivePublicTab] = useState<"mine" | "live">(
+    "mine",
+  );
   const loadEvent = () => {
     if (!token) {
       return;
@@ -289,53 +291,116 @@ export default function PublicEvent() {
                       <p>현재 부수: {identity.participant.rank}부</p>
                     </div>
                   </div>
+                  <div
+                    className={styles.publicTabs}
+                    role="tablist"
+                    aria-label="참가자 경기 메뉴"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      id="public-tab-mine"
+                      aria-controls="public-panel-mine"
+                      aria-selected={activePublicTab === "mine"}
+                      className={
+                        activePublicTab === "mine"
+                          ? styles.publicTabActive
+                          : styles.publicTab
+                      }
+                      onClick={() => setActivePublicTab("mine")}
+                    >
+                      내 경기
+                    </button>
 
-                  {event.participationStatus === "open" &&
-                  !identity.participant.hasResponded ? (
-                    <PublicParticipationForm
-                      responseToken={identity.responseToken}
-                      participant={identity.participant}
-                      onUpdated={(
-                        updatedParticipant: PublicIdentifiedParticipant,
-                      ) => {
-                        const updatedIdentity = {
-                          ...identity,
-                          participant: updatedParticipant,
-                        };
+                    <button
+                      type="button"
+                      role="tab"
+                      id="public-tab-live"
+                      aria-controls="public-panel-live"
+                      aria-selected={activePublicTab === "live"}
+                      className={
+                        activePublicTab === "live"
+                          ? styles.publicTabActive
+                          : styles.publicTab
+                      }
+                      onClick={() => setActivePublicTab("live")}
+                    >
+                      실시간 경기 현황
+                    </button>
+                  </div>
 
-                        setIdentity(updatedIdentity);
+                  {activePublicTab === "mine" && (
+                    <div
+                      id="public-panel-mine"
+                      className={styles.publicTabPanel}
+                      role="tabpanel"
+                      aria-labelledby="public-tab-mine"
+                    >
+                      {event.participationStatus === "open" &&
+                      !identity.participant.hasResponded ? (
+                        <PublicParticipationForm
+                          responseToken={identity.responseToken}
+                          participant={identity.participant}
+                          onUpdated={(
+                            updatedParticipant: PublicIdentifiedParticipant,
+                          ) => {
+                            const updatedIdentity = {
+                              ...identity,
+                              participant: updatedParticipant,
+                            };
 
-                        sessionStorage.setItem(
-                          `event-participant:${token}`,
-                          JSON.stringify(updatedIdentity),
-                        );
-                      }}
-                    />
-                  ) : (
-                    <div className={styles.lockedNotice}>
-                      <strong>
-                        {event.participationStatus === "closed"
-                          ? "참가 신청이 최종 마감되었습니다."
-                          : "참가 여부 제출이 완료되었습니다."}
-                      </strong>
-                      <p>
-                        저장한 참가 여부는 직접 수정할 수 없습니다. 변경이
-                        필요하면 운영진에게 문의해 주세요.
-                      </p>
+                            setIdentity(updatedIdentity);
+
+                            sessionStorage.setItem(
+                              `event-participant:${token}`,
+                              JSON.stringify(updatedIdentity),
+                            );
+                          }}
+                        />
+                      ) : (
+                        <div className={styles.lockedNotice}>
+                          <strong>
+                            {event.participationStatus === "closed"
+                              ? "참가 신청이 최종 마감되었습니다."
+                              : "참가 여부 제출이 완료되었습니다."}
+                          </strong>
+                          <p>
+                            저장한 참가 여부는 직접 수정할 수 없습니다. 변경이
+                            필요하면 운영진에게 문의해 주세요.
+                          </p>
+                        </div>
+                      )}
+
+                      {identity.participant.gameParticipationStatus ===
+                        "playing" &&
+                        identity.competitionType === "team_league" && (
+                          <PublicTeamLineupSection
+                            responseToken={identity.responseToken}
+                          />
+                        )}
+
+                      {identity.participant.gameParticipationStatus ===
+                        "playing" &&
+                        identity.competitionType === "individual_singles" && (
+                          <PublicIndividualLineupSection
+                            responseToken={identity.responseToken}
+                          />
+                        )}
                     </div>
                   )}
-                  {identity.participant.gameParticipationStatus === "playing" &&
-                    identity.competitionType === "team_league" && (
-                      <PublicTeamLineupSection
+
+                  {activePublicTab === "live" && (
+                    <div
+                      id="public-panel-live"
+                      className={styles.publicTabPanel}
+                      role="tabpanel"
+                      aria-labelledby="public-tab-live"
+                    >
+                      <LeagueStandingsPanel
                         responseToken={identity.responseToken}
                       />
-                    )}
-                  {identity.participant.gameParticipationStatus === "playing" &&
-                    identity.competitionType === "individual_singles" && (
-                      <PublicIndividualLineupSection
-                        responseToken={identity.responseToken}
-                      />
-                    )}
+                    </div>
+                  )}
                 </div>
               )}
             </section>

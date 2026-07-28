@@ -1,0 +1,277 @@
+.panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.header h2 {
+  margin: 0 0 5px;
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.refreshButton {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 13px;
+  color: #334155;
+  background: #f1f5f9;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.matrixScroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.matrix {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.matrix th,
+.matrix td {
+  min-width: 62px;
+  height: 54px;
+  padding: 5px;
+  text-align: center;
+  border-right: 1px solid #dbe3ec;
+  border-bottom: 1px solid #dbe3ec;
+}
+
+.matrix thead th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  color: #334155;
+  background: #eaf4fb;
+  font-size: 0.72rem;
+}
+
+.nameHeader,
+.rowHeader {
+  position: sticky;
+  z-index: 3 !important;
+  left: 0;
+  min-width: 120px !important;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: flex-start;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.rowHeader span,
+.columnNumber {
+  color: #64748b;
+  font-size: 0.68rem;
+}
+
+.columnName {
+  display: block;
+  max-width: 80px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selfCell {
+  color: #94a3b8;
+  background:
+    linear-gradient(
+      45deg,
+      transparent 48%,
+      #cbd5e1 49%,
+      #cbd5e1 51%,
+      transparent 52%
+    ),
+    #f1f5f9;
+}
+
+.emptyCell {
+  color: #94a3b8;
+}
+
+.resultCell,
+.winCell,
+.lossCell,
+.disputedCell {
+  width: 100%;
+  min-height: 38px;
+  padding: 5px;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.resultCell {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.winCell {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.lossCell {
+  color: #b42318;
+  background: #fee4e2;
+}
+
+.disputedCell {
+  color: #b42318;
+  background: #fef0c7;
+}
+
+.rankCell {
+  color: #4338ca;
+  background: #eef2ff;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.detail {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+}
+
+.detail > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.detail h3 {
+  margin: 4px 0 0;
+  color: #0f172a;
+}
+
+.detail header span {
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.detail header button {
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.detailScore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 1.4rem;
+}
+
+.gameList {
+  display: grid;
+  gap: 8px;
+}
+
+.gameList article {
+  padding: 11px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+}
+
+.gameList article > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gameList p {
+  margin: 8px 0 0;
+  color: #475569;
+  font-size: 0.8rem;
+}
+
+.detailWarning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #b42318;
+  font-size: 0.74rem;
+}
+
+.error,
+.empty {
+  margin: 0;
+  padding: 12px;
+  border-radius: 9px;
+}
+
+.error {
+  color: #b42318;
+  background: #fff4f2;
+}
+
+.empty {
+  color: #64748b;
+  background: #f8fafc;
+}
+
+@media (max-width: 620px) {
+  .panel {
+    padding: 14px;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .refreshButton {
+    width: 100%;
+  }
+
+  .nameHeader,
+  .rowHeader {
+    min-width: 100px !important;
+  }
+}

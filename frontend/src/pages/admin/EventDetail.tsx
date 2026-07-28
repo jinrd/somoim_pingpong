@@ -36,6 +36,7 @@ import { Activity } from "lucide-react";
 
 import MatchMonitorPanel from "../../features/match-monitor/MatchMonitorPanel";
 import MatchResultsPanel from "../../features/match-results/MatchResultsPanel";
+import LeagueStandingsPanel from "../../features/standings/LeagueStandingsPanel";
 
 const formatEventDate = (eventDate: string): string => {
   const parsedDate = new Date(eventDate);
@@ -358,6 +359,7 @@ export default function EventDetail() {
             />
 
             <MatchResultsPanel setting={gameSetting} />
+            <LeagueStandingsPanel setting={gameSetting} />
           </>
         )}
 
@@ -370,6 +372,7 @@ export default function EventDetail() {
             />
 
             <MatchResultsPanel setting={gameSetting} />
+            <LeagueStandingsPanel setting={gameSetting} />
           </>
         )}
 
