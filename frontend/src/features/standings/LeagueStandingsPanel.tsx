@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { AlertTriangle, RefreshCw } from "lucide-react";
-
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleDot,
+  Clock3,
+  RefreshCw,
+} from "lucide-react";
 import { ClientResponseError } from "pocketbase";
 
 import type { EventGameSetting } from "../game-settings/types";
@@ -92,7 +97,65 @@ const orientMatchForRow = (
     })),
   };
 };
+const getMatchStatusLabel = (match: StandingsMatch): string => {
+  if (match.resultStatus === "disputed") {
+    return "입력 불일치";
+  }
 
+  if (match.resultStatus === "confirmed") {
+    return "경기 완료";
+  }
+
+  if (match.status === "in_progress") {
+    return "진행 중";
+  }
+
+  if (match.status === "cancelled") {
+    return "취소";
+  }
+
+  return "대기";
+};
+
+const getMatchStatusClassName = (match: StandingsMatch): string => {
+  if (match.resultStatus === "disputed") {
+    return styles.orderStatusDisputed;
+  }
+
+  if (match.resultStatus === "confirmed") {
+    return styles.orderStatusCompleted;
+  }
+
+  if (match.status === "in_progress") {
+    return styles.orderStatusProgress;
+  }
+
+  return styles.orderStatusWaiting;
+};
+
+const getMatchStatusIcon = (match: StandingsMatch) => {
+  if (match.resultStatus === "confirmed") {
+    return <CheckCircle2 size={16} aria-hidden="true" />;
+  }
+
+  if (match.resultStatus === "disputed" || match.status === "in_progress") {
+    return <CircleDot size={16} aria-hidden="true" />;
+  }
+
+  return <Clock3 size={16} aria-hidden="true" />;
+};
+
+const getOrderedMatchResult = (match: StandingsMatch): string => {
+  if (match.resultStatus === "confirmed") {
+    return `${match.homeScore} : ${match.awayScore}`;
+  }
+
+  if (match.resultStatus === "disputed") {
+    return "점수 확인 필요";
+  }
+
+  return "- : -";
+};
 export default function LeagueStandingsPanel({
   setting,
   responseToken,
@@ -204,6 +267,15 @@ export default function LeagueStandingsPanel({
       </section>
     );
   }
+  const orderedMatches = response
+    ? [...response.matches].sort((left, right) => {
+        if (left.sortOrder !== right.sortOrder) {
+          return left.sortOrder - right.sortOrder;
+        }
+
+        return left.round - right.round;
+      })
+    : [];
 
   return (
     <section className={styles.panel}>
@@ -237,6 +309,66 @@ export default function LeagueStandingsPanel({
         <p className={styles.empty}>표시할 리그 대진이 없습니다.</p>
       ) : (
         <>
+          <section className={styles.orderSection}>
+            <header className={styles.orderHeader}>
+              <div>
+                <h3>전체 경기 순서</h3>
+
+                <p>관리자가 지정한 순서와 현재 경기 상태를 표시합니다.</p>
+              </div>
+
+              <span>{orderedMatches.length}경기</span>
+            </header>
+
+            {orderedMatches.length === 0 ? (
+              <p className={styles.empty}>저장된 경기 순서가 없습니다.</p>
+            ) : (
+              <div className={styles.orderList}>
+                {orderedMatches.map((match) => (
+                  <button
+                    key={match.id}
+                    type="button"
+                    className={
+                      match.status === "in_progress"
+                        ? styles.orderCardActive
+                        : styles.orderCard
+                    }
+                    onClick={() => {
+                      setSelectedMatch(match);
+                    }}
+                  >
+                    <span className={styles.orderNumber}>
+                      <small>경기</small>
+                      <strong>{match.sortOrder}</strong>
+                    </span>
+
+                    <span className={styles.orderMatch}>
+                      <small>{match.round}라운드</small>
+
+                      <strong>
+                        {match.homeEntity.name}
+                        <span> VS </span>
+                        {match.awayEntity.name}
+                      </strong>
+                    </span>
+
+                    <span className={styles.orderScore}>
+                      {getOrderedMatchResult(match)}
+                    </span>
+
+                    <span
+                      className={`${styles.orderStatus} ${getMatchStatusClassName(
+                        match,
+                      )}`}
+                    >
+                      {getMatchStatusIcon(match)}
+                      {getMatchStatusLabel(match)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
           <div className={styles.matrixScroll}>
             <table className={styles.matrix}>
               <thead>

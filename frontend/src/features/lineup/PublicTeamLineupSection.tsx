@@ -34,6 +34,7 @@ import PublicMatchResultForm from "../match-result/PublicMatchResultForm";
 interface Props {
   responseToken: string;
 }
+import { PUBLIC_MATCH_REFRESH_INTERVAL_MS } from "./constants";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof ClientResponseError) {
@@ -109,6 +110,54 @@ export default function PublicLineupSection({ responseToken }: Props) {
 
     return () => {
       cancelled = true;
+    };
+  }, [responseToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let isRequesting = false;
+
+    const refreshMatches = async () => {
+      if (cancelled || isRequesting || document.visibilityState !== "visible") {
+        return;
+      }
+
+      isRequesting = true;
+
+      try {
+        const result = await getMyTeamMatches(responseToken);
+
+        if (!cancelled) {
+          setMatchResponse(result);
+        }
+      } catch {
+        /*
+         * 자동 갱신 실패는 기존 화면을 유지합니다.
+         * 사용자가 새로고침 버튼을 누르면 상세 오류를 표시합니다.
+         */
+      } finally {
+        isRequesting = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshMatches();
+    }, PUBLIC_MATCH_REFRESH_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshMatches();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+
+      window.clearInterval(intervalId);
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [responseToken]);
 

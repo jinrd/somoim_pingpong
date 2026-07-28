@@ -256,8 +256,168 @@
   color: #64748b;
   background: #f8fafc;
 }
+.orderSection {
+  display: grid;
+  gap: 12px;
+}
 
+.orderHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.orderHeader h3 {
+  margin: 0 0 4px;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.orderHeader p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.orderHeader > span {
+  padding: 5px 9px;
+  color: #4338ca;
+  background: #eef2ff;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.orderList {
+  display: grid;
+  gap: 8px;
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.orderCard,
+.orderCardActive {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) 74px 104px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  color: inherit;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.orderCard:hover {
+  border-color: #a5b4fc;
+  background: #fafaff;
+}
+
+.orderCardActive {
+  background: #fffbeb;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgb(251 191 36 / 12%);
+}
+
+.orderNumber {
+  display: grid;
+  justify-items: center;
+}
+
+.orderNumber small,
+.orderMatch small {
+  color: #94a3b8;
+  font-size: 0.68rem;
+}
+
+.orderNumber strong {
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.orderMatch {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.orderMatch strong {
+  overflow: hidden;
+  color: #0f172a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderMatch strong span {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.orderScore {
+  color: #334155;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.orderStatus {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.orderStatusWaiting {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.orderStatusProgress {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.orderStatusCompleted {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.orderStatusDisputed {
+  color: #b42318;
+  background: #fee4e2;
+}
 @media (max-width: 620px) {
+  .orderCard,
+  .orderCardActive {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 10px 8px;
+  }
+
+  .orderScore {
+    font-size: 0.78rem;
+  }
+
+  .orderStatus {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .orderList {
+    max-height: 360px;
+  }
   .panel {
     padding: 14px;
   }

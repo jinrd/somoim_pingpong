@@ -13,7 +13,7 @@ import type {
 } from "./types";
 
 import styles from "./PublicLineupSection.module.css";
-
+import { PUBLIC_MATCH_REFRESH_INTERVAL_MS } from "./constants";
 interface PublicIndividualLineupSectionProps {
   responseToken: string;
 }
@@ -78,6 +78,53 @@ export default function PublicIndividualLineupSection({
 
     return () => {
       cancelled = true;
+    };
+  }, [responseToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let isRequesting = false;
+
+    const refreshMatches = async () => {
+      if (cancelled || isRequesting || document.visibilityState !== "visible") {
+        return;
+      }
+
+      isRequesting = true;
+
+      try {
+        const result = await getMyIndividualMatches(responseToken);
+
+        if (!cancelled) {
+          setMatchResponse(result);
+        }
+      } catch {
+        /*
+         * 자동 갱신 실패 시 기존 화면을 유지합니다.
+         */
+      } finally {
+        isRequesting = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshMatches();
+    }, PUBLIC_MATCH_REFRESH_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshMatches();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+
+      window.clearInterval(intervalId);
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [responseToken]);
 

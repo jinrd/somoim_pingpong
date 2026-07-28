@@ -13,6 +13,8 @@ export const getMyTeamMatches = async (
     "/api/somoim/public/team-matches/mine",
     {
       method: "POST",
+      requestKey: null,
+
       body: {
         responseToken,
       },
@@ -30,6 +32,8 @@ export const getPublicLineupContext = async (
     )}/lineup/context`,
     {
       method: "POST",
+      requestKey: null,
+
       body: {
         responseToken,
       },
@@ -57,6 +61,8 @@ export const getMyIndividualMatches = async (
     "/api/somoim/public/individual-matches/mine",
     {
       method: "POST",
+      requestKey: null,
+
       body: {
         responseToken,
       },
