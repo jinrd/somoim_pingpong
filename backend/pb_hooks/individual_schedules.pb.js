@@ -459,6 +459,18 @@ routerAdd(
     const matches = matchRecords.map((match) => {
       const homeParticipantId = match.getString("home_participant");
       const awayParticipantId = match.getString("away_participant");
+
+      const submissionRecords = dao.findRecordsByFilter(
+        "match_result_submissions",
+        "individual_match = {:individualMatchId}",
+        "",
+        2,
+        0,
+        {
+          individualMatchId: match.id,
+        },
+      );
+
       return {
         id: match.id,
         pairKey: match.getString("pair_key"),
@@ -468,6 +480,12 @@ routerAdd(
         version: match.getInt("version"),
         bestOf: match.getInt("best_of"),
         countsForRanking: match.getBool("counts_for_ranking"),
+        resultStatus: match.getString("result_status") || "pending",
+        homeScore: match.getInt("home_score"),
+        awayScore: match.getInt("away_score"),
+        winnerSide: match.getString("winner_side"),
+        resultConfirmedAt: match.getString("result_confirmed_at"),
+        submissionCount: submissionRecords.length,
         homeParticipant: participantsById.get(homeParticipantId) || {
           id: homeParticipantId,
           name: "삭제된 참가자",

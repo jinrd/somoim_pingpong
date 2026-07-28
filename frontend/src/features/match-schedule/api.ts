@@ -14,7 +14,27 @@ export type TeamMatchStatus =
   | "cancelled";
 
 export type LineupStatus = "draft" | "confirmed";
+export type MatchResultStatus = "pending" | "disputed" | "confirmed";
 
+export type MatchWinnerSide = "home" | "away" | "";
+
+export interface StoredMatchPlayer {
+  participantId: string;
+  name: string;
+  position: number;
+}
+
+export interface StoredMatchResult {
+  resultStatus: MatchResultStatus;
+
+  homeScore: number;
+  awayScore: number;
+
+  winnerSide: MatchWinnerSide;
+  resultConfirmedAt: string;
+
+  submissionCount: number;
+}
 export interface SaveTeamScheduleInput {
   /**
    * 대진을 생성할 때 사용한 팀 편성 버전입니다.
@@ -117,9 +137,13 @@ export interface TeamScheduleFormat {
   countsForRanking: boolean;
 }
 
-export interface StoredMatchGame extends TeamScheduleFormat {
+export interface StoredMatchGame extends TeamScheduleFormat, StoredMatchResult {
   id: string;
+
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
+
+  homePlayers: StoredMatchPlayer[];
+  awayPlayers: StoredMatchPlayer[];
 }
 
 export interface StoredTeamMatch {
@@ -178,6 +202,7 @@ export const getTeamSchedule = async (
     )}/team-schedule`,
     {
       method: "GET",
+      requestKey: null,
     },
   );
 };
@@ -243,15 +268,19 @@ export const deleteSchedule = async (gameSettingId: string): Promise<void> => {
   );
 };
 
-export interface StoredIndividualMatch {
+export interface StoredIndividualMatch extends StoredMatchResult {
   id: string;
   pairKey: string;
+
   round: number;
   sortOrder: number;
+
   status: TeamMatchStatus;
   version: number;
+
   bestOf: number;
   countsForRanking: boolean;
+
   homeParticipant: RoundRobinTeam;
   awayParticipant: RoundRobinTeam;
 }
@@ -282,6 +311,7 @@ export const getIndividualSchedule = async (
     )}/individual-schedule`,
     {
       method: "GET",
+      requestKey: null,
     },
   );
 };
@@ -298,6 +328,8 @@ export interface MatchStatusChangeResult {
     id: string;
     status: MatchStatus;
     version: number;
+    startedAt: string;
+    completedAt: string;
   };
 }
 

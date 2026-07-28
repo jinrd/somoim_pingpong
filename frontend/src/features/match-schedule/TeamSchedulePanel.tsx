@@ -93,20 +93,23 @@ export default function TeamSchedulePanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const applyLoadedSchedule = useCallback((loaded: TeamScheduleContext) => {
-    setContext(loaded);
-    onScheduleChanged?.(loaded.totalMatchCount > 0);
+  const applyLoadedSchedule = useCallback(
+    (loaded: TeamScheduleContext) => {
+      setContext(loaded);
+      onScheduleChanged?.(loaded.totalMatchCount > 0);
 
-    if (
-      loaded.totalMatchCount === 0 &&
-      loaded.formation?.status === "confirmed" &&
-      loaded.teams.length >= 2
-    ) {
-      setPreview(generateRoundRobin(loaded.teams));
-    } else {
-      setPreview(null);
-    }
-  }, [onScheduleChanged]);
+      if (
+        loaded.totalMatchCount === 0 &&
+        loaded.formation?.status === "confirmed" &&
+        loaded.teams.length >= 2
+      ) {
+        setPreview(generateRoundRobin(loaded.teams));
+      } else {
+        setPreview(null);
+      }
+    },
+    [onScheduleChanged],
+  );
 
   const loadSchedule = useCallback(async () => {
     if (!setting || setting.competition_type !== "team_league") {
@@ -254,9 +257,7 @@ export default function TeamSchedulePanel({
     if (!setting || !context) return;
 
     if (
-      !window.confirm(
-        "저장된 대진표와 작성 중인 라인업을 모두 삭제할까요?",
-      )
+      !window.confirm("저장된 대진표와 작성 중인 라인업을 모두 삭제할까요?")
     ) {
       return;
     }
@@ -361,7 +362,7 @@ export default function TeamSchedulePanel({
           }}
         >
           <RefreshCw size={17} aria-hidden="true" />
-          저장본 다시 불러오기
+          최신 상태 새로고침
         </button>
       </header>
 
@@ -403,19 +404,20 @@ export default function TeamSchedulePanel({
       </div>
 
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.secondaryButton}
-          disabled={
-            isSaving || (!context.canRegenerate && context.totalMatchCount > 0)
-          }
-          onClick={handleGeneratePreview}
-        >
-          <Shuffle size={17} aria-hidden="true" />
-          {context.totalMatchCount > 0
-            ? "경기 순서 새로 구성"
-            : "대진 미리보기"}
-        </button>
+        {(context.totalMatchCount === 0 || context.canRegenerate) && (
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={isSaving}
+            onClick={handleGeneratePreview}
+          >
+            <Shuffle size={17} aria-hidden="true" />
+
+            {context.totalMatchCount > 0
+              ? "경기 순서 새로 구성"
+              : "대진 미리보기"}
+          </button>
+        )}
 
         {preview && (
           <button
@@ -431,10 +433,10 @@ export default function TeamSchedulePanel({
           </button>
         )}
 
-        {!preview && context.totalMatchCount > 0 && (
+        {!preview && context.totalMatchCount > 0 && context.canRegenerate && (
           <button
             type="button"
-            className={styles.dangerButton || styles.secondaryButton}
+            className={styles.dangerButton}
             disabled={isSaving}
             onClick={() => {
               void handleDeleteSchedule();

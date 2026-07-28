@@ -31,6 +31,8 @@ interface MonitorMatch {
   title: string;
   description: string;
   canStart: boolean;
+  resultLines: string[];
+  hasDisputedResult: boolean;
 }
 
 const STATUS_LABELS: Record<TeamMatchStatus, string> = {
@@ -99,6 +101,36 @@ export default function MatchMonitorPanel({ setting }: Props) {
                   match.status === "ready" &&
                   match.homeLineupStatus === "confirmed" &&
                   match.awayLineupStatus === "confirmed",
+                resultLines: match.games.map((game) => {
+                  const typeLabel =
+                    game.matchType === "singles" ? "단식" : "복식";
+
+                  const homePlayers =
+                    game.homePlayers.map((player) => player.name).join("·") ||
+                    "미정";
+
+                  const awayPlayers =
+                    game.awayPlayers.map((player) => player.name).join("·") ||
+                    "미정";
+
+                  if (game.resultStatus === "confirmed") {
+                    return `${game.sequence}. ${typeLabel} ${homePlayers} ${game.homeScore} : ${game.awayScore} ${awayPlayers} · 확정`;
+                  }
+
+                  if (game.resultStatus === "disputed") {
+                    return `${game.sequence}. ${typeLabel} ${homePlayers} vs ${awayPlayers} · 입력 불일치`;
+                  }
+
+                  if (game.submissionCount === 1) {
+                    return `${game.sequence}. ${typeLabel} ${homePlayers} vs ${awayPlayers} · 상대 입력 대기`;
+                  }
+
+                  return `${game.sequence}. ${typeLabel} ${homePlayers} vs ${awayPlayers} · 결과 미입력`;
+                }),
+
+                hasDisputedResult: match.games.some(
+                  (game) => game.resultStatus === "disputed",
+                ),
               })),
             ),
           );
@@ -119,6 +151,17 @@ export default function MatchMonitorPanel({ setting }: Props) {
                 description: `${match.bestOf}판 경기`,
 
                 canStart: match.status === "scheduled",
+                resultLines: [
+                  match.resultStatus === "confirmed"
+                    ? `${match.homeParticipant.name} ${match.homeScore} : ${match.awayScore} ${match.awayParticipant.name} · 확정`
+                    : match.resultStatus === "disputed"
+                      ? `${match.homeParticipant.name} vs ${match.awayParticipant.name} · 입력 불일치`
+                      : match.submissionCount === 1
+                        ? `${match.homeParticipant.name} vs ${match.awayParticipant.name} · 상대 입력 대기`
+                        : `${match.homeParticipant.name} vs ${match.awayParticipant.name} · 결과 미입력`,
+                ],
+
+                hasDisputedResult: match.resultStatus === "disputed",
               })),
             ),
           );
@@ -295,14 +338,34 @@ export default function MatchMonitorPanel({ setting }: Props) {
                 <strong>{match.title}</strong>
 
                 <span>{match.description}</span>
+                {match.resultLines.length > 0 && (
+                  <div className={styles.resultLines}>
+                    {match.resultLines.map((resultLine, index) => (
+                      <span
+                        key={`${match.id}-result-${index}`}
+                        className={
+                          resultLine.includes("입력 불일치")
+                            ? styles.resultDisputed
+                            : styles.resultLine
+                        }
+                      >
+                        {resultLine}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <span
                 className={`${styles.status} ${
-                  styles[`status_${match.status}`]
+                  match.hasDisputedResult
+                    ? styles.status_disputed
+                    : styles[`status_${match.status}`]
                 }`}
               >
-                {STATUS_LABELS[match.status]}
+                {match.hasDisputedResult
+                  ? "결과 확인 필요"
+                  : STATUS_LABELS[match.status]}
               </span>
 
               <button

@@ -238,6 +238,7 @@ export default function GameSettingsPanel({
 
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [isConfirmSettingOpen, setConfirmSettingOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -345,7 +346,7 @@ export default function GameSettingsPanel({
     }
   };
 
-  const handleConfirmSetting = async () => {
+  const handleOpenConfirmSetting = () => {
     if (!setting) {
       setError("게임 설정 초안을 먼저 저장해 주세요.");
       return;
@@ -380,14 +381,19 @@ export default function GameSettingsPanel({
       return;
     }
 
-    if (
-      !window.confirm(
-        "게임 설정을 최종 확정할까요?\n\n확정 후 수정하려면 팀 편성, 대진표와 라인업을 포함한 기존 경기 구성이 모두 초기화됩니다.",
-      )
-    ) {
+    setError("");
+    setMessage("");
+    setConfirmSettingOpen(true);
+  };
+
+  const handleConfirmSetting = async () => {
+    if (!setting) {
+      setConfirmSettingOpen(false);
+      setError("게임 설정 초안을 먼저 저장해 주세요.");
       return;
     }
 
+    setConfirmSettingOpen(false);
     setIsWorking(true);
     setError("");
     setMessage("");
@@ -787,7 +793,7 @@ export default function GameSettingsPanel({
                           ? "팀 대결 세부 경기를 한 개 이상 저장해 주세요."
                           : "게임 설정을 먼저 임시 저장해 주세요."
                 }
-                onClick={() => void handleConfirmSetting()}
+                onClick={handleOpenConfirmSetting}
               >
                 게임 설정 최종 확정
               </button>
@@ -949,6 +955,51 @@ export default function GameSettingsPanel({
             </>
           )}
         </section>
+      )}
+
+      {isConfirmSettingOpen && (
+        <div className={styles.confirmOverlay}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-game-setting-title"
+            aria-describedby="confirm-game-setting-description"
+          >
+            <h2 id="confirm-game-setting-title">
+              게임 설정을 최종 확정할까요?
+            </h2>
+
+            <p id="confirm-game-setting-description">
+              현재 저장된 게임 설정과 세부 경기 구성을 최종 확정합니다.
+            </p>
+
+            <p>
+              확정 후 수정하려면 팀 편성, 대진표와 라인업을 포함한 기존 경기
+              구성이 모두 초기화됩니다.
+            </p>
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={isWorking}
+                onClick={() => setConfirmSettingOpen(false)}
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmSettingButton}
+                disabled={isWorking}
+                onClick={() => void handleConfirmSetting()}
+              >
+                {isWorking ? "확정 처리 중…" : "확인하고 최종 확정"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </section>
   );

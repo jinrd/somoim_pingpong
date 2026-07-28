@@ -599,14 +599,76 @@ routerAdd(
           sortOrder: 0,
         },
 
-        games: matchGames.map((game) => ({
-          id: game.id,
-          sequence: game.getInt("sequence"),
-          matchType: game.getString("match_type"),
-          bestOf: game.getInt("best_of"),
-          countsForRanking: game.getBool("counts_for_ranking"),
-          status: game.getString("status"),
-        })),
+        games: matchGames.map((game) => {
+          const playerRecords = dao.findRecordsByFilter(
+            "match_game_players",
+            "match_game = {:matchGameId}",
+            "position",
+            10,
+            0,
+            {
+              matchGameId: game.id,
+            },
+          );
+
+          const serializePlayers = function (lineupRecord) {
+            if (!lineupRecord) {
+              return [];
+            }
+
+            return playerRecords
+              .filter(
+                (playerRecord) =>
+                  playerRecord.getString("lineup") === lineupRecord.id,
+              )
+              .map((playerRecord) => {
+                const participantRecord = dao.findRecordById(
+                  "event_participants",
+                  playerRecord.getString("participant"),
+                );
+
+                return {
+                  participantId: participantRecord.id,
+                  name: participantRecord.getString("display_name") || "참가자",
+                  position: playerRecord.getInt("position"),
+                };
+              });
+          };
+
+          const submissionRecords = dao.findRecordsByFilter(
+            "match_result_submissions",
+            "match_game = {:matchGameId}",
+            "",
+            2,
+            0,
+            {
+              matchGameId: game.id,
+            },
+          );
+
+          return {
+            id: game.id,
+            sequence: game.getInt("sequence"),
+            matchType: game.getString("match_type"),
+            bestOf: game.getInt("best_of"),
+            countsForRanking: game.getBool("counts_for_ranking"),
+            status: game.getString("status"),
+
+            resultStatus: game.getString("result_status") || "pending",
+
+            homeScore: game.getInt("home_score"),
+            awayScore: game.getInt("away_score"),
+
+            winnerSide: game.getString("winner_side"),
+
+            resultConfirmedAt: game.getString("result_confirmed_at"),
+
+            submissionCount: submissionRecords.length,
+
+            homePlayers: serializePlayers(homeLineup),
+            awayPlayers: serializePlayers(awayLineup),
+          };
+        }),
 
         homeLineupStatus: homeLineup ? homeLineup.getString("status") : "draft",
 

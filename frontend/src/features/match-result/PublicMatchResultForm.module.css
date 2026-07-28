@@ -1,0 +1,270 @@
+.container {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 15px;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.header strong {
+  color: #101828;
+  font-size: 0.95rem;
+}
+
+.header span {
+  color: #667085;
+  font-size: 0.75rem;
+}
+
+.refreshButton {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  color: #475467;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.sideNotice {
+  padding: 9px 11px;
+  color: #475467;
+  background: #f2f4f7;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.sideNotice strong {
+  color: #4338ca;
+}
+
+.scoreBoard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.competitor {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.competitor > span {
+  color: #98a2b3;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.competitor > strong {
+  overflow: hidden;
+  color: #101828;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.competitor > small {
+  color: #667085;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.scoreInputs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #344054;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.scoreInputs select {
+  width: 54px;
+  height: 48px;
+  color: #101828;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #98a2b3;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.scoreInputs > strong {
+  min-width: 38px;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.confirmed,
+.waiting,
+.disputed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.confirmed {
+  color: #067647;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+}
+
+.waiting {
+  color: #175cd3;
+  background: #eff8ff;
+  border: 1px solid #b2ddff;
+}
+
+.disputed {
+  align-items: flex-start;
+  color: #b54708;
+  background: #fffaeb;
+  border: 1px solid #fedf89;
+}
+
+.disputed div {
+  display: grid;
+  gap: 2px;
+}
+
+.disputed span {
+  font-size: 0.76rem;
+}
+
+.submitButton {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  color: #ffffff;
+  background: #4f46e5;
+  border: 1px solid #4f46e5;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.submitButton:disabled,
+.refreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.errorMessage,
+.message,
+.unavailable,
+.state {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.errorMessage {
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+}
+
+.message {
+  color: #344054;
+  background: #f2f4f7;
+}
+
+.unavailable,
+.state {
+  color: #667085;
+  background: #f8fafc;
+  border: 1px solid #e4e7ec;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px;
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
+.error button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding: 13px;
+  }
+
+  .scoreBoard {
+    grid-template-columns: minmax(0, 1fr) 116px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .competitor > strong {
+    font-size: 0.78rem;
+  }
+
+  .competitor > small {
+    font-size: 0.66rem;
+  }
+
+  .scoreInputs {
+    gap: 5px;
+  }
+
+  .scoreInputs select {
+    width: 46px;
+    height: 46px;
+  }
+}

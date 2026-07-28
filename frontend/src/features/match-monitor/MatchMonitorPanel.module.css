@@ -227,3 +227,34 @@
     width: 100%;
   }
 }
+
+.resultLines {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.resultLine,
+.resultDisputed {
+  display: block;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.resultLine {
+  color: #475569;
+  background: #f8fafc;
+}
+
+.resultDisputed {
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+}
+
+.status_disputed {
+  color: #b42318;
+  background: #fee4e2;
+}

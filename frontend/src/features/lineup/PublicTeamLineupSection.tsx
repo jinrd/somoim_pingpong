@@ -30,7 +30,7 @@ import type {
 } from "./types";
 
 import styles from "./PublicLineupSection.module.css";
-
+import PublicMatchResultForm from "../match-result/PublicMatchResultForm";
 interface Props {
   responseToken: string;
 }
@@ -53,6 +53,20 @@ const getLineupStatusLabel = (status: PublicLineupStatus): string => {
 
 const getMatchTypeLabel = (matchType: "singles" | "doubles"): string => {
   return matchType === "singles" ? "단식" : "복식";
+};
+
+const getMatchStatusLabel = (
+  status: "scheduled" | "ready" | "in_progress" | "completed" | "cancelled",
+): string => {
+  const labels = {
+    scheduled: "라인업 작성 중",
+    ready: "시작 대기",
+    in_progress: "진행 중",
+    completed: "경기 완료",
+    cancelled: "취소",
+  };
+
+  return labels[status];
 };
 
 export default function PublicLineupSection({ responseToken }: Props) {
@@ -201,7 +215,7 @@ export default function PublicLineupSection({ responseToken }: Props) {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !matchResponse) {
     return (
       <section className={styles.section}>
         내 경기와 라인업을 불러오는 중입니다…
@@ -283,10 +297,14 @@ export default function PublicLineupSection({ responseToken }: Props) {
                     {matchResponse.team?.name} VS {match.opponentTeam.name}
                   </strong>
 
-                  <small>
-                    우리 팀 라인업:{" "}
-                    {getLineupStatusLabel(match.ownLineupStatus)}
-                  </small>
+                  <small>경기 상태: {getMatchStatusLabel(match.status)}</small>
+
+                  {match.status === "scheduled" || match.status === "ready" ? (
+                    <small>
+                      우리 팀 라인업:{" "}
+                      {getLineupStatusLabel(match.ownLineupStatus)}
+                    </small>
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -315,6 +333,19 @@ export default function PublicLineupSection({ responseToken }: Props) {
           <div className={styles.gameList}>
             {context.games.map((game) => {
               const selectedIds = selections[game.id] ?? [];
+              const requesterIsPlayer = context.lineup.players.some(
+                (player) =>
+                  player.matchGameId === game.id &&
+                  player.participantId === context.requester.participantId,
+              );
+
+              const selectedMembers = context.members.filter((member) =>
+                selectedIds.includes(member.participantId),
+              );
+
+              const canEditLineup =
+                context.match.status === "scheduled" ||
+                context.match.status === "ready";
 
               return (
                 <article key={game.id} className={styles.gameCard}>
@@ -331,79 +362,113 @@ export default function PublicLineupSection({ responseToken }: Props) {
                     </div>
                   </header>
 
-                  <div className={styles.memberGrid}>
-                    {context.members.map((member) => {
-                      const selected = selectedIds.includes(
-                        member.participantId,
-                      );
+                  {canEditLineup ? (
+                    <div className={styles.memberGrid}>
+                      {context.members.map((member) => {
+                        const selected = selectedIds.includes(
+                          member.participantId,
+                        );
 
-                      return (
-                        <button
-                          key={member.participantId}
-                          type="button"
-                          className={
-                            selected
-                              ? styles.memberSelected
-                              : styles.memberButton
-                          }
-                          disabled={isSaving}
-                          onClick={() => {
-                            handleParticipantToggle(
-                              game.id,
-                              member.participantId,
-                              game.requiredPlayerCount,
-                            );
-                          }}
-                        >
-                          <span>
-                            {member.displayName}
-                            {member.isRequester ? " (나)" : ""}
-                          </span>
+                        return (
+                          <button
+                            key={member.participantId}
+                            type="button"
+                            className={
+                              selected
+                                ? styles.memberSelected
+                                : styles.memberButton
+                            }
+                            disabled={isSaving}
+                            onClick={() => {
+                              handleParticipantToggle(
+                                game.id,
+                                member.participantId,
+                                game.requiredPlayerCount,
+                              );
+                            }}
+                          >
+                            <span>
+                              {member.displayName}
+                              {member.isRequester ? " (나)" : ""}
+                            </span>
 
-                          <small>{member.rankSnapshot}부</small>
-                        </button>
-                      );
-                    })}
-                  </div>
+                            <small>{member.rankSnapshot}부</small>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className={styles.startedGame}>
+                      <div className={styles.selectedPlayers}>
+                        <span>우리 팀 출전 선수</span>
+
+                        <strong>
+                          {selectedMembers.length > 0
+                            ? selectedMembers
+                                .map((member) => member.displayName)
+                                .join(", ")
+                            : "출전 선수 정보 없음"}
+                        </strong>
+                      </div>
+
+                      {requesterIsPlayer ? (
+                        <PublicMatchResultForm
+                          targetType="team_game"
+                          targetId={game.id}
+                          responseToken={responseToken}
+                        />
+                      ) : (
+                        <p className={styles.notPlayingNotice}>
+                          이 세부 경기의 출전 선수가 아니므로 결과를 입력할 수
+                          없습니다.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </article>
               );
             })}
           </div>
 
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.draftButton}
-              disabled={isSaving}
-              onClick={() => {
-                void handleSave("draft");
-              }}
-            >
-              <Save size={17} aria-hidden="true" />
+          {(context.match.status === "scheduled" ||
+            context.match.status === "ready") && (
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.draftButton}
+                disabled={isSaving}
+                onClick={() => {
+                  void handleSave("draft");
+                }}
+              >
+                <Save size={17} aria-hidden="true" />
 
-              {isSaving ? "저장 중…" : "임시 저장"}
-            </button>
+                {isSaving ? "저장 중…" : "임시 저장"}
+              </button>
 
-            <button
-              type="button"
-              className={styles.confirmButton}
-              disabled={
-                isSaving || !isLineupComplete(context.games, selections)
-              }
-              onClick={() => {
-                void handleSave("confirmed");
-              }}
-            >
-              <ShieldCheck size={17} aria-hidden="true" />
-              라인업 확정
-            </button>
-          </div>
-
-          {context.lineup.confirmedBy && (
-            <p className={styles.confirmedBy}>
-              마지막 확정: {context.lineup.confirmedBy.displayName}
-            </p>
+              <button
+                type="button"
+                className={styles.confirmButton}
+                disabled={
+                  isSaving || !isLineupComplete(context.games, selections)
+                }
+                onClick={() => {
+                  void handleSave("confirmed");
+                }}
+              >
+                <ShieldCheck size={17} aria-hidden="true" />
+                라인업 확정
+              </button>
+            </div>
           )}
+
+          {(context.match.status === "scheduled" ||
+            context.match.status === "ready") &&
+            context.lineup.confirmedBy && (
+              <p className={styles.confirmedBy}>
+                마지막 확정: {context.lineup.confirmedBy.displayName}
+              </p>
+            )}
         </div>
       )}
     </section>

@@ -199,11 +199,7 @@ export default function IndividualSchedulePanel({
   const handleDeleteSchedule = async () => {
     if (!setting || !context) return;
 
-    if (
-      !window.confirm(
-        "저장된 개인 단식 대진표를 모두 삭제할까요?",
-      )
-    ) {
+    if (!window.confirm("저장된 개인 단식 대진표를 모두 삭제할까요?")) {
       return;
     }
 
@@ -253,28 +249,36 @@ export default function IndividualSchedulePanel({
       <header className={styles.header}>
         <h2>단식 풀리그 대진표</h2>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={handleGeneratePreview}
-            disabled={isLoading || isSaving}
-          >
-            <RefreshCcw size={16} aria-hidden="true" />
-            {context?.totalMatchCount === 0
-              ? "대진표 최초 생성"
-              : "대진표 재생성"}
-          </button>
-          {context && context.totalMatchCount > 0 && !preview && (
+          {(!context ||
+            context.totalMatchCount === 0 ||
+            context.canRegenerate) && (
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={handleDeleteSchedule}
+              onClick={handleGeneratePreview}
               disabled={isLoading || isSaving}
             >
-              <Trash2 size={16} aria-hidden="true" />
-              삭제
+              <RefreshCcw size={16} aria-hidden="true" />
+
+              {context?.totalMatchCount === 0
+                ? "대진표 최초 생성"
+                : "대진표 재생성"}
             </button>
           )}
+          {context &&
+            context.totalMatchCount > 0 &&
+            context.canRegenerate &&
+            !preview && (
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleDeleteSchedule}
+                disabled={isLoading || isSaving}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                대진표 삭제 (초기화)
+              </button>
+            )}
           <button
             type="button"
             className={styles.primaryButton}
@@ -327,9 +331,7 @@ function PreviewRounds({ schedule }: { schedule: RoundRobinSchedule }) {
         >
           <header>
             <h3>라운드 {round.round}</h3>
-            {round.byeTeam && (
-              <span>(휴식: {round.byeTeam.name})</span>
-            )}
+            {round.byeTeam && <span>(휴식: {round.byeTeam.name})</span>}
           </header>
           <div className={styles.matchList}>
             {round.matches.map((match) => (

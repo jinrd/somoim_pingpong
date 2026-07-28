@@ -84,8 +84,7 @@ export default function ParticipantManager({
   onGameConfigurationReset,
 }: Props) {
   const eventId = eventRecord.id;
-  const isParticipationClosed =
-    eventRecord.participation_status === "closed";
+  const isParticipationClosed = eventRecord.participation_status === "closed";
 
   const [participants, setParticipants] = useState<
     EventParticipantWithMember[]
@@ -103,6 +102,7 @@ export default function ParticipantManager({
   const [error, setError] = useState("");
   const [isGuestModalOpen, setGuestModalOpen] = useState(false);
   const [hasStartedMatches, setHasStartedMatches] = useState(false);
+  const [isCloseConfirmationOpen, setCloseConfirmationOpen] = useState(false);
 
   const refreshParticipants = useCallback(async () => {
     setIsLoading(true);
@@ -207,17 +207,11 @@ export default function ParticipantManager({
       setError(
         `참가 상태가 미정인 참석자 ${undecidedCount}명이 있습니다. 모두 확정한 후 마감해 주세요.`,
       );
+      setCloseConfirmationOpen(false);
       return;
     }
 
-    const shouldClose = window.confirm(
-      "참가 신청을 최종 마감할까요?\n\n마감 후에는 다시 열 수 없으며 참석자를 추가하거나 삭제할 수 없습니다. 운영진은 기존 참석자의 게임 참가/미참가 상태만 변경할 수 있습니다.",
-    );
-
-    if (!shouldClose) {
-      return;
-    }
-
+    setCloseConfirmationOpen(false);
     setIsWorking(true);
     setError("");
 
@@ -254,7 +248,9 @@ export default function ParticipantManager({
     }
 
     if (hasStartedMatches) {
-      setError("이미 시작했거나 완료된 경기가 있어 참가 상태를 변경할 수 없습니다.");
+      setError(
+        "이미 시작했거나 완료된 경기가 있어 참가 상태를 변경할 수 없습니다.",
+      );
       return;
     }
 
@@ -408,8 +404,8 @@ export default function ParticipantManager({
         <div className={styles.workflowNotice}>
           <strong>참가 신청이 최종 마감되었습니다.</strong>
           <p>
-            참석자 추가·삭제는 할 수 없습니다. 기존 참석자는 게임 참가 또는
-            게임 미참가로만 변경할 수 있으며, 경기 구성이 있으면 변경 시 모두
+            참석자 추가·삭제는 할 수 없습니다. 기존 참석자는 게임 참가 또는 게임
+            미참가로만 변경할 수 있으며, 경기 구성이 있으면 변경 시 모두
             초기화됩니다.
           </p>
         </div>
@@ -424,7 +420,10 @@ export default function ParticipantManager({
             type="button"
             className={styles.primaryButton}
             disabled={isWorking || isLoading || undecidedCount > 0}
-            onClick={() => void handleCloseParticipation()}
+            onClick={() => {
+              setError("");
+              setCloseConfirmationOpen(true);
+            }}
           >
             참가 신청 최종 마감
           </button>
@@ -460,7 +459,9 @@ export default function ParticipantManager({
 
             <div className={styles.memberSelectionList}>
               {isLoading ? (
-                <p className={styles.panelEmpty}>회원 목록을 불러오는 중입니다…</p>
+                <p className={styles.panelEmpty}>
+                  회원 목록을 불러오는 중입니다…
+                </p>
               ) : filteredMembers.length === 0 ? (
                 <p className={styles.panelEmpty}>
                   추가할 수 있는 회원이 없습니다.
@@ -524,7 +525,9 @@ export default function ParticipantManager({
                 참석자 목록을 불러오는 중입니다…
               </p>
             ) : participants.length === 0 ? (
-              <p className={styles.panelEmpty}>아직 등록된 참석자가 없습니다.</p>
+              <p className={styles.panelEmpty}>
+                아직 등록된 참석자가 없습니다.
+              </p>
             ) : (
               participants.map((participant) => (
                 <article
@@ -563,14 +566,13 @@ export default function ParticipantManager({
                         )
                       }
                     >
-                      {Object.entries(
-                        GAME_PARTICIPATION_STATUS_LABELS,
-                      ).map(([value, label]) =>
-                        !isParticipationClosed || value !== "undecided" ? (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ) : null,
+                      {Object.entries(GAME_PARTICIPATION_STATUS_LABELS).map(
+                        ([value, label]) =>
+                          !isParticipationClosed || value !== "undecided" ? (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ) : null,
                       )}
                     </select>
 
@@ -605,6 +607,52 @@ export default function ParticipantManager({
           onClose={() => setGuestModalOpen(false)}
           onCreated={() => void refreshParticipants()}
         />
+      )}
+
+      {isCloseConfirmationOpen && (
+        <div className={styles.confirmOverlay}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="close-participation-title"
+            aria-describedby="close-participation-description"
+          >
+            <h2 id="close-participation-title">
+              참가 신청을 최종 마감할까요?
+            </h2>
+
+            <p id="close-participation-description">
+              마감 후에는 다시 열 수 없으며 참석자를 추가하거나 삭제할 수
+              없습니다.
+            </p>
+
+            <p>
+              운영진은 기존 참석자의 게임 참가·미참가 상태만 변경할 수
+              있습니다.
+            </p>
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                disabled={isWorking}
+                onClick={() => setCloseConfirmationOpen(false)}
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmCloseButton}
+                disabled={isWorking}
+                onClick={() => void handleCloseParticipation()}
+              >
+                {isWorking ? "마감 처리 중…" : "확인하고 최종 마감"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </section>
   );

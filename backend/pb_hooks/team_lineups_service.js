@@ -135,12 +135,6 @@ const buildLineupContext = function (teamMatchId, responseToken) {
     throw new NotFoundError("팀 경기를 찾을 수 없습니다.");
   }
 
-  if (!["scheduled", "ready"].includes(teamMatchRecord.getString("status"))) {
-    throw new BadRequestError(
-      "이미 시작했거나 종료된 경기의 라인업은 변경할 수 없습니다.",
-    );
-  }
-
   const participantEventId = participantRecord.getString("event");
 
   if (participantEventId !== teamMatchRecord.getString("event")) {

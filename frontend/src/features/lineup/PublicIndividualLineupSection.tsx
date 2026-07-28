@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
+
 import { RefreshCw } from "lucide-react";
+import { ClientResponseError } from "pocketbase";
+
+import PublicMatchResultForm from "../match-result/PublicMatchResultForm";
 
 import { getMyIndividualMatches } from "./api";
-import type { PublicParticipantMatchesResponse } from "./types";
+
+import type {
+  PublicParticipantMatchesResponse,
+  PublicTeamMatchStatus,
+} from "./types";
+
 import styles from "./PublicLineupSection.module.css";
-import { ClientResponseError } from "pocketbase";
 
 interface PublicIndividualLineupSectionProps {
   responseToken: string;
@@ -22,11 +30,25 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const getStatusLabel = (status: PublicTeamMatchStatus): string => {
+  const labels: Record<PublicTeamMatchStatus, string> = {
+    scheduled: "대기 중",
+    ready: "시작 대기",
+    in_progress: "진행 중",
+    completed: "경기 완료",
+    cancelled: "취소",
+  };
+
+  return labels[status];
+};
+
 export default function PublicIndividualLineupSection({
   responseToken,
 }: PublicIndividualLineupSectionProps) {
   const [matchResponse, setMatchResponse] =
     useState<PublicParticipantMatchesResponse | null>(null);
+
+  const [openedMatchId, setOpenedMatchId] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,6 +87,7 @@ export default function PublicIndividualLineupSection({
 
     try {
       const result = await getMyIndividualMatches(responseToken);
+
       setMatchResponse(result);
     } catch (caughtError) {
       setError(
@@ -75,7 +98,7 @@ export default function PublicIndividualLineupSection({
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !matchResponse) {
     return (
       <section className={styles.section}>
         내 대진표를 불러오는 중입니다…
@@ -87,8 +110,9 @@ export default function PublicIndividualLineupSection({
     <section className={styles.section}>
       <header className={styles.header}>
         <div>
-          <h2>내 대진표</h2>
-          <p>이번 회차에 배정된 내 개인 단식 풀리그 경기 목록입니다.</p>
+          <h2>내 개인 단식 경기</h2>
+
+          <p>진행 중인 경기를 선택하여 최종 점수를 입력해 주세요.</p>
         </div>
 
         <button
@@ -111,28 +135,48 @@ export default function PublicIndividualLineupSection({
       )}
 
       {!matchResponse?.matches || matchResponse.matches.length === 0 ? (
-        <p className={styles.empty}>아직 확정된 대진이 없습니다.</p>
+        <p className={styles.empty}>아직 확정된 개인 단식 대진이 없습니다.</p>
       ) : (
         <div className={styles.matchList}>
-          {matchResponse.matches.map((match) => (
-            <div
-              key={match.id}
-              className={styles.matchButton}
-              style={{ cursor: "default" }}
-            >
-              <span>
-                {match.round}라운드 · {match.sortOrder}번째 경기
-              </span>
+          {matchResponse.matches.map((match) => {
+            const canOpenResult =
+              match.status === "in_progress" || match.status === "completed";
 
-              <strong>나 VS {match.opponentTeam.name}</strong>
+            const isOpened = openedMatchId === match.id;
 
-              <small>
-                진행 상태: {match.status === "completed" && "경기 완료"}
-                {match.status === "in_progress" && "진행 중"}
-                {match.status === "scheduled" && "대기 중"}
-              </small>
-            </div>
-          ))}
+            return (
+              <div key={match.id}>
+                <button
+                  type="button"
+                  className={
+                    isOpened ? styles.matchButtonActive : styles.matchButton
+                  }
+                  disabled={!canOpenResult}
+                  onClick={() => {
+                    setOpenedMatchId((current) =>
+                      current === match.id ? "" : match.id,
+                    );
+                  }}
+                >
+                  <span>
+                    {match.round}라운드 · {match.sortOrder}번째 경기
+                  </span>
+
+                  <strong>나 VS {match.opponentTeam.name}</strong>
+
+                  <small>경기 상태: {getStatusLabel(match.status)}</small>
+                </button>
+
+                {isOpened && canOpenResult && (
+                  <PublicMatchResultForm
+                    targetType="individual_match"
+                    targetId={match.id}
+                    responseToken={responseToken}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>

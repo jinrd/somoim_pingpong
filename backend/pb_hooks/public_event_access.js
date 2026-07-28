@@ -20,7 +20,15 @@ const assertEventPublicAccess = function (eventRecord) {
 
   const expiresAt = eventRecord.getString("public_expires_at");
 
-  const expiresAtTimestamp = new Date(expiresAt).getTime();
+  /*
+   * PocketBase는 날짜를 "YYYY-MM-DD HH:mm:ss.SSSZ" 형식으로
+   * 반환할 수 있으므로 ISO 8601 형식으로 정규화합니다.
+   */
+  const normalizedExpiresAt = expiresAt.includes("T")
+    ? expiresAt
+    : expiresAt.replace(" ", "T");
+
+  const expiresAtTimestamp = new Date(normalizedExpiresAt).getTime();
 
   if (
     !expiresAt ||

@@ -1,0 +1,178 @@
+.panel {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header h2 {
+  margin: 0 0 5px;
+  color: #0f172a;
+  font-size: 1.15rem;
+}
+
+.header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.refreshButton {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  color: #334155;
+  background: #f1f5f9;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.refreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  min-width: 840px;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.table th {
+  color: #475569;
+  background: #f8fafc;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.table td {
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.versus {
+  margin: 0 7px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.playerMatchup {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 220px;
+}
+
+.playerMatchup span:nth-child(2) {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+.score {
+  color: #0f172a;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.confirmed,
+.disputed,
+.waiting,
+.pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.confirmed {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.disputed {
+  color: #b42318;
+  background: #fee4e2;
+}
+
+.waiting {
+  color: #175cd3;
+  background: #dbeafe;
+}
+
+.pending {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.error,
+.empty {
+  margin: 0;
+  padding: 13px 14px;
+  border-radius: 10px;
+}
+
+.error {
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+}
+
+.empty {
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 620px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .refreshButton {
+    width: 100%;
+  }
+}

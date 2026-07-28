@@ -204,6 +204,7 @@ export default function TeamFormationPanel({
 
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [isConfirmFormationOpen, setConfirmFormationOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -430,13 +431,8 @@ export default function TeamFormationPanel({
       return;
     }
 
-    if (
-      nextStatus === "confirmed" &&
-      !window.confirm(
-        "팀 편성을 최종 확정할까요?\n\n확정 후 수정하려면 저장된 대진표와 라인업이 모두 초기화됩니다.",
-      )
-    ) {
-      return;
+    if (nextStatus === "confirmed") {
+      setConfirmFormationOpen(false);
     }
 
     setIsWorking(true);
@@ -760,13 +756,61 @@ export default function TeamFormationPanel({
                 teams.length < 2 ||
                 teams.some((team) => team.members.length === 0)
               }
-              onClick={() => void handleSave("confirmed")}
+              onClick={() => {
+                setError("");
+                setMessage("");
+                setConfirmFormationOpen(true);
+              }}
             >
               팀 편성 최종 확정
             </button>
           </>
         )}
       </footer>
+
+      {isConfirmFormationOpen && (
+        <div className={styles.confirmOverlay}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-team-formation-title"
+            aria-describedby="confirm-team-formation-description"
+          >
+            <h2 id="confirm-team-formation-title">
+              팀 편성을 최종 확정할까요?
+            </h2>
+
+            <p id="confirm-team-formation-description">
+              현재 저장된 팀 구성과 팀원 배치를 최종 확정합니다.
+            </p>
+
+            <p>
+              확정 후 수정하려면 저장된 대진표와 라인업이 모두 초기화됩니다.
+            </p>
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={isWorking}
+                onClick={() => setConfirmFormationOpen(false)}
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmFormationButton}
+                disabled={isWorking}
+                onClick={() => void handleSave("confirmed")}
+              >
+                {isWorking ? "확정 처리 중…" : "확인하고 최종 확정"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }

@@ -35,6 +35,7 @@ import styles from "../../features/events/Events.module.css";
 import { Activity } from "lucide-react";
 
 import MatchMonitorPanel from "../../features/match-monitor/MatchMonitorPanel";
+import MatchResultsPanel from "../../features/match-results/MatchResultsPanel";
 
 const formatEventDate = (eventDate: string): string => {
   const parsedDate = new Date(eventDate);
@@ -307,7 +308,9 @@ export default function EventDetail() {
           aria-current={activeTab === "monitor" ? "page" : undefined}
           disabled={!hasSchedule}
           title={
-            hasSchedule ? undefined : "대진표를 저장한 후 경기 진행을 시작할 수 있습니다."
+            hasSchedule
+              ? undefined
+              : "대진표를 저장한 후 경기 진행을 시작할 수 있습니다."
           }
           onClick={() => {
             if (hasSchedule) {
@@ -348,18 +351,26 @@ export default function EventDetail() {
 
       {activeTab === "schedule" &&
         gameSetting?.competition_type === "team_league" && (
-          <TeamSchedulePanel
-            setting={gameSetting}
-            onScheduleChanged={setHasSchedule}
-          />
+          <>
+            <TeamSchedulePanel
+              setting={gameSetting}
+              onScheduleChanged={setHasSchedule}
+            />
+
+            <MatchResultsPanel setting={gameSetting} />
+          </>
         )}
 
       {activeTab === "schedule" &&
         gameSetting?.competition_type === "individual_singles" && (
-          <IndividualSchedulePanel
-            setting={gameSetting}
-            onScheduleChanged={setHasSchedule}
-          />
+          <>
+            <IndividualSchedulePanel
+              setting={gameSetting}
+              onScheduleChanged={setHasSchedule}
+            />
+
+            <MatchResultsPanel setting={gameSetting} />
+          </>
         )}
 
       {activeTab === "monitor" && hasSchedule && (
