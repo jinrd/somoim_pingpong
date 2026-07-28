@@ -387,3 +387,52 @@ export const changeIndividualMatchStatus = async (
     },
   );
 };
+
+export interface CancelMatchResultInput {
+  expectedVersion: number;
+  reason: string;
+}
+
+export interface CancelMatchResultResponse {
+  id: string;
+  status: TeamMatchStatus;
+  version: number;
+}
+
+export const cancelTeamMatchResult = async (
+  matchId: string,
+  input: CancelMatchResultInput,
+): Promise<CancelMatchResultResponse> => {
+  return pb.send<CancelMatchResultResponse>(
+    `/api/somoim/admin/team-matches/${encodeURIComponent(
+      matchId,
+    )}/result/cancel`,
+    {
+      method: "POST",
+      body: {
+        requestId: crypto.randomUUID(),
+        expectedVersion: input.expectedVersion,
+        reason: input.reason,
+      },
+    },
+  );
+};
+
+export const cancelIndividualMatchResult = async (
+  matchId: string,
+  input: CancelMatchResultInput,
+): Promise<CancelMatchResultResponse> => {
+  return pb.send<CancelMatchResultResponse>(
+    `/api/somoim/admin/individual-matches/${encodeURIComponent(
+      matchId,
+    )}/result/cancel`,
+    {
+      method: "POST",
+      body: {
+        requestId: crypto.randomUUID(),
+        expectedVersion: input.expectedVersion,
+        reason: input.reason,
+      },
+    },
+  );
+};

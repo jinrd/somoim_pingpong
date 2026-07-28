@@ -3,6 +3,7 @@
 const { findParticipantByResponseToken } = require(
   `${__hooks}/team_lineups_service.js`,
 );
+const historyService = require(`${__hooks}/match_result_history_service.js`);
 
 const TARGET_TYPE_TEAM_GAME = "team_game";
 const TARGET_TYPE_INDIVIDUAL_MATCH = "individual_match";
@@ -396,8 +397,13 @@ const buildResultContext = (targetType, targetId, responseToken) => {
 const saveResultSubmission = (targetType, targetId, input) => {
   assertTargetType(targetType);
 
+  const requestId = String(input.requestId || "").trim();
   const responseToken = String(input.responseToken || "").trim();
   const expectedVersion = Number(input.expectedVersion);
+
+  if (!requestId || requestId.length > 100) {
+    throw new ApiError(400, "요청 식별 정보가 올바르지 않습니다.");
+  }
 
   if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
     throw new ApiError(400, "결과 버전 정보가 올바르지 않습니다.");
@@ -406,6 +412,32 @@ const saveResultSubmission = (targetType, targetId, input) => {
   const participantRecord = findParticipantByResponseToken(responseToken);
 
   $app.dao().runInTransaction((txDao) => {
+    const previousHistory = historyService.findHistoryByRequestId(
+      txDao,
+      requestId,
+    );
+
+    if (previousHistory) {
+      const sameParticipant =
+        previousHistory.getString("actor_participant") === participantRecord.id;
+
+      const sameType = previousHistory.getString("target_type") === targetType;
+
+      const previousTargetId =
+        targetType === TARGET_TYPE_TEAM_GAME
+          ? previousHistory.getString("match_game")
+          : previousHistory.getString("individual_match");
+
+      if (!sameParticipant || !sameType || previousTargetId !== targetId) {
+        throw new ApiError(
+          409,
+          "이미 다른 결과 요청에서 사용된 요청 정보입니다.",
+        );
+      }
+
+      return;
+    }
+
     const transactionParticipant = txDao.findRecordById(
       "event_participants",
       participantRecord.id,
@@ -432,6 +464,26 @@ const saveResultSubmission = (targetType, targetId, input) => {
       targetId,
       access.side,
     );
+
+    const isNewSubmission = !ownSubmission;
+
+    const beforeSubmission = ownSubmission
+      ? {
+          homeScore: ownSubmission.getInt("home_score"),
+          awayScore: ownSubmission.getInt("away_score"),
+          version: ownSubmission.getInt("version"),
+        }
+      : null;
+
+    const beforeResult = {
+      status: access.target.getString("status"),
+      resultStatus:
+        access.target.getString("result_status") || RESULT_STATUS_PENDING,
+      homeScore: access.target.getInt("home_score"),
+      awayScore: access.target.getInt("away_score"),
+      winnerSide: access.target.getString("winner_side"),
+      version: access.target.getInt("version"),
+    };
 
     if (ownSubmission) {
       if (ownSubmission.getInt("version") !== expectedVersion) {
@@ -519,6 +571,51 @@ const saveResultSubmission = (targetType, targetId, input) => {
     target.set("version", target.getInt("version") + 1);
     txDao.saveRecord(target);
 
+    const nextResultStatus =
+      target.getString("result_status") || RESULT_STATUS_PENDING;
+
+    let historyAction = isNewSubmission ? "submitted" : "updated";
+
+    if (nextResultStatus === RESULT_STATUS_CONFIRMED) {
+      historyAction = "confirmed";
+    } else if (nextResultStatus === RESULT_STATUS_DISPUTED) {
+      historyAction = "disputed";
+    }
+
+    historyService.createHistory(txDao, {
+      eventId: transactionParticipant.getString("event"),
+      targetType,
+      targetId,
+      action: historyAction,
+      requestId,
+      actorType: "participant",
+      actorId: transactionParticipant.id,
+      actorName: getRecordDisplayName(transactionParticipant),
+      submittedSide: access.side,
+
+      beforeData: {
+        submission: beforeSubmission,
+        result: beforeResult,
+      },
+
+      afterData: {
+        submission: {
+          homeScore: ownSubmission.getInt("home_score"),
+          awayScore: ownSubmission.getInt("away_score"),
+          version: ownSubmission.getInt("version"),
+        },
+
+        result: {
+          status: target.getString("status"),
+          resultStatus: nextResultStatus,
+          homeScore: target.getInt("home_score"),
+          awayScore: target.getInt("away_score"),
+          winnerSide: target.getString("winner_side"),
+          version: target.getInt("version"),
+        },
+      },
+    });
+
     /*
      * 팀 대결의 모든 세부 경기 결과가 확정되면
      * 부모 team_matches도 자동으로 완료합니다.
@@ -558,10 +655,7 @@ const saveResultSubmission = (targetType, targetId, input) => {
         if (teamMatchRecord.getString("status") === "in_progress") {
           teamMatchRecord.set("status", "completed");
           teamMatchRecord.set("completed_at", new Date().toISOString());
-          teamMatchRecord.set(
-            "version",
-            teamMatchRecord.getInt("version") + 1,
-          );
+          teamMatchRecord.set("version", teamMatchRecord.getInt("version") + 1);
 
           txDao.saveRecord(teamMatchRecord);
         }

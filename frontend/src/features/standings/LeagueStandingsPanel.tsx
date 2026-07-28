@@ -61,6 +61,38 @@ const getCellScore = (match: StandingsMatch, rowId: string): string => {
   return `${match.awayScore}:${match.homeScore}`;
 };
 
+const orientMatchForRow = (
+  match: StandingsMatch,
+  rowEntityId: string,
+): StandingsMatch => {
+  if (match.homeEntity.id === rowEntityId) {
+    return match;
+  }
+
+  return {
+    ...match,
+    homeEntity: match.awayEntity,
+    awayEntity: match.homeEntity,
+    homeScore: match.awayScore,
+    awayScore: match.homeScore,
+    winnerEntityId: match.winnerEntityId,
+
+    games: match.games.map((game) => ({
+      ...game,
+      homeScore: game.awayScore,
+      awayScore: game.homeScore,
+      winnerSide:
+        game.winnerSide === "home"
+          ? "away"
+          : game.winnerSide === "away"
+            ? "home"
+            : "",
+      homePlayers: game.awayPlayers,
+      awayPlayers: game.homePlayers,
+    })),
+  };
+};
+
 export default function LeagueStandingsPanel({
   setting,
   responseToken,
@@ -94,7 +126,13 @@ export default function LeagueStandingsPanel({
           return null;
         }
 
-        return result.matches.find((match) => match.id === current.id) || null;
+        const updatedMatch = result.matches.find(
+          (match) => match.id === current.id,
+        );
+
+        return updatedMatch
+          ? orientMatchForRow(updatedMatch, current.homeEntity.id)
+          : null;
       });
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
@@ -287,7 +325,11 @@ export default function LeagueStandingsPanel({
                                       ? styles.lossCell
                                       : styles.resultCell
                               }
-                              onClick={() => setSelectedMatch(match)}
+                              onClick={() =>
+                                setSelectedMatch(
+                                  orientMatchForRow(match, rowEntity.id),
+                                )
+                              }
                             >
                               {getCellScore(match, rowEntity.id)}
                             </button>

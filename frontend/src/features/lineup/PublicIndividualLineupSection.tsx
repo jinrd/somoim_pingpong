@@ -172,6 +172,7 @@ export default function PublicIndividualLineupSection({
                     targetType="individual_match"
                     targetId={match.id}
                     responseToken={responseToken}
+                    onResultUpdated={reloadMatches}
                   />
                 )}
               </div>

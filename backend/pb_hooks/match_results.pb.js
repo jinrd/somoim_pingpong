@@ -34,6 +34,7 @@ routerAdd(
   "/api/somoim/public/match-games/:matchGameId/result",
   (context) => {
     const requestData = new DynamicModel({
+      requestId: "",
       responseToken: "",
       expectedVersion: 0,
       homeScore: 0,
@@ -54,6 +55,7 @@ routerAdd(
       service.TARGET_TYPE_TEAM_GAME,
       context.pathParam("matchGameId"),
       {
+        requestId: requestData.requestId,
         responseToken,
         expectedVersion: requestData.expectedVersion,
         homeScore: requestData.homeScore,
@@ -98,6 +100,7 @@ routerAdd(
   "/api/somoim/public/individual-matches/:individualMatchId/result",
   (context) => {
     const requestData = new DynamicModel({
+      requestId: "",
       responseToken: "",
       expectedVersion: 0,
       homeScore: 0,
@@ -118,6 +121,7 @@ routerAdd(
       service.TARGET_TYPE_INDIVIDUAL_MATCH,
       context.pathParam("individualMatchId"),
       {
+        requestId: requestData.requestId,
         responseToken,
         expectedVersion: requestData.expectedVersion,
         homeScore: requestData.homeScore,

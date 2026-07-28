@@ -416,6 +416,7 @@ export default function PublicLineupSection({ responseToken }: Props) {
                           targetType="team_game"
                           targetId={game.id}
                           responseToken={responseToken}
+                          onResultUpdated={reloadMatches}
                         />
                       ) : (
                         <p className={styles.notPlayingNotice}>

@@ -59,6 +59,7 @@ export interface PublicMatchResultContext {
 }
 
 export interface SubmitMatchResultInput {
+  requestId: string;
   responseToken: string;
   expectedVersion: number;
   homeScore: number;

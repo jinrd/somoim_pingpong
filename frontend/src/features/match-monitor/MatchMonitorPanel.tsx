@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { CirclePlay, Loader2, RefreshCw } from "lucide-react";
+import { CirclePlay, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
 
 import { ClientResponseError } from "pocketbase";
 
 import type { EventGameSetting } from "../game-settings/types";
 
 import {
+  cancelIndividualMatchResult,
+  cancelTeamMatchResult,
   changeIndividualMatchStatus,
   changeTeamMatchStatus,
   getIndividualSchedule,
@@ -31,8 +33,15 @@ interface MonitorMatch {
   title: string;
   description: string;
   canStart: boolean;
+  canCancelResult: boolean;
   resultLines: string[];
   hasDisputedResult: boolean;
+}
+
+interface CancelTarget {
+  id: string;
+  title: string;
+  version: number;
 }
 
 const STATUS_LABELS: Record<TeamMatchStatus, string> = {
@@ -64,6 +73,10 @@ export default function MatchMonitorPanel({ setting }: Props) {
 
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
+
+  const [cancelReason, setCancelReason] = useState("");
 
   const loadMatches = useCallback(
     async (showLoading: boolean) => {
@@ -127,7 +140,9 @@ export default function MatchMonitorPanel({ setting }: Props) {
 
                   return `${game.sequence}. ${typeLabel} ${homePlayers} vs ${awayPlayers} · 결과 미입력`;
                 }),
-
+                canCancelResult: match.games.some(
+                  (game) => game.resultStatus === "confirmed",
+                ),
                 hasDisputedResult: match.games.some(
                   (game) => game.resultStatus === "disputed",
                 ),
@@ -151,6 +166,7 @@ export default function MatchMonitorPanel({ setting }: Props) {
                 description: `${match.bestOf}판 경기`,
 
                 canStart: match.status === "scheduled",
+                canCancelResult: match.resultStatus === "confirmed",
                 resultLines: [
                   match.resultStatus === "confirmed"
                     ? `${match.homeParticipant.name} ${match.homeScore} : ${match.awayScore} ${match.awayParticipant.name} · 확정`
@@ -245,6 +261,53 @@ export default function MatchMonitorPanel({ setting }: Props) {
       await loadMatches(false);
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, "경기를 시작하지 못했습니다."));
+
+      await loadMatches(false);
+    } finally {
+      setWorkingMatchId("");
+    }
+  };
+
+  const handleCancelResult = async () => {
+    if (!setting || !cancelTarget) {
+      return;
+    }
+
+    const normalizedReason = cancelReason.trim();
+
+    if (!normalizedReason) {
+      setError("결과 취소 사유를 입력해 주세요.");
+      return;
+    }
+
+    setWorkingMatchId(cancelTarget.id);
+    setError("");
+    setMessage("");
+
+    try {
+      const input = {
+        expectedVersion: cancelTarget.version,
+        reason: normalizedReason,
+      };
+
+      if (setting.competition_type === "team_league") {
+        await cancelTeamMatchResult(cancelTarget.id, input);
+      } else {
+        await cancelIndividualMatchResult(cancelTarget.id, input);
+      }
+
+      setMessage(
+        `${cancelTarget.title} 결과를 취소했습니다. 참가자가 결과를 다시 입력할 수 있습니다.`,
+      );
+
+      setCancelTarget(null);
+      setCancelReason("");
+
+      await loadMatches(false);
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "경기 결과를 취소하지 못했습니다."),
+      );
 
       await loadMatches(false);
     } finally {
@@ -368,34 +431,162 @@ export default function MatchMonitorPanel({ setting }: Props) {
                   : STATUS_LABELS[match.status]}
               </span>
 
+              <div className={styles.matchActions}>
+                {match.canStart && (
+                  <button
+                    type="button"
+                    className={styles.startButton}
+                    disabled={Boolean(workingMatchId)}
+                    onClick={() => {
+                      void handleStartMatch(match);
+                    }}
+                  >
+                    {workingMatchId === match.id ? (
+                      <Loader2
+                        className={styles.spinner}
+                        size={17}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <CirclePlay size={17} aria-hidden="true" />
+                    )}
+                    경기 시작
+                  </button>
+                )}
+
+                {match.canCancelResult && (
+                  <button
+                    type="button"
+                    className={styles.cancelButton}
+                    disabled={Boolean(workingMatchId)}
+                    onClick={() => {
+                      setError("");
+                      setCancelReason("");
+
+                      setCancelTarget({
+                        id: match.id,
+                        title: match.title,
+                        version: match.version,
+                      });
+                    }}
+                  >
+                    <RotateCcw size={17} aria-hidden="true" />
+                    결과 취소
+                  </button>
+                )}
+
+                {!match.canStart && !match.canCancelResult && (
+                  <span className={styles.actionLabel}>
+                    {match.status === "in_progress"
+                      ? "경기 진행 중"
+                      : match.status === "completed"
+                        ? "경기 완료"
+                        : "시작 대기"}
+                  </span>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      {cancelTarget && (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !workingMatchId) {
+              setCancelTarget(null);
+              setCancelReason("");
+            }
+          }}
+        >
+          <section
+            className={styles.cancelModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-result-title"
+          >
+            <header>
+              <div>
+                <span>경기 결과 취소</span>
+
+                <h3 id="cancel-result-title">{cancelTarget.title}</h3>
+              </div>
+
               <button
                 type="button"
-                className={styles.startButton}
-                disabled={!match.canStart || Boolean(workingMatchId)}
+                className={styles.modalCloseButton}
+                disabled={Boolean(workingMatchId)}
                 onClick={() => {
-                  void handleStartMatch(match);
+                  setCancelTarget(null);
+                  setCancelReason("");
+                }}
+                aria-label="결과 취소 창 닫기"
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className={styles.cancelWarning}>
+              <strong>확정된 경기 결과를 취소하시겠습니까?</strong>
+
+              <p>
+                저장된 결과 제출값이 삭제되고 경기 상태가 진행 중으로
+                돌아갑니다. 승점과 순위도 자동으로 다시 계산됩니다.
+              </p>
+            </div>
+
+            <label className={styles.reasonField}>
+              <span>취소 사유</span>
+
+              <textarea
+                value={cancelReason}
+                maxLength={500}
+                rows={4}
+                disabled={Boolean(workingMatchId)}
+                placeholder="예: 점수가 잘못 입력되어 결과를 다시 입력합니다."
+                onChange={(event) => {
+                  setCancelReason(event.target.value);
+                }}
+              />
+
+              <small>{cancelReason.length}/500</small>
+            </label>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelButton}
+                disabled={Boolean(workingMatchId)}
+                onClick={() => {
+                  setCancelTarget(null);
+                  setCancelReason("");
                 }}
               >
-                {workingMatchId === match.id ? (
+                돌아가기
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmCancelButton}
+                disabled={Boolean(workingMatchId) || !cancelReason.trim()}
+                onClick={() => {
+                  void handleCancelResult();
+                }}
+              >
+                {workingMatchId === cancelTarget.id ? (
                   <Loader2
                     className={styles.spinner}
                     size={17}
                     aria-hidden="true"
                   />
                 ) : (
-                  <CirclePlay size={17} aria-hidden="true" />
+                  <RotateCcw size={17} aria-hidden="true" />
                 )}
-
-                {match.status === "in_progress"
-                  ? "진행 중"
-                  : match.status === "completed"
-                    ? "완료"
-                    : match.canStart
-                      ? "경기 시작"
-                      : "시작 대기"}
+                결과 취소 확정
               </button>
-            </article>
-          ))}
+            </div>
+          </section>
         </div>
       )}
     </section>

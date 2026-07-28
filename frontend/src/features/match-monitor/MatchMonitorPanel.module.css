@@ -258,3 +258,208 @@
   color: #b42318;
   background: #fee4e2;
 }
+
+.matchActions {
+  display: grid;
+  gap: 7px;
+  width: 120px;
+}
+
+.cancelButton,
+.actionLabel {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cancelButton {
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+  cursor: pointer;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #fee4e2;
+}
+
+.cancelButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.actionLabel {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.modalBackdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(15 23 42 / 55%);
+}
+
+.cancelModal {
+  width: min(100%, 480px);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 30%);
+}
+
+.cancelModal > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cancelModal header span {
+  color: #b42318;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.cancelModal h3 {
+  margin: 5px 0 0;
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.modalCloseButton {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.cancelWarning {
+  padding: 14px;
+  color: #7a271a;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+  border-radius: 12px;
+}
+
+.cancelWarning strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.cancelWarning p {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.reasonField {
+  display: grid;
+  gap: 7px;
+}
+
+.reasonField > span {
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.reasonField textarea {
+  width: 100%;
+  padding: 11px 12px;
+  box-sizing: border-box;
+  resize: vertical;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.reasonField textarea:focus {
+  border-color: #ef4444;
+  outline: 3px solid rgb(239 68 68 / 12%);
+}
+
+.reasonField small {
+  color: #94a3b8;
+  text-align: right;
+}
+
+.modalActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.modalCancelButton,
+.confirmCancelButton {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.modalCancelButton {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.confirmCancelButton {
+  color: #ffffff;
+  background: #dc2626;
+}
+
+.confirmCancelButton:disabled,
+.modalCancelButton:disabled,
+.modalCloseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 760px) {
+  .matchActions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .modalBackdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .cancelModal {
+    padding: 18px;
+    border-radius: 18px 18px 12px 12px;
+  }
+
+  .modalActions {
+    grid-template-columns: 1fr;
+  }
+}

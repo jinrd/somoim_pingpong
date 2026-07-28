@@ -25,6 +25,7 @@ interface PublicMatchResultFormProps {
   targetType: MatchResultTargetType;
   targetId: string;
   responseToken: string;
+  onResultUpdated?: () => void | Promise<void>;
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -57,6 +58,7 @@ export default function PublicMatchResultForm({
   targetType,
   targetId,
   responseToken,
+  onResultUpdated,
 }: PublicMatchResultFormProps) {
   const [context, setContext] = useState<PublicMatchResultContext | null>(null);
 
@@ -147,6 +149,7 @@ export default function PublicMatchResultForm({
 
     try {
       const input = {
+        requestId: crypto.randomUUID(),
         responseToken,
         expectedVersion: context.ownSubmission?.version ?? 0,
         homeScore,
@@ -159,16 +162,8 @@ export default function PublicMatchResultForm({
           : await submitIndividualMatchResult(targetId, input);
 
       applyContext(result);
-
-      if (result.resultStatus === "confirmed") {
-        setMessage("양측의 결과가 일치하여 경기 결과가 확정됐습니다.");
-      } else if (result.resultStatus === "disputed") {
-        setMessage(
-          "상대편이 입력한 결과와 일치하지 않습니다. 점수를 확인하고 다시 제출해 주세요.",
-        );
-      } else {
-        setMessage("결과를 제출했습니다. 상대편의 확인을 기다리고 있습니다.");
-      }
+      setMessage("");
+      await onResultUpdated?.();
     } catch (caughtError) {
       const errorMessage = getErrorMessage(
         caughtError,
