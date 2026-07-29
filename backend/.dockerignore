@@ -1,0 +1,6 @@
+pb_data
+pb_data_corrupt_backup_*
+.env
+.env.*
+*.log
+.DS_Store

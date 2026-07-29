@@ -1,0 +1,112 @@
+name: somoim-pingpong
+
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  pocketbase:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      args:
+        PB_VERSION: "0.22.17"
+
+    restart: unless-stopped
+    init: true
+
+    environment:
+      PB_ENCRYPTION_KEY: "${PB_ENCRYPTION_KEY:?PB_ENCRYPTION_KEY가 필요합니다}"
+
+    volumes:
+      - type: bind
+        source: "${PB_DATA_PATH}"
+        target: /pb/pb_data
+
+    ports:
+      - "127.0.0.1:8090:8090"
+
+    expose:
+      - "8090"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:8090/api/health",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: ./frontend
+
+    restart: unless-stopped
+    init: true
+
+    expose:
+      - "80"
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2-alpine
+
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+
+    environment:
+      APP_ADDRESS: "${APP_ADDRESS:-:80}"
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - type: bind
+        source: ./deploy/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+
+      - type: bind
+        source: "${CADDY_DATA_PATH}"
+        target: /data
+
+      - type: bind
+        source: "${CADDY_CONFIG_PATH}"
+        target: /config
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
