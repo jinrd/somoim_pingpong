@@ -1,4 +1,10 @@
-import { CalendarDays, LayoutDashboard, LogOut, Users } from "lucide-react";
+import {
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  Trophy,
+  Users,
+} from "lucide-react";
 
 import { NavLink, Outlet } from "react-router-dom";
 
@@ -33,6 +39,12 @@ export default function AdminLayout() {
             <Users size={20} aria-hidden="true" />
 
             <span>회원 관리</span>
+          </NavLink>
+
+          <NavLink to="/rankings" className={getNavLinkClassName}>
+            <Trophy size={20} aria-hidden="true" />
+
+            <span>부수 관리</span>
           </NavLink>
 
           <NavLink to="/events" className={getNavLinkClassName}>

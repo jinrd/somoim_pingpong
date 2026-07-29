@@ -224,6 +224,10 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
     });
   });
 
+  const rankingService = require(`${__hooks}/ranking_service.js`);
+
+  rankingService.recalculateAllCandidates($app.dao());
+
   const record = $app.dao().findRecordById("team_matches", teamMatchId);
 
   return {
@@ -335,6 +339,10 @@ const cancelIndividualMatchResult = function (individualMatchId, input) {
       },
     });
   });
+
+  const rankingService = require(`${__hooks}/ranking_service.js`);
+
+  rankingService.recalculateAllCandidates($app.dao());
 
   const record = $app
     .dao()

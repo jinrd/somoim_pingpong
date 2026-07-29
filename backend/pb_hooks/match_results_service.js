@@ -691,6 +691,14 @@ const saveResultSubmission = (targetType, targetId, input) => {
     }
   });
 
+  /*
+   * 결과 확정·불일치·재입력에 따라 공식 단식 연속 기록과
+   * 승급·강등 후보를 최신 상태로 다시 계산합니다.
+   */
+  const rankingService = require(`${__hooks}/ranking_service.js`);
+
+  rankingService.recalculateAllCandidates($app.dao());
+
   return buildResultContext(targetType, targetId, responseToken);
 };
 

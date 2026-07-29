@@ -5,6 +5,7 @@
 
 # PocketBase runtime data
 backend/pb_data/
+backend/pb_data_corrupt_backup_*/
 
 # Frontend dependencies and build output
 frontend/node_modules/

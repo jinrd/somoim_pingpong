@@ -10,7 +10,7 @@ export const DEFAULT_RANK_SETTINGS: RankSettingsInput = {
   default_member_rank: 8,
   default_guest_rank: 8,
   promotion_threshold: 3,
-  demotion_threshold: 3,
+  demotion_threshold: 4,
 };
 
 /**

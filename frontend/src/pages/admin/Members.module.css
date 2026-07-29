@@ -153,6 +153,12 @@
   background: var(--color-primary-soft);
 }
 
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .emptyCell {
   height: 180px;
   color: var(--color-muted);
@@ -412,6 +418,28 @@
     padding: 0 9px;
     color: #4338ca;
     background: #eef2ff;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  .mobileCardActions {
+    display: flex;
+    gap: 5px;
+  }
+
+  .mobileRecordButton {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 9px;
+    color: #067647;
+    background: #ecfdf3;
     border: 0;
     border-radius: 9px;
     cursor: pointer;

@@ -4,8 +4,9 @@ import { getMembers, getRankSettings } from "../../features/members/api";
 import type { Member, RankSettings } from "../../features/members/api";
 import MemberFormModal from "../../features/members/MemberFormModal";
 import RankSettingsModal from "../../features/members/RankSettingsModal";
-import { Edit, Search, Settings, UserPlus } from "lucide-react";
+import { Edit, Search, Settings, Trophy, UserPlus } from "lucide-react";
 import { DEFAULT_RANK_SETTINGS } from "../../config/domain";
+import { useNavigate } from "react-router-dom";
 
 type MemberStatusFilter = "all" | Member["status"];
 
@@ -22,6 +23,7 @@ const getGenderLabel = (gender: Member["gender"]): string => {
 };
 
 export default function Members() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
   const [rankSettings, setRankSettings] = useState<RankSettings | null>(null);
   const effectiveRankSettings = rankSettings ?? DEFAULT_RANK_SETTINGS;
@@ -249,13 +251,26 @@ export default function Members() {
                     </span>
                   </td>
                   <td>
-                    <button
-                      onClick={() => openEditMember(member)}
-                      className={styles.iconButton}
-                      aria-label={`${member.nickname} 회원 수정`}
-                    >
-                      <Edit size={18} />
-                    </button>
+                    <div className={styles.rowActions}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(`/rankings?member=${member.id}`)
+                        }
+                        className={styles.iconButton}
+                        aria-label={`${member.nickname} 공식 단식 전적`}
+                      >
+                        <Trophy size={18} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditMember(member)}
+                        className={styles.iconButton}
+                        aria-label={`${member.nickname} 회원 수정`}
+                      >
+                        <Edit size={18} aria-hidden="true" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -288,15 +303,26 @@ export default function Members() {
                   <span>{member.name}</span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => openEditMember(member)}
-                  className={styles.mobileEditButton}
-                  aria-label={`${member.nickname} 회원 수정`}
-                >
-                  <Edit size={17} aria-hidden="true" />
-                  수정
-                </button>
+                <div className={styles.mobileCardActions}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/rankings?member=${member.id}`)}
+                    className={styles.mobileRecordButton}
+                    aria-label={`${member.nickname} 공식 단식 전적`}
+                  >
+                    <Trophy size={16} aria-hidden="true" />
+                    전적
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEditMember(member)}
+                    className={styles.mobileEditButton}
+                    aria-label={`${member.nickname} 회원 수정`}
+                  >
+                    <Edit size={16} aria-hidden="true" />
+                    수정
+                  </button>
+                </div>
               </div>
 
               <div className={styles.mobileMemberMeta}>

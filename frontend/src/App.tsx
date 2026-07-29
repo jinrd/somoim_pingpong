@@ -7,6 +7,7 @@ import AdminLayout from "./components/layout/AdminLayout";
 import Login from "./pages/Login";
 import Events from "./pages/admin/Events";
 import Members from "./pages/admin/Members";
+import Rankings from "./pages/admin/Rankings";
 import EventDetail from "./pages/admin/EventDetail";
 import PublicEvent from "./pages/public/PublicEvent";
 import { useAuthStore } from "./store/authStore";
@@ -61,6 +62,8 @@ export default function App() {
           <Route index element={<Dashboard />} />
 
           <Route path="members" element={<Members />} />
+
+          <Route path="rankings" element={<Rankings />} />
 
           <Route path="events" element={<Events />} />
 
