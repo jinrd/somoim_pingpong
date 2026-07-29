@@ -14,7 +14,7 @@
 
     route {
         @pocketbaseAdmin path /_ /_/*
-        respond @pocketbaseAdmin 404
+        respond @pocketbaseAdmin "Not Found" 404
 
         handle /api/* {
             reverse_proxy pocketbase:8090
