@@ -254,70 +254,110 @@ const TeamResults = ({ schedule }: { schedule: TeamScheduleContext }) => {
   }
 
   return (
-    <div className={styles.tableScroll}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>순서</th>
-            <th>팀 대결</th>
-            <th>세부 경기</th>
-            <th>출전 선수</th>
-            <th>점수</th>
-            <th>상태</th>
-          </tr>
-        </thead>
+    <>
+      <div className={styles.tableScroll}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>순서</th>
+              <th>팀 대결</th>
+              <th>세부 경기</th>
+              <th>출전 선수</th>
+              <th>점수</th>
+              <th>상태</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {matches.flatMap((match: StoredTeamMatch) =>
-            match.games.map((game) => (
-              <tr key={game.id}>
-                <td>
-                  {match.sortOrder}-{game.sequence}
-                </td>
+          <tbody>
+            {matches.flatMap((match: StoredTeamMatch) =>
+              match.games.map((game) => (
+                <tr key={game.id}>
+                  <td>
+                    {match.sortOrder}-{game.sequence}
+                  </td>
 
-                <td>
-                  <strong>{match.homeTeam.name}</strong>
-                  <span className={styles.versus}>VS</span>
-                  <strong>{match.awayTeam.name}</strong>
-                </td>
+                  <td>
+                    <strong>{match.homeTeam.name}</strong>
+                    <span className={styles.versus}>VS</span>
+                    <strong>{match.awayTeam.name}</strong>
+                  </td>
 
-                <td>
-                  {game.sequence}.{" "}
+                  <td>
+                    {game.sequence}.{" "}
+                    {game.matchType === "singles" ? "단식" : "복식"}
+                  </td>
+
+                  <td>
+                    <div className={styles.playerMatchup}>
+                      <span>{getPlayersLabel(game.homePlayers)}</span>
+
+                      <span>VS</span>
+
+                      <span>{getPlayersLabel(game.awayPlayers)}</span>
+                    </div>
+                  </td>
+
+                  <td>
+                    {game.resultStatus === "confirmed" ? (
+                      <strong className={styles.score}>
+                        {game.homeScore} : {game.awayScore}
+                      </strong>
+                    ) : (
+                      <span>- : -</span>
+                    )}
+                  </td>
+
+                  <td>
+                    <ResultStatus
+                      status={game.resultStatus}
+                      submissionCount={game.submissionCount}
+                    />
+                  </td>
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className={styles.mobileResultList}>
+        {matches.flatMap((match: StoredTeamMatch) =>
+          match.games.map((game) => (
+            <article key={game.id} className={styles.mobileResultCard}>
+              <header>
+                <span>
+                  경기 {match.sortOrder}-{game.sequence} ·{" "}
                   {game.matchType === "singles" ? "단식" : "복식"}
-                </td>
+                </span>
 
-                <td>
-                  <div className={styles.playerMatchup}>
-                    <span>{getPlayersLabel(game.homePlayers)}</span>
+                <ResultStatus
+                  status={game.resultStatus}
+                  submissionCount={game.submissionCount}
+                />
+              </header>
 
-                    <span>VS</span>
+              <div className={styles.mobileResultScore}>
+                <div>
+                  <strong>{match.homeTeam.name}</strong>
+                  <span>{getPlayersLabel(game.homePlayers)}</span>
+                </div>
 
-                    <span>{getPlayersLabel(game.awayPlayers)}</span>
-                  </div>
-                </td>
+                <strong>
+                  {game.resultStatus === "confirmed"
+                    ? `${game.homeScore} : ${game.awayScore}`
+                    : "- : -"}
+                </strong>
 
-                <td>
-                  {game.resultStatus === "confirmed" ? (
-                    <strong className={styles.score}>
-                      {game.homeScore} : {game.awayScore}
-                    </strong>
-                  ) : (
-                    <span>- : -</span>
-                  )}
-                </td>
-
-                <td>
-                  <ResultStatus
-                    status={game.resultStatus}
-                    submissionCount={game.submissionCount}
-                  />
-                </td>
-              </tr>
-            )),
-          )}
-        </tbody>
-      </table>
-    </div>
+                <div>
+                  <strong>{match.awayTeam.name}</strong>
+                  <span>{getPlayersLabel(game.awayPlayers)}</span>
+                </div>
+              </div>
+            </article>
+          )),
+        )}
+      </div>
+    </>
   );
 };
 
@@ -333,56 +373,92 @@ const IndividualResults = ({
   }
 
   return (
-    <div className={styles.tableScroll}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>순서</th>
-            <th>경기</th>
-            <th>방식</th>
-            <th>점수</th>
-            <th>상태</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {matches.map((match) => (
-            <tr key={match.id}>
-              <td>{match.sortOrder}</td>
-
-              <td>
-                <strong>{match.homeParticipant.name}</strong>
-
-                <span className={styles.versus}>VS</span>
-
-                <strong>{match.awayParticipant.name}</strong>
-              </td>
-
-              <td>
-                {match.bestOf}판 {Math.floor(match.bestOf / 2) + 1}
-                선승
-              </td>
-
-              <td>
-                {match.resultStatus === "confirmed" ? (
-                  <strong className={styles.score}>
-                    {match.homeScore} : {match.awayScore}
-                  </strong>
-                ) : (
-                  <span>- : -</span>
-                )}
-              </td>
-
-              <td>
-                <ResultStatus
-                  status={match.resultStatus}
-                  submissionCount={match.submissionCount}
-                />
-              </td>
+    <>
+      <div className={styles.tableScroll}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>순서</th>
+              <th>경기</th>
+              <th>방식</th>
+              <th>점수</th>
+              <th>상태</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tbody>
+            {matches.map((match) => (
+              <tr key={match.id}>
+                <td>{match.sortOrder}</td>
+
+                <td>
+                  <strong>{match.homeParticipant.name}</strong>
+
+                  <span className={styles.versus}>VS</span>
+
+                  <strong>{match.awayParticipant.name}</strong>
+                </td>
+
+                <td>
+                  {match.bestOf}판 {Math.floor(match.bestOf / 2) + 1}
+                  선승
+                </td>
+
+                <td>
+                  {match.resultStatus === "confirmed" ? (
+                    <strong className={styles.score}>
+                      {match.homeScore} : {match.awayScore}
+                    </strong>
+                  ) : (
+                    <span>- : -</span>
+                  )}
+                </td>
+
+                <td>
+                  <ResultStatus
+                    status={match.resultStatus}
+                    submissionCount={match.submissionCount}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className={styles.mobileResultList}>
+        {matches.map((match) => (
+          <article key={match.id} className={styles.mobileResultCard}>
+            <header>
+              <span>
+                경기 {match.sortOrder} · {match.bestOf}판{" "}
+                {Math.floor(match.bestOf / 2) + 1}선승
+              </span>
+
+              <ResultStatus
+                status={match.resultStatus}
+                submissionCount={match.submissionCount}
+              />
+            </header>
+
+            <div className={styles.mobileResultScore}>
+              <div>
+                <strong>{match.homeParticipant.name}</strong>
+              </div>
+
+              <strong>
+                {match.resultStatus === "confirmed"
+                  ? `${match.homeScore} : ${match.awayScore}`
+                  : "- : -"}
+              </strong>
+
+              <div>
+                <strong>{match.awayParticipant.name}</strong>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 };

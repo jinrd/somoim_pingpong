@@ -324,7 +324,7 @@
   border-radius: 7px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 800px) {
   .pageHeader {
     align-items: stretch;
     flex-direction: column;
@@ -380,6 +380,10 @@
 }
 
 .detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
   padding: clamp(22px, 4vw, 34px);
   margin-bottom: 18px;
   background:
@@ -392,6 +396,11 @@
   border: 1px solid var(--color-border);
   border-radius: 18px;
   box-shadow: var(--shadow-md);
+}
+
+.detailHeaderContent {
+  min-width: 0;
+  flex: 1;
 }
 
 .detailHeader h1 {
@@ -471,6 +480,16 @@
 .detailTab small {
   color: #98a2b3;
   font-size: 0.7rem;
+}
+
+.tabLabelMobile,
+.mobileSectionTabs {
+  display: none;
+}
+
+.tabPanel,
+.mobileSectionPanel {
+  min-width: 0;
 }
 
 /* Participant manager */
@@ -766,10 +785,17 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 800px) {
+  .page {
+    padding-bottom: 76px;
+  }
+
   .workflowNotice {
     align-items: stretch;
     flex-direction: column;
+    gap: 7px;
+    padding: 12px;
+    margin-bottom: 10px;
   }
 
   .backButton {
@@ -778,42 +804,142 @@
   }
 
   .detailHeader {
-    padding: 20px 17px;
-    margin-bottom: 12px;
-    border-radius: 15px;
+    align-items: stretch;
+    flex-direction: column;
+    padding: 16px 14px;
+    margin-bottom: 10px;
+    border-radius: 13px;
+    box-shadow: none;
+  }
+
+  .detailHeader > .dangerButton {
+    width: 100%;
   }
 
   .detailHeader h1 {
-    margin-top: 10px;
-    font-size: 1.45rem;
+    margin: 8px 0 7px;
+    font-size: 1.3rem;
+  }
+
+  .detailNotice {
+    margin-top: 12px;
+    padding-top: 12px;
+    font-size: 0.78rem;
+    line-height: 1.5;
   }
 
   .participantSummaryGrid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
   }
 
   .summaryCard {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: column;
-    gap: 7px;
-    padding: 14px;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .summaryCard span {
+    font-size: 0.64rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .summaryCard strong {
+    font-size: 1.05rem;
   }
 
   .detailTabs {
     position: sticky;
-    top: 8px;
+    top: 4px;
     z-index: 20;
-    justify-content: flex-start;
-    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+    padding: 4px;
+    margin-bottom: 10px;
+    border: 1px solid #dce2ea;
+    border-radius: 14px;
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(14px);
   }
 
   .detailTab {
-    flex: 0 0 auto;
-    min-height: 42px;
-    padding: 0 11px;
-    font-size: 0.78rem;
+    min-width: 0;
+    min-height: 56px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 2px;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    white-space: normal;
+  }
+
+  .detailTab svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .detailTabActive {
+    box-shadow:
+      0 2px 8px rgba(15, 23, 42, 0.1),
+      inset 0 -2px 0 #6366f1;
+  }
+
+  .tabLabelDesktop {
+    display: none;
+  }
+
+  .tabLabelMobile {
+    display: inline;
+  }
+
+  .mobileSectionTabs {
+    position: sticky;
+    top: 68px;
+    z-index: 18;
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 10px;
+    background: rgba(241, 245, 249, 0.96);
+    border: 1px solid #dce2ea;
+    border-radius: 11px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobileSectionTab,
+  .mobileSectionTabActive {
+    min-height: 40px;
+    padding: 0 8px;
+    color: #64748b;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 800;
+  }
+
+  .mobileSectionTabActive {
+    color: #4338ca;
+    background: #ffffff;
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.1);
+  }
+
+  .mobileSectionPanel {
+    display: none;
+  }
+
+  .mobileSectionPanelActive {
+    display: block;
   }
 
   .memberPicker,
@@ -829,21 +955,110 @@
   }
 
   .panelHeader {
-    padding: 17px;
+    padding: 14px;
   }
 
   .participantItem {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(118px, 136px) 40px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
   }
 
   .participantControls {
-    width: 100%;
+    display: contents;
+  }
+
+  .participantIdentity {
+    gap: 8px;
+  }
+
+  .participantIdentity .memberAvatar {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-radius: 10px;
+  }
+
+  .participantIdentity > div {
+    gap: 1px;
+  }
+
+  .participantIdentity strong,
+  .participantIdentity small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .participantIdentity strong {
+    font-size: 0.82rem;
+  }
+
+  .participantIdentity small {
+    font-size: 0.68rem;
   }
 
   .statusSelect {
-    flex: 1;
+    min-width: 0;
+    width: 100%;
+    min-height: 40px;
+    padding-right: 26px;
+    font-size: 0.76rem;
+  }
+
+  .removeButton {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #fee2e2;
+  }
+
+  .participantSummaryGrid {
+    margin-bottom: 10px;
+  }
+
+  .summaryCard {
+    min-height: 54px;
+    box-sizing: border-box;
+    box-shadow: none;
+  }
+
+  .memberPicker,
+  .participantPanel {
+    border-radius: 13px;
+    box-shadow: none;
+  }
+
+  .confirmOverlay,
+  .overlay {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .confirmDialog,
+  .modal {
+    width: 100%;
+    max-height: 84dvh;
+    padding: 18px;
+    border-radius: 20px 20px 12px 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .participantItem {
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 126px) 38px;
+    gap: 6px;
+    padding-inline: 10px;
+  }
+
+  .participantIdentity .memberAvatar {
+    display: none;
+  }
+
+  .removeButton {
+    width: 38px;
+    height: 38px;
   }
 }
 
@@ -879,6 +1094,13 @@
   line-height: 1.55;
 }
 
+.publicLinkBody {
+  display: block;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
 .publicLinkEnabled,
 .publicLinkDisabled {
   display: inline-flex;
@@ -899,34 +1121,139 @@
   background: #f2f4f7;
 }
 
-.publicLinkControls {
+.publicLinkExpirationField {
+  width: 100%;
+}
+
+.publicLinkExpirationHeader {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding-top: 18px;
-  margin-top: 18px;
-  border-top: 1px solid var(--color-border);
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
-.publicLinkControls > label {
-  width: min(100%, 320px);
-}
-
-.publicLinkControls > label > span,
+.publicLinkExpirationHeader label,
 .issuedLinkBox > label {
   display: block;
-  margin-bottom: 6px;
   color: #344054;
   font-size: 0.82rem;
   font-weight: 750;
 }
 
-.publicLinkActions {
+.issuedLinkBox > label {
+  margin-bottom: 6px;
+}
+
+.publicLinkExpirationHeader button {
+  padding: 3px 7px;
+  color: #4338ca;
+  background: #eef2ff;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.publicLinkExpirationHeader button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.publicLinkExpirationSummary {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 9px;
+  gap: 7px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.publicLinkExpirationSummary svg {
+  color: #6366f1;
+}
+
+.publicLinkExpirationSummary strong {
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.publicLinkSetup {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  margin-top: 12px;
+  background: #f8fafc;
+  border: 1px solid #dce2ea;
+  border-radius: 11px;
+}
+
+.publicLinkSetupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.publicLinkSetupHeader strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.publicLinkSetupHeader button {
+  padding: 4px 8px;
+  color: #64748b;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.publicLinkSetupHeader button:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.publicLinkWarning {
+  margin: 0;
+  color: #b45309;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.publicLinkSetup > .primaryButton {
+  width: 100%;
+}
+
+.publicLinkCompactActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(120px, 0.65fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.publicLinkSecondaryButton {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  color: #4338ca;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.publicLinkSecondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .dangerButton {
@@ -952,6 +1279,44 @@
 .dangerButton:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.publicLinkDisableConfirm {
+  padding: 13px;
+  margin-top: 10px;
+  color: #7a271a;
+  background: #fff4f2;
+  border: 1px solid #fecdca;
+  border-radius: 10px;
+}
+
+.publicLinkDisableConfirm strong {
+  display: block;
+  font-size: 0.84rem;
+}
+
+.publicLinkDisableConfirm p {
+  margin: 5px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.publicLinkDisableConfirm > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.publicLinkDisableConfirm > div > button:first-child {
+  min-height: 42px;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
 }
 
 .confirmOverlay {
@@ -998,6 +1363,10 @@
 
 .confirmCloseButton {
   min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   padding: 10px 14px;
   color: #ffffff;
   background: #d92d20;
@@ -1074,7 +1443,7 @@
   font-weight: 650;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 800px) {
   .confirmDialog {
     padding: 20px;
   }
@@ -1084,19 +1453,87 @@
   }
 
   .publicLinkPanel {
-    padding: 17px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    border-radius: 13px;
+    box-shadow: none;
   }
 
-  .publicLinkControls,
-  .publicLinkActions,
-  .issuedLinkBox > div {
-    align-items: stretch;
-    flex-direction: column;
+  .publicLinkHeader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
   }
 
-  .publicLinkControls > label,
-  .publicLinkActions button,
-  .copyButton {
+  .publicLinkHeader h2 {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .publicLinkHeader p {
+    display: none;
+  }
+
+  .publicLinkEnabled,
+  .publicLinkDisabled {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  .publicLinkBody {
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+
+  .publicLinkCompactActions {
+    grid-template-columns: minmax(0, 1.35fr) minmax(104px, 0.65fr);
+    gap: 7px;
+  }
+
+  .publicLinkCompactActions button {
     width: 100%;
+    min-width: 0;
+    padding-inline: 9px;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
+  .publicLinkExpirationSummary {
+    font-size: 0.72rem;
+  }
+
+  .publicLinkExpirationSummary strong {
+    font-size: 0.75rem;
+  }
+
+  .publicLinkSetup {
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .publicLinkSetup > .primaryButton {
+    min-height: 42px;
+    font-size: 0.76rem;
+  }
+
+  .issuedLinkBox {
+    padding: 11px;
+  }
+
+  .issuedLinkBox > div {
+    gap: 7px;
+  }
+
+  .issuedLinkBox input {
+    font-size: 0.74rem;
+  }
+
+  .copyButton {
+    min-width: 72px;
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 0 9px;
+    font-size: 0.74rem;
   }
 }

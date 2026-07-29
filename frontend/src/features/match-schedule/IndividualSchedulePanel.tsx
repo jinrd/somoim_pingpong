@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCcw, Save, Trash2 } from "lucide-react";
+import { CirclePlay, Loader2, RefreshCcw, Save, Trash2 } from "lucide-react";
 import type { EventGameSetting } from "../game-settings/types";
 import {
   type IndividualScheduleContext,
@@ -7,6 +7,7 @@ import {
   deleteSchedule,
   getIndividualSchedule,
   saveIndividualSchedule,
+  startIndividualLeague,
 } from "./api";
 import {
   type RoundRobinSchedule,
@@ -71,6 +72,7 @@ export default function IndividualSchedulePanel({
 
   const [preview, setPreview] = useState<RoundRobinSchedule | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   const applyLoadedSchedule = useCallback(
     (loadedContext: IndividualScheduleContext) => {
@@ -92,6 +94,49 @@ export default function IndividualSchedulePanel({
     },
     [onScheduleChanged],
   );
+
+  const handleStartLeague = async () => {
+    if (!setting || !context || context.totalMatchCount === 0) {
+      return;
+    }
+
+    const isRecoveringAssignment =
+      context.operationStatus === "in_progress";
+
+    if (!isRecoveringAssignment) {
+      const confirmed = window.confirm(
+        `개인 단식 리그를 시작할까요?\n\n` +
+          `${context.tableCount}개 테이블에 출전자가 겹치지 않는 경기부터 자동 배정됩니다.\n` +
+          `시작 후에는 대진표를 다시 만들거나 삭제할 수 없습니다.`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setIsStarting(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await startIndividualLeague(setting.id);
+      const loadedContext = await getIndividualSchedule(setting.id);
+
+      applyLoadedSchedule(loadedContext);
+      setMessage(
+        isRecoveringAssignment
+          ? `${result.assignedMatches.length}경기를 빈 테이블에 다시 배정했습니다.`
+          : `단식 리그를 시작했습니다. ${result.assignedMatches.length}경기를 테이블에 배정했습니다.`,
+      );
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "단식 리그를 시작하지 못했습니다."),
+      );
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   useEffect(() => {
     if (!setting || setting.competition_type !== "individual_singles") {
@@ -244,11 +289,51 @@ export default function IndividualSchedulePanel({
     );
   }
 
+  const inProgressMatchCount =
+    context?.rounds
+      .flatMap((round) => round.matches)
+      .filter((match) => match.status === "in_progress").length ?? 0;
+
+  const scheduledMatchCount =
+    context?.rounds
+      .flatMap((round) => round.matches)
+      .filter((match) => match.status === "scheduled").length ?? 0;
+
+  const canRecoverAssignment =
+    context?.operationStatus === "in_progress" &&
+    inProgressMatchCount === 0 &&
+    scheduledMatchCount > 0;
+
   return (
     <section className={styles.panel}>
       <header className={styles.header}>
         <h2>단식 풀리그 대진표</h2>
         <div className={styles.actions}>
+          {context &&
+            context.totalMatchCount > 0 &&
+            (context.operationStatus === "not_started" ||
+              canRecoverAssignment) &&
+            !preview && (
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={isLoading || isSaving || isStarting}
+                onClick={() => {
+                  void handleStartLeague();
+                }}
+              >
+                {isStarting ? (
+                  <Loader2
+                    size={16}
+                    className={styles.spinner}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <CirclePlay size={16} aria-hidden="true" />
+                )}
+                {canRecoverAssignment ? "빈 테이블 경기 배정" : "단식 리그 시작"}
+              </button>
+            )}
           {(!context ||
             context.totalMatchCount === 0 ||
             context.canRegenerate) && (
@@ -374,6 +459,10 @@ function StoredRounds({ rounds }: { rounds: StoredIndividualScheduleRound[] }) {
                 </div>
                 <div className={styles.formatList}>
                   <span>단식 ({match.bestOf}판)</span>
+
+                  {match.tableNumber > 0 && (
+                    <strong>{match.tableNumber}번 테이블</strong>
+                  )}
                 </div>
               </div>
             ))}

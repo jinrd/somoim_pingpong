@@ -162,9 +162,16 @@
   border: 1px solid #e2e8f0;
 }
 
-@media (max-width: 620px) {
+.mobileResultList {
+  display: none;
+}
+
+@media (max-width: 800px) {
   .panel {
-    padding: 16px;
+    gap: 14px;
+    padding: 14px;
+    margin-top: 10px;
+    border-radius: 13px;
   }
 
   .header {
@@ -173,6 +180,99 @@
   }
 
   .refreshButton {
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .header {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .tableScroll {
+    display: none;
+  }
+
+  .mobileResultList {
+    display: grid;
+    gap: 9px;
+  }
+
+  .mobileResultCard {
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .mobileResultCard > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 10px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .mobileResultCard > header > span:first-child {
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 750;
+  }
+
+  .mobileResultCard .confirmed,
+  .mobileResultCard .disputed,
+  .mobileResultCard .waiting,
+  .mobileResultCard .pending {
+    padding: 4px 7px;
+    font-size: 0.66rem;
+  }
+
+  .mobileResultScore {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    padding: 13px 10px;
+  }
+
+  .mobileResultScore > div {
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    text-align: center;
+  }
+
+  .mobileResultScore > div > strong {
+    overflow: hidden;
     width: 100%;
+    color: #0f172a;
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileResultScore > div > span {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #64748b;
+    font-size: 0.66rem;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .mobileResultScore > strong {
+    padding: 8px 4px;
+    color: #312e81;
+    text-align: center;
+    background: #eef2ff;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    white-space: nowrap;
   }
 }

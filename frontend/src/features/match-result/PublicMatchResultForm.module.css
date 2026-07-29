@@ -70,10 +70,14 @@
   text-align: center;
 }
 
-.competitor > span {
+.sideBadge {
   color: #98a2b3;
   font-size: 0.68rem;
   font-weight: 800;
+}
+
+.competitorMine .sideBadge {
+  color: #4f46e5;
 }
 
 .competitor > strong {
@@ -94,13 +98,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   color: #344054;
   font-size: 1.2rem;
   font-weight: 900;
 }
 
-.scoreInputs select {
+.desktopScoreInputs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.desktopScoreInputs select {
   width: 54px;
   height: 48px;
   color: #101828;
@@ -111,6 +121,10 @@
   font: inherit;
   font-size: 1rem;
   font-weight: 800;
+}
+
+.mobileScoreInputs {
+  display: none;
 }
 
 .scoreInputs > strong {
@@ -243,28 +257,208 @@
 
 @media (max-width: 520px) {
   .container {
-    padding: 13px;
+    gap: 10px;
+    padding: 13px 12px;
+    margin-top: 10px;
+    border-color: #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .header {
+    min-height: 40px;
+  }
+
+  .header strong {
+    font-size: 1rem;
+  }
+
+  .refreshButton {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    background: #f8fafc;
+    border-color: #e2e8f0;
   }
 
   .scoreBoard {
-    grid-template-columns: minmax(0, 1fr) 116px minmax(0, 1fr);
-    gap: 5px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .competitor {
+    min-height: 82px;
+    align-content: center;
+    gap: 3px;
+    padding: 10px 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .scoreBoard > .competitor:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .scoreBoard > .competitor:last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .competitorMine {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
+  }
+
+  .sideBadge {
+    width: fit-content;
+    padding: 2px 7px;
+    margin: 0 auto 2px;
+    background: #ffffff;
+    border-radius: 999px;
+    font-size: 0.64rem;
+  }
+
+  .competitorMine .sideBadge {
+    color: #ffffff;
+    background: #4f46e5;
   }
 
   .competitor > strong {
-    font-size: 0.78rem;
+    font-size: 0.86rem;
+    white-space: normal;
+    line-height: 1.3;
   }
 
   .competitor > small {
-    font-size: 0.66rem;
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.67rem;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .scoreInputs {
-    gap: 5px;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    gap: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
   }
 
-  .scoreInputs select {
-    width: 46px;
-    height: 46px;
+  .desktopScoreInputs {
+    display: none;
+  }
+
+  .mobileScoreInputs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: 7px;
+  }
+
+  .mobileScoreGroup {
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+  }
+
+  .mobileScoreGroup legend {
+    display: block;
+    overflow: hidden;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 7px;
+    color: #475467;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileScoreOptions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+    gap: 4px;
+  }
+
+  .mobileScoreOption,
+  .mobileScoreOptionActive {
+    min-width: 0;
+    min-height: 42px;
+    padding: 0;
+    color: #475467;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .mobileScoreOptionActive {
+    color: #ffffff;
+    background: #4f46e5;
+    border-color: #4f46e5;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+  }
+
+  .mobileScoreOption:disabled,
+  .mobileScoreOptionActive:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .mobileVersus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 27px;
+    min-height: 42px;
+    color: #98a2b3;
+    font-size: 0.65rem;
+    font-weight: 900;
+  }
+
+  .scoreInputs > strong {
+    min-width: 64px;
+    padding: 7px 12px;
+    color: #312e81;
+    background: #ffffff;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    font-size: 1.8rem;
+  }
+
+  .scoreSeparator {
+    color: #94a3b8;
+    font-size: 1rem;
+  }
+
+  .sideNotice {
+    display: none;
+  }
+
+  .confirmed,
+  .waiting,
+  .disputed {
+    font-size: 0.76rem;
+  }
+
+  .submitButton {
+    min-height: 52px;
+    border-radius: 12px;
+    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22);
   }
 }

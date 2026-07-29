@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { RefreshCw } from "lucide-react";
 import { ClientResponseError } from "pocketbase";
@@ -16,6 +16,13 @@ import styles from "./PublicLineupSection.module.css";
 import { PUBLIC_MATCH_REFRESH_INTERVAL_MS } from "./constants";
 interface PublicIndividualLineupSectionProps {
   responseToken: string;
+  onMatchStarted?: (notice: PublicIndividualMatchStartedNotice) => void;
+}
+
+export interface PublicIndividualMatchStartedNotice {
+  matchId: string;
+  tableNumber: number;
+  opponentName: string;
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -44,6 +51,7 @@ const getStatusLabel = (status: PublicTeamMatchStatus): string => {
 
 export default function PublicIndividualLineupSection({
   responseToken,
+  onMatchStarted,
 }: PublicIndividualLineupSectionProps) {
   const [matchResponse, setMatchResponse] =
     useState<PublicParticipantMatchesResponse | null>(null);
@@ -52,6 +60,33 @@ export default function PublicIndividualLineupSection({
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const previousMatchStatusesRef = useRef(new Map<string, string>());
+
+  const applyMatchResponse = useCallback(
+    (result: PublicParticipantMatchesResponse) => {
+      const newlyStartedMatch = result.matches.find(
+        (match) =>
+          match.status === "in_progress" &&
+          (match.tableNumber ?? 0) > 0 &&
+          previousMatchStatusesRef.current.get(match.id) !== "in_progress",
+      );
+
+      previousMatchStatusesRef.current = new Map(
+        result.matches.map((match) => [match.id, match.status]),
+      );
+
+      setMatchResponse(result);
+
+      if (newlyStartedMatch) {
+        onMatchStarted?.({
+          matchId: newlyStartedMatch.id,
+          tableNumber: newlyStartedMatch.tableNumber ?? 0,
+          opponentName: newlyStartedMatch.opponentTeam.name,
+        });
+      }
+    },
+    [onMatchStarted],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +94,7 @@ export default function PublicIndividualLineupSection({
     getMyIndividualMatches(responseToken)
       .then((result) => {
         if (!cancelled) {
-          setMatchResponse(result);
+          applyMatchResponse(result);
           setError("");
         }
       })
@@ -79,7 +114,7 @@ export default function PublicIndividualLineupSection({
     return () => {
       cancelled = true;
     };
-  }, [responseToken]);
+  }, [applyMatchResponse, responseToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +131,7 @@ export default function PublicIndividualLineupSection({
         const result = await getMyIndividualMatches(responseToken);
 
         if (!cancelled) {
-          setMatchResponse(result);
+          applyMatchResponse(result);
         }
       } catch {
         /*
@@ -126,7 +161,7 @@ export default function PublicIndividualLineupSection({
 
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [responseToken]);
+  }, [applyMatchResponse, responseToken]);
 
   const reloadMatches = async () => {
     setIsLoading(true);
@@ -135,7 +170,7 @@ export default function PublicIndividualLineupSection({
     try {
       const result = await getMyIndividualMatches(responseToken);
 
-      setMatchResponse(result);
+      applyMatchResponse(result);
     } catch (caughtError) {
       setError(
         getErrorMessage(caughtError, "내 경기 목록을 불러오지 못했습니다."),
@@ -152,6 +187,19 @@ export default function PublicIndividualLineupSection({
       </section>
     );
   }
+
+  const activeMatch = matchResponse?.matches.find(
+    (match) => match.status === "in_progress",
+  );
+
+  const orderedMatches = matchResponse
+    ? [...matchResponse.matches].sort((left, right) => {
+        const leftPriority = left.status === "in_progress" ? 0 : 1;
+        const rightPriority = right.status === "in_progress" ? 0 : 1;
+
+        return leftPriority - rightPriority || left.sortOrder - right.sortOrder;
+      })
+    : [];
 
   return (
     <section className={styles.section}>
@@ -181,11 +229,40 @@ export default function PublicIndividualLineupSection({
         </p>
       )}
 
+      {matchResponse?.operationStatus === "in_progress" && (
+        <div
+          className={
+            activeMatch
+              ? styles.individualOperationActive
+              : styles.individualOperationWaiting
+          }
+          role="status"
+        >
+          <strong>
+            {activeMatch
+              ? `${activeMatch.tableNumber ?? "-"}번 테이블 경기 진행 중`
+              : "단식 리그 진행 중"}
+          </strong>
+          <span>
+            {activeMatch
+              ? `${activeMatch.opponentTeam.name}님과 경기를 진행해 주세요.`
+              : "내 경기 배정을 기다리고 있습니다."}
+          </span>
+        </div>
+      )}
+
+      {matchResponse?.operationStatus === "completed" && (
+        <div className={styles.individualOperationCompleted} role="status">
+          <strong>단식 리그 완료</strong>
+          <span>모든 개인 단식 경기가 종료됐습니다.</span>
+        </div>
+      )}
+
       {!matchResponse?.matches || matchResponse.matches.length === 0 ? (
         <p className={styles.empty}>아직 확정된 개인 단식 대진이 없습니다.</p>
       ) : (
         <div className={styles.matchList}>
-          {matchResponse.matches.map((match) => {
+          {orderedMatches.map((match) => {
             const canOpenResult =
               match.status === "in_progress" || match.status === "completed";
 
@@ -211,7 +288,14 @@ export default function PublicIndividualLineupSection({
 
                   <strong>나 VS {match.opponentTeam.name}</strong>
 
-                  <small>경기 상태: {getStatusLabel(match.status)}</small>
+                  <small>
+                    {match.status === "in_progress" &&
+                    (match.tableNumber ?? 0) > 0
+                      ? `${match.tableNumber}번 테이블 · ${getStatusLabel(
+                          match.status,
+                        )}`
+                      : `경기 상태: ${getStatusLabel(match.status)}`}
+                  </small>
                 </button>
 
                 {isOpened && canOpenResult && (

@@ -1,11 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./Members.module.css";
 import { getMembers, getRankSettings } from "../../features/members/api";
 import type { Member, RankSettings } from "../../features/members/api";
 import MemberFormModal from "../../features/members/MemberFormModal";
 import RankSettingsModal from "../../features/members/RankSettingsModal";
-import { Settings, UserPlus, Edit } from "lucide-react";
+import { Edit, Search, Settings, UserPlus } from "lucide-react";
 import { DEFAULT_RANK_SETTINGS } from "../../config/domain";
+
+type MemberStatusFilter = "all" | Member["status"];
+
+const getGenderLabel = (gender: Member["gender"]): string => {
+  if (gender === "M") {
+    return "남성";
+  }
+
+  if (gender === "F") {
+    return "여성";
+  }
+
+  return "-";
+};
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -17,6 +31,44 @@ export default function Members() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<MemberStatusFilter>("all");
+
+  const memberCounts = useMemo(
+    () => ({
+      all: members.length,
+      active: members.filter((member) => member.status === "active").length,
+      inactive: members.filter((member) => member.status === "inactive").length,
+    }),
+    [members],
+  );
+
+  const filteredMembers = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const phoneQuery = query.replace(/[^0-9]/g, "");
+
+    return members.filter((member) => {
+      if (statusFilter !== "all" && member.status !== statusFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const text = `${member.name} ${member.nickname} ${member.phone ?? ""}`
+        .toLocaleLowerCase()
+        .replace(/\s+/g, " ");
+
+      const phone = (member.phone ?? "").replace(/[^0-9]/g, "");
+
+      return (
+        text.includes(query) ||
+        (phoneQuery.length > 0 && phone.includes(phoneQuery))
+      );
+    });
+  }, [members, searchQuery, statusFilter]);
 
   const loadData = async () => {
     setError("");
@@ -74,23 +126,26 @@ export default function Members() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>회원 목록 (총 {members.length}명)</h2>
+        <div className={styles.title}>
+          <h2>회원 관리</h2>
+          <p>회원 정보와 활동 상태, 부수를 관리합니다.</p>
+        </div>
+
         <div className={styles.actions}>
           <button
+            type="button"
             onClick={() => setRankModalOpen(true)}
             className={styles.btnSecondary}
           >
-            <Settings
-              size={18}
-              style={{ verticalAlign: "middle", marginRight: 4 }}
-            />
+            <Settings size={18} aria-hidden="true" />
             부수 승강 기준 설정
           </button>
-          <button onClick={openNewMember} className={styles.btnPrimary}>
-            <UserPlus
-              size={18}
-              style={{ verticalAlign: "middle", marginRight: 4 }}
-            />
+          <button
+            type="button"
+            onClick={openNewMember}
+            className={styles.btnPrimary}
+          >
+            <UserPlus size={18} aria-hidden="true" />
             새 회원 추가
           </button>
         </div>
@@ -101,6 +156,48 @@ export default function Members() {
           {error}
         </div>
       )}
+
+      <div className={styles.summary} aria-label="회원 상태 필터">
+        {(
+          [
+            ["all", "전체", memberCounts.all],
+            ["active", "활동중", memberCounts.active],
+            ["inactive", "비활동", memberCounts.inactive],
+          ] as const
+        ).map(([value, label, count]) => (
+          <button
+            key={value}
+            type="button"
+            className={
+              statusFilter === value
+                ? styles.summaryItemActive
+                : styles.summaryItem
+            }
+            aria-pressed={statusFilter === value}
+            onClick={() => setStatusFilter(value)}
+          >
+            <span>{label}</span>
+            <strong>{count}</strong>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.toolbar}>
+        <label className={styles.searchField}>
+          <Search size={18} aria-hidden="true" />
+          <span className={styles.srOnly}>회원 검색</span>
+          <input
+            type="search"
+            placeholder="이름, 닉네임, 연락처 검색"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </label>
+
+        <span className={styles.resultCount}>
+          {filteredMembers.length}명 표시
+        </span>
+      </div>
 
       <div className={styles.tableContainer}>
         <table className={styles.table}>
@@ -122,27 +219,23 @@ export default function Members() {
                   불러오는 중…
                 </td>
               </tr>
-            ) : members.length === 0 ? (
+            ) : filteredMembers.length === 0 ? (
               <tr>
                 <td colSpan={7} className={styles.emptyCell}>
-                  등록된 회원이 없습니다.
+                  {members.length === 0
+                    ? "등록된 회원이 없습니다."
+                    : "조건에 맞는 회원이 없습니다."}
                 </td>
               </tr>
             ) : (
-              members.map((member) => (
+              filteredMembers.map((member) => (
                 <tr key={member.id}>
                   <td>{member.name}</td>
                   <td>{member.nickname}</td>
                   <td>
                     <strong>{member.rank}부</strong>
                   </td>
-                  <td>
-                    {member.gender === "M"
-                      ? "남성"
-                      : member.gender === "F"
-                        ? "여성"
-                        : "-"}
-                  </td>
+                  <td>{getGenderLabel(member.gender)}</td>
                   <td>{member.phone || "-"}</td>
                   <td>
                     <span
@@ -169,6 +262,63 @@ export default function Members() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className={styles.mobileMemberList}>
+        {isLoading ? (
+          <div className={styles.mobileEmpty}>불러오는 중…</div>
+        ) : filteredMembers.length === 0 ? (
+          <div className={styles.mobileEmpty}>
+            {members.length === 0
+              ? "등록된 회원이 없습니다."
+              : "조건에 맞는 회원이 없습니다."}
+          </div>
+        ) : (
+          filteredMembers.map((member) => (
+            <article key={member.id} className={styles.mobileMemberCard}>
+              <div className={styles.mobileMemberMain}>
+                <span className={styles.avatar} aria-hidden="true">
+                  {member.nickname.trim().charAt(0) ||
+                    member.name.trim().charAt(0) ||
+                    "?"}
+                </span>
+
+                <div className={styles.mobileIdentity}>
+                  <strong>{member.nickname}</strong>
+                  <span>{member.name}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openEditMember(member)}
+                  className={styles.mobileEditButton}
+                  aria-label={`${member.nickname} 회원 수정`}
+                >
+                  <Edit size={17} aria-hidden="true" />
+                  수정
+                </button>
+              </div>
+
+              <div className={styles.mobileMemberMeta}>
+                <strong className={styles.rankBadge}>{member.rank}부</strong>
+
+                <span
+                  className={
+                    member.status === "active"
+                      ? styles.activeBadge
+                      : styles.inactiveBadge
+                  }
+                >
+                  {member.status === "active" ? "활동중" : "비활동"}
+                </span>
+
+                <span className={styles.contact}>
+                  {getGenderLabel(member.gender)} · {member.phone || "연락처 없음"}
+                </span>
+              </div>
+            </article>
+          ))
+        )}
       </div>
 
       {isMemberModalOpen && (

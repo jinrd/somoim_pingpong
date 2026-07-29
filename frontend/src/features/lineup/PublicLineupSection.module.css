@@ -58,6 +58,47 @@
   color: #4338ca;
 }
 
+.individualOperationActive,
+.individualOperationWaiting,
+.individualOperationCompleted {
+  display: grid;
+  gap: 3px;
+  padding: 12px 13px;
+  border: 1px solid;
+  border-radius: 11px;
+}
+
+.individualOperationActive strong,
+.individualOperationWaiting strong,
+.individualOperationCompleted strong {
+  font-size: 0.88rem;
+}
+
+.individualOperationActive span,
+.individualOperationWaiting span,
+.individualOperationCompleted span {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.individualOperationActive {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.individualOperationWaiting {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.individualOperationCompleted {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
 .matchList {
   display: grid;
   gap: 9px;
@@ -299,6 +340,89 @@
   }
 
   .section {
-    padding: 15px;
+    gap: 12px;
+    padding: 0;
+    margin-top: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .header {
+    align-items: center;
+    padding: 12px 13px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .header h2 {
+    margin-bottom: 3px;
+    font-size: 0.92rem;
+  }
+
+  .header p {
+    font-size: 0.74rem;
+  }
+
+  .iconButton {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .teamSummary {
+    padding: 11px 12px;
+  }
+
+  .matchList {
+    gap: 8px;
+  }
+
+  .matchButton,
+  .matchButtonActive {
+    min-height: 76px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .matchButton strong,
+  .matchButtonActive strong {
+    font-size: 0.9rem;
+  }
+
+  .editor {
+    gap: 12px;
+    padding: 14px 0 0;
+  }
+
+  .editorHeader {
+    padding: 0 2px;
+  }
+
+  .gameCard {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .memberButton,
+  .memberSelected {
+    min-height: 48px;
+  }
+
+  .startedGame {
+    gap: 9px;
+  }
+
+  .actions {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 8;
+    padding: 8px;
+    background: rgba(248, 250, 252, 0.94);
+    border: 1px solid #e2e8f0;
+    border-radius: 13px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+    backdrop-filter: blur(12px);
   }
 }

@@ -18,6 +18,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ChevronDown,
+  ChevronUp,
   GripVertical,
   Plus,
   Save,
@@ -62,9 +64,11 @@ interface Props {
 interface MatchFormatRowProps {
   format: MatchFormatDraft;
   position: number;
+  isLast: boolean;
   disabled: boolean;
   onChange: (format: MatchFormatDraft) => void;
   onDeleted: (formatKey: string) => void;
+  onMoved: (formatKey: string, direction: -1 | 1) => void;
 }
 
 const toGameSettingInput = (setting: EventGameSetting): GameSettingInput => ({
@@ -77,6 +81,7 @@ const toGameSettingInput = (setting: EventGameSetting): GameSettingInput => ({
   individualBestOf: setting.individual_best_of,
 
   individualCountsForRanking: setting.individual_counts_for_ranking,
+  individualTableCount: setting.individual_table_count,
 });
 
 const toMatchFormatDraft = (format: EventMatchFormat): MatchFormatDraft => ({
@@ -98,9 +103,11 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 function MatchFormatRow({
   format,
   position,
+  isLast,
   disabled,
   onChange,
   onDeleted,
+  onMoved,
 }: MatchFormatRowProps) {
   const {
     attributes,
@@ -138,6 +145,26 @@ function MatchFormatRow({
 
           <strong>{position}</strong>
           <span>번째</span>
+
+          <div className={styles.mobileOrderActions}>
+            <button
+              type="button"
+              disabled={disabled || position === 1}
+              aria-label={`${position}번 경기를 위로 이동`}
+              onClick={() => onMoved(format.key, -1)}
+            >
+              <ChevronUp size={17} aria-hidden="true" />
+            </button>
+
+            <button
+              type="button"
+              disabled={disabled || isLast}
+              aria-label={`${position}번 경기를 아래로 이동`}
+              onClick={() => onMoved(format.key, 1)}
+            >
+              <ChevronDown size={17} aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <label className={styles.compactField}>
@@ -292,7 +319,8 @@ export default function GameSettingsPanel({
     formData.autoTeamBalance !== setting.auto_team_balance ||
     formData.individualBestOf !== setting.individual_best_of ||
     formData.individualCountsForRanking !==
-      setting.individual_counts_for_ranking;
+      setting.individual_counts_for_ranking ||
+    formData.individualTableCount !== setting.individual_table_count;
 
   const canConfirmSetting =
     Boolean(setting) &&
@@ -446,7 +474,9 @@ export default function GameSettingsPanel({
       setAreFormatsDirty(false);
       onSettingChanged?.(draftSetting);
       onConfigurationReset?.();
-      setMessage("기존 경기 구성을 초기화하고 게임 설정을 초안으로 전환했습니다.");
+      setMessage(
+        "기존 경기 구성을 초기화하고 게임 설정을 초안으로 전환했습니다.",
+      );
     } catch (caughtError) {
       setError(
         getErrorMessage(caughtError, "게임 설정 수정을 시작하지 못했습니다."),
@@ -559,6 +589,28 @@ export default function GameSettingsPanel({
     setMessage("경기를 목록에서 삭제했습니다. 전체 저장을 눌러 반영해 주세요.");
   };
 
+  const handleMoveFormat = (formatKey: string, direction: -1 | 1) => {
+    const currentIndex = matchFormats.findIndex(
+      (format) => format.key === formatKey,
+    );
+    const targetIndex = currentIndex + direction;
+
+    if (
+      currentIndex < 0 ||
+      targetIndex < 0 ||
+      targetIndex >= matchFormats.length
+    ) {
+      return;
+    }
+
+    setMatchFormats((currentFormats) =>
+      arrayMove(currentFormats, currentIndex, targetIndex),
+    );
+    setAreFormatsDirty(true);
+    setError("");
+    setMessage("경기 순서를 변경했습니다. 전체 저장을 눌러 반영해 주세요.");
+  };
+
   if (isLoading) {
     return <div className={styles.loading}>게임 설정을 불러오는 중입니다…</div>;
   }
@@ -627,7 +679,10 @@ export default function GameSettingsPanel({
             <Users size={22} aria-hidden="true" />
 
             <span className={styles.modeContent}>
-              <strong>{COMPETITION_TYPE_LABELS.team_league}</strong>
+              <strong className={styles.desktopModeLabel}>
+                {COMPETITION_TYPE_LABELS.team_league}
+              </strong>
+              <strong className={styles.mobileModeLabel}>팀 리그전</strong>
 
               <small>팀을 편성하고 팀별 풀리그를 진행합니다.</small>
             </span>
@@ -657,12 +712,21 @@ export default function GameSettingsPanel({
             <UserRound size={22} aria-hidden="true" />
 
             <span className={styles.modeContent}>
-              <strong>{COMPETITION_TYPE_LABELS.individual_singles}</strong>
+              <strong className={styles.desktopModeLabel}>
+                {COMPETITION_TYPE_LABELS.individual_singles}
+              </strong>
+              <strong className={styles.mobileModeLabel}>개인 단식</strong>
 
               <small>게임 참가자 전체가 단식 풀리그를 진행합니다.</small>
             </span>
           </label>
         </div>
+
+        <p className={styles.mobileModeDescription}>
+          {formData.competitionType === "team_league"
+            ? "팀을 편성해 팀별 풀리그를 진행합니다."
+            : "참가자 전체가 개인 단식 풀리그를 진행합니다."}
+        </p>
 
         <div className={styles.formGrid}>
           {formData.competitionType === "team_league" ? (
@@ -684,8 +748,7 @@ export default function GameSettingsPanel({
                 />
 
                 <p className={styles.fieldHint}>
-                  전체 인원이 나누어떨어지지 않아도 이후 편성 화면에서 조정할 수
-                  있습니다.
+                  남는 인원은 팀 편성에서 조정할 수 있습니다.
                 </p>
               </label>
 
@@ -704,12 +767,33 @@ export default function GameSettingsPanel({
                       }));
                     }}
                   />
-                  부수를 기준으로 팀 전력을 맞춤
+                  부수 기준 균형 배정
                 </span>
               </label>
             </>
           ) : (
             <>
+              <label className={styles.formField}>
+                <span>사용 테이블 수</span>
+
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={formData.individualTableCount}
+                  disabled={isWorking || isConfirmed}
+                  onChange={(event) => {
+                    setFormData((current) => ({
+                      ...current,
+                      individualTableCount: Number(event.target.value),
+                    }));
+                  }}
+                />
+
+                <p className={styles.fieldHint}>
+                  동시에 진행할 수 있는 개인 단식 경기 수입니다.
+                </p>
+              </label>
               <label className={styles.formField}>
                 <span>경기 총 판수</span>
 
@@ -747,12 +831,11 @@ export default function GameSettingsPanel({
                       }));
                     }}
                   />
-                  개인 단식 결과를 부수 승강에 반영
+                  경기 결과 반영
                 </span>
               </label>
             </>
           )}
-
         </div>
 
         <div className={styles.formActions}>
@@ -763,7 +846,7 @@ export default function GameSettingsPanel({
               disabled={isWorking}
               onClick={() => void handleUnlockSetting()}
             >
-              게임 설정 수정
+              설정 수정
             </button>
           ) : (
             <>
@@ -775,7 +858,7 @@ export default function GameSettingsPanel({
                 }
               >
                 <Save size={18} aria-hidden="true" />
-                {isWorking ? "저장 중…" : "게임 설정 임시 저장"}
+                {isWorking ? "저장 중…" : "임시 저장"}
               </button>
               <button
                 type="button"
@@ -795,7 +878,7 @@ export default function GameSettingsPanel({
                 }
                 onClick={handleOpenConfirmSetting}
               >
-                게임 설정 최종 확정
+                최종 확정
               </button>
             </>
           )}
@@ -838,6 +921,7 @@ export default function GameSettingsPanel({
                           key={format.key}
                           format={format}
                           position={index + 1}
+                          isLast={index === matchFormats.length - 1}
                           disabled={isWorking || isConfirmed}
                           onChange={(updatedFormat) => {
                             setMatchFormats((currentFormats) =>
@@ -853,6 +937,7 @@ export default function GameSettingsPanel({
                             );
                           }}
                           onDeleted={handleDeleteFormat}
+                          onMoved={handleMoveFormat}
                         />
                       ))}
                     </div>
@@ -935,23 +1020,25 @@ export default function GameSettingsPanel({
                 </div>
               )}
 
-              {!isConfirmed && <div className={styles.formatSaveBar}>
-                {areFormatsDirty && (
-                  <span>저장하지 않은 변경 사항이 있습니다.</span>
-                )}
+              {!isConfirmed && (
+                <div className={styles.formatSaveBar}>
+                  {areFormatsDirty && (
+                    <span>저장하지 않은 변경 사항이 있습니다.</span>
+                  )}
 
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  disabled={isWorking || !areFormatsDirty}
-                  onClick={() => {
-                    void handleSaveFormats();
-                  }}
-                >
-                  <Save size={18} aria-hidden="true" />
-                  {isWorking ? "저장 중…" : "세부 경기 전체 저장"}
-                </button>
-              </div>}
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    disabled={isWorking || !areFormatsDirty}
+                    onClick={() => {
+                      void handleSaveFormats();
+                    }}
+                  >
+                    <Save size={18} aria-hidden="true" />
+                    {isWorking ? "저장 중…" : "세부 경기 전체 저장"}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </section>

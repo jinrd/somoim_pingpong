@@ -71,6 +71,21 @@ routerAdd(
         gameSettingId,
       },
     );
+
+    const operationStatus =
+      gameSetting.getString("operation_status") || "not_started";
+
+    /*
+     * 시작 처리 중 오류로 operation_status만 in_progress가 되고
+     * 대진이 하나도 남지 않은 경우에는 관리자가 복구할 수 있어야 합니다.
+     * 기존 대진이 한 건이라도 있으면 원래 보호 규칙을 그대로 적용합니다.
+     */
+    if (operationStatus !== "not_started" && existingMatches.length > 0) {
+      throw new BadRequestError(
+        "단식 리그가 시작된 후에는 대진표를 다시 저장할 수 없습니다.",
+      );
+    }
+
     const currentScheduleVersion =
       existingMatches.length > 0
         ? Math.max(...existingMatches.map((m) => m.getInt("version")))
@@ -387,6 +402,7 @@ routerAdd(
 
           individualMatch.set("best_of", individualBestOf);
           individualMatch.set("counts_for_ranking", individualCountsForRanking);
+          individualMatch.set("table_number", 0);
           individualMatch.set("status", "scheduled");
           individualMatch.set("version", nextScheduleVersion);
           transactionDao.saveRecord(individualMatch);
@@ -478,6 +494,7 @@ routerAdd(
         sortOrder: match.getInt("sort_order"),
         status: match.getString("status"),
         version: match.getInt("version"),
+        tableNumber: match.getInt("table_number"),
         bestOf: match.getInt("best_of"),
         countsForRanking: match.getBool("counts_for_ranking"),
         resultStatus: match.getString("result_status") || "pending",
@@ -536,6 +553,9 @@ routerAdd(
       totalRoundCount: maxRound,
       totalMatchCount: matches.length,
       canRegenerate,
+      operationStatus:
+        gameSetting.getString("operation_status") || "not_started",
+      tableCount: gameSetting.getInt("individual_table_count"),
       rounds,
     });
   } /* middlewares */,
@@ -562,6 +582,29 @@ routerAdd("POST", "/api/somoim/public/individual-matches/mine", (context) => {
   );
 
   const eventId = participantRecord.getString("event");
+
+  let operationStatus = "not_started";
+  let tableCount = 0;
+
+  try {
+    const gameSettingRecord = dao.findFirstRecordByFilter(
+      "event_game_settings",
+      [
+        "event = {:eventId}",
+        "competition_type = 'individual_singles'",
+        "status = 'confirmed'",
+      ].join(" && "),
+      { eventId },
+    );
+
+    operationStatus =
+      gameSettingRecord.getString("operation_status") || "not_started";
+    tableCount = gameSettingRecord.getInt("individual_table_count");
+  } catch {
+    /*
+     * 확정된 개인 단식 설정이 없으면 기본값을 반환합니다.
+     */
+  }
 
   // 1. 모든 참가자 정보를 먼저 가져옵니다 (상대방 이름 매핑용)
   const allParticipantRecords = dao.findRecordsByFilter(
@@ -600,6 +643,7 @@ routerAdd("POST", "/api/somoim/public/individual-matches/mine", (context) => {
       round: matchRecord.getInt("round"),
       sortOrder: matchRecord.getInt("sort_order"),
       status: matchRecord.getString("status"),
+      tableNumber: matchRecord.getInt("table_number"),
       isHomeTeam: homeId === participantRecord.id,
       opponentTeam: {
         id: opponentRecord ? opponentRecord.id : opponentId,
@@ -615,6 +659,8 @@ routerAdd("POST", "/api/somoim/public/individual-matches/mine", (context) => {
   return context.json(200, {
     eventId,
     competitionType: "individual_singles",
+    operationStatus,
+    tableCount,
     participant: {
       id: participantRecord.id,
       name: participantRecord.getString("display_name"),

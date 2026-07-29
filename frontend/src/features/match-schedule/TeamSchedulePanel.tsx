@@ -347,7 +347,7 @@ export default function TeamSchedulePanel({
 
   return (
     <section className={styles.panel}>
-      <header className={styles.header}>
+      <header className={`${styles.header} ${styles.scheduleHeader}`}>
         <div>
           <h2>팀 풀리그 대진표</h2>
           <p>모든 팀이 다른 팀과 한 번씩 경기합니다.</p>
@@ -355,7 +355,7 @@ export default function TeamSchedulePanel({
 
         <button
           type="button"
-          className={styles.secondaryButton}
+          className={`${styles.secondaryButton} ${styles.refreshButton}`}
           disabled={isSaving}
           onClick={() => {
             void loadSchedule();

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { CirclePlay, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
+import { Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
 
 import { ClientResponseError } from "pocketbase";
 
@@ -9,8 +9,6 @@ import type { EventGameSetting } from "../game-settings/types";
 import {
   cancelIndividualMatchResult,
   cancelTeamMatchResult,
-  changeIndividualMatchStatus,
-  changeTeamMatchStatus,
   getIndividualSchedule,
   getTeamSchedule,
   type TeamMatchStatus,
@@ -32,7 +30,6 @@ interface MonitorMatch {
   version: number;
   title: string;
   description: string;
-  canStart: boolean;
   canCancelResult: boolean;
   resultLines: string[];
   hasDisputedResult: boolean;
@@ -43,6 +40,8 @@ interface CancelTarget {
   title: string;
   version: number;
 }
+
+type MonitorFilter = "all" | "waiting" | "in_progress" | "completed";
 
 const STATUS_LABELS: Record<TeamMatchStatus, string> = {
   scheduled: "대기 중",
@@ -77,6 +76,7 @@ export default function MatchMonitorPanel({ setting }: Props) {
   const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
 
   const [cancelReason, setCancelReason] = useState("");
+  const [activeFilter, setActiveFilter] = useState<MonitorFilter>("all");
 
   const loadMatches = useCallback(
     async (showLoading: boolean) => {
@@ -107,13 +107,10 @@ export default function MatchMonitorPanel({ setting }: Props) {
                 description:
                   match.homeLineupStatus === "confirmed" &&
                   match.awayLineupStatus === "confirmed"
-                    ? "양 팀 라인업 확정"
+                    ? match.status === "ready"
+                      ? "양 팀 라인업 확정 · 현재 라운드 대기"
+                      : "양 팀 라인업 확정"
                     : "라인업 확정 필요",
-
-                canStart:
-                  match.status === "ready" &&
-                  match.homeLineupStatus === "confirmed" &&
-                  match.awayLineupStatus === "confirmed",
                 resultLines: match.games.map((game) => {
                   const typeLabel =
                     game.matchType === "singles" ? "단식" : "복식";
@@ -163,9 +160,11 @@ export default function MatchMonitorPanel({ setting }: Props) {
 
                 title: `${match.homeParticipant.name} vs ${match.awayParticipant.name}`,
 
-                description: `${match.bestOf}판 경기`,
+                description:
+                  match.status === "in_progress" && match.tableNumber > 0
+                    ? `${match.tableNumber}번 테이블 · ${match.bestOf}판 경기`
+                    : `${match.bestOf}판 경기`,
 
-                canStart: match.status === "scheduled",
                 canCancelResult: match.resultStatus === "confirmed",
                 resultLines: [
                   match.resultStatus === "confirmed"
@@ -226,47 +225,20 @@ export default function MatchMonitorPanel({ setting }: Props) {
     };
   }, [matches]);
 
-  const handleStartMatch = async (match: MonitorMatch) => {
-    if (!setting || !match.canStart) {
-      return;
+  const visibleMatches = useMemo(() => {
+    if (activeFilter === "all") {
+      return matches;
     }
 
-    const shouldStart = window.confirm(
-      `${match.title} 경기를 시작할까요?\n경기 시작 후에는 참석자와 라인업을 변경할 수 없습니다.`,
-    );
-
-    if (!shouldStart) {
-      return;
+    if (activeFilter === "waiting") {
+      return matches.filter(
+        (match) =>
+          match.status === "scheduled" || match.status === "ready",
+      );
     }
 
-    setWorkingMatchId(match.id);
-    setError("");
-    setMessage("");
-
-    try {
-      if (setting.competition_type === "team_league") {
-        await changeTeamMatchStatus(match.id, {
-          expectedVersion: match.version,
-          nextStatus: "in_progress",
-        });
-      } else {
-        await changeIndividualMatchStatus(match.id, {
-          expectedVersion: match.version,
-          nextStatus: "in_progress",
-        });
-      }
-
-      setMessage(`${match.title} 경기를 시작했습니다.`);
-
-      await loadMatches(false);
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError, "경기를 시작하지 못했습니다."));
-
-      await loadMatches(false);
-    } finally {
-      setWorkingMatchId("");
-    }
-  };
+    return matches.filter((match) => match.status === activeFilter);
+  }, [activeFilter, matches]);
 
   const handleCancelResult = async () => {
     if (!setting || !cancelTarget) {
@@ -346,25 +318,53 @@ export default function MatchMonitorPanel({ setting }: Props) {
       </header>
 
       <div className={styles.summary}>
-        <div>
+        <button
+          type="button"
+          className={`${styles.summaryItem} ${
+            activeFilter === "all" ? styles.summaryItemActive : ""
+          }`}
+          aria-pressed={activeFilter === "all"}
+          onClick={() => setActiveFilter("all")}
+        >
           <span>전체</span>
           <strong>{summary.total}</strong>
-        </div>
+        </button>
 
-        <div>
+        <button
+          type="button"
+          className={`${styles.summaryItem} ${
+            activeFilter === "waiting" ? styles.summaryItemActive : ""
+          }`}
+          aria-pressed={activeFilter === "waiting"}
+          onClick={() => setActiveFilter("waiting")}
+        >
           <span>대기</span>
           <strong>{summary.ready}</strong>
-        </div>
+        </button>
 
-        <div>
+        <button
+          type="button"
+          className={`${styles.summaryItem} ${
+            activeFilter === "in_progress" ? styles.summaryItemActive : ""
+          }`}
+          aria-pressed={activeFilter === "in_progress"}
+          onClick={() => setActiveFilter("in_progress")}
+        >
           <span>진행 중</span>
           <strong>{summary.inProgress}</strong>
-        </div>
+        </button>
 
-        <div>
+        <button
+          type="button"
+          className={`${styles.summaryItem} ${
+            activeFilter === "completed" ? styles.summaryItemActive : ""
+          }`}
+          aria-pressed={activeFilter === "completed"}
+          onClick={() => setActiveFilter("completed")}
+        >
           <span>완료</span>
           <strong>{summary.completed}</strong>
-        </div>
+        </button>
       </div>
 
       {error && (
@@ -388,19 +388,37 @@ export default function MatchMonitorPanel({ setting }: Props) {
         <div className={styles.empty}>저장된 대진이 없습니다.</div>
       ) : (
         <div className={styles.matchList}>
-          {matches.map((match) => (
+          {visibleMatches.map((match) => (
             <article key={match.id} className={styles.matchCard}>
-              <div className={styles.order}>
-                <span>경기 순서</span>
-                <strong>{match.sortOrder}</strong>
-              </div>
+              <header className={styles.matchCardHeader}>
+                <div className={styles.order}>
+                  <span>경기</span>
+                  <strong>{match.sortOrder}</strong>
+                </div>
 
-              <div className={styles.matchContent}>
-                <small>라운드 {match.round}</small>
+                <div className={styles.matchContent}>
+                  <small>{match.round}라운드</small>
+                  <strong>{match.title}</strong>
+                </div>
 
-                <strong>{match.title}</strong>
+                <span
+                  className={`${styles.status} ${
+                    match.hasDisputedResult
+                      ? styles.status_disputed
+                      : styles[`status_${match.status}`]
+                  }`}
+                >
+                  {match.hasDisputedResult
+                    ? "결과 확인 필요"
+                    : STATUS_LABELS[match.status]}
+                </span>
+              </header>
 
-                <span>{match.description}</span>
+              <div className={styles.matchDetails}>
+                <span className={styles.matchDescription}>
+                  {match.description}
+                </span>
+
                 {match.resultLines.length > 0 && (
                   <div className={styles.resultLines}>
                     {match.resultLines.map((resultLine, index) => (
@@ -419,42 +437,8 @@ export default function MatchMonitorPanel({ setting }: Props) {
                 )}
               </div>
 
-              <span
-                className={`${styles.status} ${
-                  match.hasDisputedResult
-                    ? styles.status_disputed
-                    : styles[`status_${match.status}`]
-                }`}
-              >
-                {match.hasDisputedResult
-                  ? "결과 확인 필요"
-                  : STATUS_LABELS[match.status]}
-              </span>
-
-              <div className={styles.matchActions}>
-                {match.canStart && (
-                  <button
-                    type="button"
-                    className={styles.startButton}
-                    disabled={Boolean(workingMatchId)}
-                    onClick={() => {
-                      void handleStartMatch(match);
-                    }}
-                  >
-                    {workingMatchId === match.id ? (
-                      <Loader2
-                        className={styles.spinner}
-                        size={17}
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <CirclePlay size={17} aria-hidden="true" />
-                    )}
-                    경기 시작
-                  </button>
-                )}
-
-                {match.canCancelResult && (
+              {match.canCancelResult && (
+                <div className={styles.matchActions}>
                   <button
                     type="button"
                     className={styles.cancelButton}
@@ -473,20 +457,16 @@ export default function MatchMonitorPanel({ setting }: Props) {
                     <RotateCcw size={17} aria-hidden="true" />
                     결과 취소
                   </button>
-                )}
-
-                {!match.canStart && !match.canCancelResult && (
-                  <span className={styles.actionLabel}>
-                    {match.status === "in_progress"
-                      ? "경기 진행 중"
-                      : match.status === "completed"
-                        ? "경기 완료"
-                        : "시작 대기"}
-                  </span>
-                )}
-              </div>
+                </div>
+              )}
             </article>
           ))}
+
+          {visibleMatches.length === 0 && (
+            <div className={styles.filteredEmpty}>
+              선택한 상태의 경기가 없습니다.
+            </div>
+          )}
         </div>
       )}
       {cancelTarget && (
@@ -531,8 +511,8 @@ export default function MatchMonitorPanel({ setting }: Props) {
               <strong>확정된 경기 결과를 취소하시겠습니까?</strong>
 
               <p>
-                저장된 결과 제출값이 삭제되고 경기 상태가 진행 중으로
-                돌아갑니다. 승점과 순위도 자동으로 다시 계산됩니다.
+                저장된 결과가 삭제됩니다. 개인 단식 경기는 출전자와 빈
+                테이블 상태에 따라 다시 배정됩니다.
               </p>
             </div>
 

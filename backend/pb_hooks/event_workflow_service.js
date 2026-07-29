@@ -29,10 +29,9 @@ function assertRegistrationClosed(eventRecord) {
 function getUndecidedCount(dao, eventId) {
   return dao.findRecordsByFilter(
     "event_participants",
-    [
-      "event = {:eventId}",
-      "game_participation_status = {:status}",
-    ].join(" && "),
+    ["event = {:eventId}", "game_participation_status = {:status}"].join(
+      " && ",
+    ),
     "",
     500,
     0,
@@ -128,6 +127,9 @@ function toGameSettingDto(record) {
     ),
     status: record.getString("status"),
     version: record.getInt("version"),
+    individual_table_count: record.getInt("individual_table_count"),
+
+    operation_status: record.getString("operation_status") || "not_started",
   };
 }
 
@@ -140,12 +142,8 @@ function toParticipantDto(record) {
     guest_name: record.getString("guest_name"),
     display_name: record.getString("display_name"),
     rank_snapshot: record.getInt("rank_snapshot"),
-    game_participation_status: record.getString(
-      "game_participation_status",
-    ),
-    participation_responded_at: record.getString(
-      "participation_responded_at",
-    ),
+    game_participation_status: record.getString("game_participation_status"),
+    participation_responded_at: record.getString("participation_responded_at"),
     version: record.getInt("version"),
   };
 }

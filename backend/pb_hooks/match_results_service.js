@@ -658,8 +658,36 @@ const saveResultSubmission = (targetType, targetId, input) => {
           teamMatchRecord.set("version", teamMatchRecord.getInt("version") + 1);
 
           txDao.saveRecord(teamMatchRecord);
+
+          const operationService = require(
+            `${__hooks}/match_operation_service.js`,
+          );
+
+          operationService.advanceTeamRound(
+            txDao,
+            teamMatchRecord.getString("game_setting"),
+          );
         }
       }
+    }
+
+    /*
+     * 주의:
+     * 이 코드는 위의 팀 경기 조건문 밖에 있어야 합니다.
+     *
+     * 개인 단식 결과가 확정되면 빈 테이블에
+     * 다음으로 진행 가능한 경기를 자동 배정합니다.
+     */
+    if (
+      targetType === TARGET_TYPE_INDIVIDUAL_MATCH &&
+      target.getString("result_status") === RESULT_STATUS_CONFIRMED
+    ) {
+      const operationService = require(`${__hooks}/match_operation_service.js`);
+
+      operationService.assignIndividualMatches(
+        txDao,
+        target.getString("game_setting"),
+      );
     }
   });
 

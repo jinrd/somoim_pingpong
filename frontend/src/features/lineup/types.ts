@@ -17,6 +17,7 @@ export interface PublicParticipantMatch {
   round: number;
   sortOrder: number;
   status: PublicTeamMatchStatus;
+  tableNumber?: number;
 
   isHomeTeam: boolean;
 
@@ -29,6 +30,8 @@ export interface PublicParticipantMatch {
 export interface PublicParticipantMatchesResponse {
   eventId: string;
   team: PublicLineupTeam | null;
+  operationStatus?: "not_started" | "in_progress" | "completed";
+  tableCount?: number;
   matches: PublicParticipantMatch[];
 }
 

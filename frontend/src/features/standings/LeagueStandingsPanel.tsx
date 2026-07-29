@@ -22,6 +22,8 @@ interface LeagueStandingsPanelProps {
   responseToken?: string;
 }
 
+type MobileStandingsView = "order" | "ranking" | "matrix";
+
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof ClientResponseError) {
     return (
@@ -169,6 +171,8 @@ export default function LeagueStandingsPanel({
   const [isLoading, setIsLoading] = useState(true);
 
   const [error, setError] = useState("");
+  const [mobileView, setMobileView] =
+    useState<MobileStandingsView>("order");
 
   const loadStandings = useCallback(async () => {
     if (!setting && !responseToken) {
@@ -281,9 +285,12 @@ export default function LeagueStandingsPanel({
     <section className={styles.panel}>
       <header className={styles.header}>
         <div>
-          <h2>실시간 경기 현황</h2>
+          <h2>전체 경기 현황</h2>
 
-          <p>확정된 결과와 순위를 5초마다 갱신합니다.</p>
+          <p className={styles.updateStatus}>
+            <span aria-hidden="true" />
+            자동 업데이트
+          </p>
         </div>
 
         <button
@@ -309,7 +316,52 @@ export default function LeagueStandingsPanel({
         <p className={styles.empty}>표시할 리그 대진이 없습니다.</p>
       ) : (
         <>
-          <section className={styles.orderSection}>
+          <nav
+            className={styles.mobileViewTabs}
+            aria-label="실시간 경기 현황 보기"
+          >
+            <button
+              type="button"
+              className={
+                mobileView === "order"
+                  ? styles.mobileViewTabActive
+                  : styles.mobileViewTab
+              }
+              onClick={() => setMobileView("order")}
+            >
+              경기 순서
+            </button>
+
+            <button
+              type="button"
+              className={
+                mobileView === "ranking"
+                  ? styles.mobileViewTabActive
+                  : styles.mobileViewTab
+              }
+              onClick={() => setMobileView("ranking")}
+            >
+              순위
+            </button>
+
+            <button
+              type="button"
+              className={
+                mobileView === "matrix"
+                  ? styles.mobileViewTabActive
+                  : styles.mobileViewTab
+              }
+              onClick={() => setMobileView("matrix")}
+            >
+              리그표
+            </button>
+          </nav>
+
+          <section
+            className={`${styles.orderSection} ${
+              mobileView !== "order" ? styles.mobileViewHidden : ""
+            }`}
+          >
             <header className={styles.orderHeader}>
               <div>
                 <h3>전체 경기 순서</h3>
@@ -337,39 +389,122 @@ export default function LeagueStandingsPanel({
                       setSelectedMatch(match);
                     }}
                   >
-                    <span className={styles.orderNumber}>
-                      <small>경기</small>
-                      <strong>{match.sortOrder}</strong>
+                    <span className={styles.desktopOrderContent}>
+                      <span className={styles.orderNumber}>
+                        <small>경기</small>
+                        <strong>{match.sortOrder}</strong>
+                      </span>
+
+                      <span className={styles.orderMatch}>
+                        <small>{match.round}라운드</small>
+
+                        <strong>
+                          {match.homeEntity.name}
+                          <span> VS </span>
+                          {match.awayEntity.name}
+                        </strong>
+                      </span>
+
+                      <span className={styles.orderScore}>
+                        {getOrderedMatchResult(match)}
+                      </span>
+
+                      <span
+                        className={`${styles.orderStatus} ${getMatchStatusClassName(
+                          match,
+                        )}`}
+                      >
+                        {getMatchStatusIcon(match)}
+                        {getMatchStatusLabel(match)}
+                      </span>
                     </span>
 
-                    <span className={styles.orderMatch}>
-                      <small>{match.round}라운드</small>
+                    <span className={styles.mobileOrderContent}>
+                      <span className={styles.mobileOrderHeader}>
+                        <strong>경기 {match.sortOrder}</strong>
+                        <span>{match.round}라운드</span>
 
-                      <strong>
-                        {match.homeEntity.name}
-                        <span> VS </span>
-                        {match.awayEntity.name}
-                      </strong>
-                    </span>
+                        <span
+                          className={`${styles.orderStatus} ${getMatchStatusClassName(
+                            match,
+                          )}`}
+                        >
+                          {getMatchStatusIcon(match)}
+                          {getMatchStatusLabel(match)}
+                        </span>
+                      </span>
 
-                    <span className={styles.orderScore}>
-                      {getOrderedMatchResult(match)}
-                    </span>
-
-                    <span
-                      className={`${styles.orderStatus} ${getMatchStatusClassName(
-                        match,
-                      )}`}
-                    >
-                      {getMatchStatusIcon(match)}
-                      {getMatchStatusLabel(match)}
+                      <span className={styles.mobileOrderMatchup}>
+                        <strong>{match.homeEntity.name}</strong>
+                        <span className={styles.mobileOrderScore}>
+                          {getOrderedMatchResult(match)}
+                        </span>
+                        <strong>{match.awayEntity.name}</strong>
+                      </span>
                     </span>
                   </button>
                 ))}
               </div>
             )}
           </section>
-          <div className={styles.matrixScroll}>
+
+          <section
+            className={`${styles.mobileRanking} ${
+              mobileView !== "ranking" ? styles.mobileViewHidden : ""
+            }`}
+          >
+            <header className={styles.mobileRankingHeader}>
+              <div>
+                <h3>현재 순위</h3>
+                <p>승점, 승자승, 세트 득실률 순으로 계산합니다.</p>
+              </div>
+            </header>
+
+            <div className={styles.mobileRankingList}>
+              {response.standings.map((row) => (
+                <article
+                  key={row.entityId}
+                  className={styles.rankingCard}
+                  data-rank={row.rank}
+                >
+                  <strong className={styles.rankingPosition}>
+                    {row.rank}
+                    <small>위</small>
+                  </strong>
+
+                  <div className={styles.rankingIdentity}>
+                    <strong>{row.name}</strong>
+                    <span>
+                      {row.played}경기 · {row.wins}승 {row.losses}패
+                    </span>
+                  </div>
+
+                  <dl className={styles.rankingStats}>
+                    <div>
+                      <dt>승점</dt>
+                      <dd>{row.points}</dd>
+                    </div>
+                    <div>
+                      <dt>세트 득실률</dt>
+                      <dd>
+                        {row.setRatio === null
+                          ? row.scoreFor > 0
+                            ? "∞"
+                            : "-"
+                          : row.setRatio.toFixed(3)}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <div
+            className={`${styles.matrixScroll} ${
+              mobileView !== "matrix" ? styles.mobileViewHidden : ""
+            }`}
+          >
             <table className={styles.matrix}>
               <thead>
                 <tr>
@@ -494,11 +629,21 @@ export default function LeagueStandingsPanel({
           </div>
 
           {selectedMatch && (
-            <MatchDetail
-              match={selectedMatch}
-              competitionType={response.competitionType}
-              onClose={() => setSelectedMatch(null)}
-            />
+            <div
+              className={styles.detailBackdrop}
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                  setSelectedMatch(null);
+                }
+              }}
+            >
+              <MatchDetail
+                match={selectedMatch}
+                competitionType={response.competitionType}
+                onClose={() => setSelectedMatch(null)}
+              />
+            </div>
           )}
         </>
       )}
@@ -519,10 +664,14 @@ const MatchDetail = ({
     <section className={styles.detail}>
       <header>
         <div>
-          <span>선택 경기</span>
+          <span>
+            {match.round}라운드 · {match.sortOrder}번째 경기
+          </span>
 
-          <h3>
-            {match.homeEntity.name} VS {match.awayEntity.name}
+          <h3 className={styles.detailTitle}>
+            <span>{match.homeEntity.name}</span>
+            <small>VS</small>
+            <span>{match.awayEntity.name}</span>
           </h3>
         </div>
 
@@ -533,15 +682,23 @@ const MatchDetail = ({
 
       {competitionType === "individual_singles" ? (
         <div className={styles.detailScore}>
-          <strong>
-            {match.resultStatus === "confirmed" ? match.homeScore : "-"}
-          </strong>
+          <div className={styles.detailScoreSide}>
+            <span>{match.homeEntity.name}</span>
 
-          <span>:</span>
+            <strong>
+              {match.resultStatus === "confirmed" ? match.homeScore : "-"}
+            </strong>
+          </div>
 
-          <strong>
-            {match.resultStatus === "confirmed" ? match.awayScore : "-"}
-          </strong>
+          <span className={styles.detailScoreDivider}>:</span>
+
+          <div className={styles.detailScoreSide}>
+            <span>{match.awayEntity.name}</span>
+
+            <strong>
+              {match.resultStatus === "confirmed" ? match.awayScore : "-"}
+            </strong>
+          </div>
         </div>
       ) : (
         <div className={styles.gameList}>
@@ -561,19 +718,23 @@ const MatchDetail = ({
                 )}
               </div>
 
-              <p>
-                {game.homePlayers.map((player) => player.name).join(" · ") ||
-                  "미정"}
+              <div className={styles.gameScoreRow}>
+                <span>
+                  {game.homePlayers.map((player) => player.name).join(" · ") ||
+                    "출전 미정"}
+                </span>
 
                 <strong>
                   {game.resultStatus === "confirmed"
-                    ? ` ${game.homeScore} : ${game.awayScore} `
-                    : " - : - "}
+                    ? `${game.homeScore} : ${game.awayScore}`
+                    : "- : -"}
                 </strong>
 
-                {game.awayPlayers.map((player) => player.name).join(" · ") ||
-                  "미정"}
-              </p>
+                <span>
+                  {game.awayPlayers.map((player) => player.name).join(" · ") ||
+                    "출전 미정"}
+                </span>
+              </div>
             </article>
           ))}
         </div>

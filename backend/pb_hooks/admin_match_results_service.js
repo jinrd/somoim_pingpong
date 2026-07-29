@@ -116,6 +116,34 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
       );
     }
 
+    /*
+     * 다음 라운드가 이미 시작되거나 완료된 경우,
+     * 이전 라운드 결과를 취소하면 서로 다른 라운드가 동시에
+     * 진행 중이 되는 문제가 발생하므로 취소를 차단합니다.
+     */
+    const laterStartedMatches = txDao.findRecordsByFilter(
+      "team_matches",
+      [
+        "game_setting = {:gameSettingId}",
+        "round > {:currentRound}",
+        "(status = 'in_progress' || status = 'completed')",
+      ].join(" && "),
+      "",
+      1,
+      0,
+      {
+        gameSettingId: teamMatch.getString("game_setting"),
+        currentRound: teamMatch.getInt("round"),
+      },
+    );
+
+    if (laterStartedMatches.length > 0) {
+      throw new ApiError(
+        409,
+        "다음 라운드가 이미 시작되어 이전 라운드 결과를 취소할 수 없습니다.",
+      );
+    }
+
     const games = txDao.findRecordsByFilter(
       "match_games",
       "team_match = {:teamMatchId}",
@@ -258,9 +286,35 @@ const cancelIndividualMatchResult = function (individualMatchId, input) {
     deleteIndividualSubmissions(txDao, match.id);
     resetResultFields(match);
 
+    /*
+     * 이미 해당 테이블에 다음 경기가 배정됐을 수 있으므로
+     * 결과를 취소한 경기는 테이블 배정 대기 상태로 되돌립니다.
+     */
+    match.set("status", "scheduled");
+    match.set("table_number", 0);
+    match.set("started_at", "");
     match.set("completed_at", "");
 
     txDao.saveRecord(match);
+
+    /*
+     * 마지막 경기까지 완료된 상태에서 결과를 취소하면
+     * operation_status가 completed일 수 있습니다.
+     *
+     * scheduled 경기가 다시 생겼으므로 운영 상태도 진행 중으로 복구합니다.
+     */
+    const gameSettingRecord = txDao.findRecordById(
+      "event_game_settings",
+      match.getString("game_setting"),
+    );
+
+    gameSettingRecord.set("operation_status", "in_progress");
+
+    txDao.saveRecord(gameSettingRecord);
+
+    const operationService = require(`${__hooks}/match_operation_service.js`);
+
+    operationService.assignIndividualMatches(txDao, gameSettingRecord.id);
 
     historyService.createHistory(txDao, {
       eventId: match.getString("event"),

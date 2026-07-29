@@ -59,13 +59,17 @@ interface Props {
 interface TeamMemberCardProps {
   member: TeamMemberDraft;
   teamKey: string;
+  teams: TeamDraft[];
   disabled: boolean;
+  onMove: (participantId: string, targetTeamKey: string) => void;
 }
 
 interface TeamColumnProps {
   team: TeamDraft;
+  teams: TeamDraft[];
   disabled: boolean;
   onNameChange: (name: string) => void;
+  onMemberMove: (participantId: string, targetTeamKey: string) => void;
 }
 
 const cloneTeams = (teams: TeamDraft[]): TeamDraft[] =>
@@ -97,7 +101,13 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-function TeamMemberCard({ member, teamKey, disabled }: TeamMemberCardProps) {
+function TeamMemberCard({
+  member,
+  teamKey,
+  teams,
+  disabled,
+  onMove,
+}: TeamMemberCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `member:${member.participantId}`,
@@ -114,12 +124,19 @@ function TeamMemberCard({ member, teamKey, disabled }: TeamMemberCardProps) {
       style={{
         transform: CSS.Translate.toString(transform),
       }}
-      {...attributes}
-      {...listeners}
     >
-      <GripVertical size={17} aria-hidden="true" />
+      <button
+        type="button"
+        className={styles.memberDragHandle}
+        disabled={disabled}
+        aria-label={`${member.displayName} 팀 이동`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={17} aria-hidden="true" />
+      </button>
 
-      <div>
+      <div className={styles.memberInfo}>
         <strong>{member.displayName}</strong>
 
         <span>
@@ -127,11 +144,38 @@ function TeamMemberCard({ member, teamKey, disabled }: TeamMemberCardProps) {
           {member.participantType === "guest" ? "게스트" : "회원"}
         </span>
       </div>
+
+      <label className={styles.mobileTeamMove}>
+        <span className={styles.visuallyHidden}>
+          {member.displayName} 이동할 팀
+        </span>
+
+        <select
+          value={teamKey}
+          disabled={disabled}
+          aria-label={`${member.displayName} 이동할 팀`}
+          onChange={(event) => {
+            onMove(member.participantId, event.target.value);
+          }}
+        >
+          {teams.map((team) => (
+            <option key={team.key} value={team.key}>
+              {team.name}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }
 
-function TeamColumn({ team, disabled, onNameChange }: TeamColumnProps) {
+function TeamColumn({
+  team,
+  teams,
+  disabled,
+  onNameChange,
+  onMemberMove,
+}: TeamColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `team:${team.key}`,
     disabled,
@@ -170,7 +214,9 @@ function TeamColumn({ team, disabled, onNameChange }: TeamColumnProps) {
               key={member.key}
               member={member}
               teamKey={team.key}
+              teams={teams}
               disabled={disabled}
+              onMove={onMemberMove}
             />
           ))
         )}
@@ -350,17 +396,10 @@ export default function TeamFormationPanel({
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const overId = event.over ? String(event.over.id) : "";
-
-    if (!overId.startsWith("team:")) {
-      return;
-    }
-
-    const participantId = String(event.active.id).replace(/^member:/, "");
-
-    const targetTeamKey = overId.replace(/^team:/, "");
-
+  const handleMoveMember = (
+    participantId: string,
+    targetTeamKey: string,
+  ) => {
     const sourceTeam = teams.find((team) =>
       team.members.some((member) => member.participantId === participantId),
     );
@@ -409,6 +448,19 @@ export default function TeamFormationPanel({
     setIsDirty(true);
     setError("");
     setMessage(`${member.displayName} 님을 이동했습니다.`);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const overId = event.over ? String(event.over.id) : "";
+
+    if (!overId.startsWith("team:")) {
+      return;
+    }
+
+    const participantId = String(event.active.id).replace(/^member:/, "");
+    const targetTeamKey = overId.replace(/^team:/, "");
+
+    handleMoveMember(participantId, targetTeamKey);
   };
 
   const handleUndo = () => {
@@ -576,8 +628,8 @@ export default function TeamFormationPanel({
           <h2>팀 편성</h2>
 
           <p>
-            게임 참가자만 대상으로 자동 편성하고 팀원을 드래그하여 조정할 수
-            있습니다.
+            자동 편성 후 PC에서는 드래그하고, 모바일에서는 이동할 팀을
+            선택하여 조정할 수 있습니다.
           </p>
         </div>
 
@@ -699,7 +751,9 @@ export default function TeamFormationPanel({
               <TeamColumn
                 key={team.key}
                 team={team}
+                teams={teams}
                 disabled={isWorking || status === "confirmed"}
+                onMemberMove={handleMoveMember}
                 onNameChange={(name) => {
                   setTeams((current) =>
                     current.map((item) =>
@@ -730,7 +784,7 @@ export default function TeamFormationPanel({
             disabled={isWorking}
             onClick={() => void handleUnlock()}
           >
-            팀 편성 수정
+            편성 수정
           </button>
         ) : (
           <>
@@ -746,7 +800,7 @@ export default function TeamFormationPanel({
               onClick={() => void handleSave("draft")}
             >
               <Save size={18} aria-hidden="true" />
-              {isWorking ? "저장 중…" : "팀 편성 임시 저장"}
+              {isWorking ? "저장 중…" : "임시 저장"}
             </button>
             <button
               type="button"
@@ -762,7 +816,7 @@ export default function TeamFormationPanel({
                 setConfirmFormationOpen(true);
               }}
             >
-              팀 편성 최종 확정
+              최종 확정
             </button>
           </>
         )}

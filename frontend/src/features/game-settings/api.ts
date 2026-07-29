@@ -37,6 +37,7 @@ const validateGameSettingInput = (input: GameSettingInput): void => {
   }
 
   if (input.competitionType === "individual_singles") {
+    validatePositiveInteger(input.individualTableCount, "사용 테이블 수");
     validateBestOf(input.individualBestOf);
   }
 };
@@ -126,6 +127,7 @@ export const saveEventGameSettingDraft = async (
         individualBestOf: input.individualBestOf,
         individualCountsForRanking: input.individualCountsForRanking,
         expectedVersion,
+        individualTableCount: input.individualTableCount,
       },
     },
   );

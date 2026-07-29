@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   AlertCircle,
+  BellRing,
   CalendarDays,
+  ChevronRight,
   LoaderCircle,
   Trophy,
   UserCheck,
@@ -17,7 +19,9 @@ import { getPublicEvent } from "../../features/events/api";
 import PublicIdentityForm from "../../features/events/PublicIdentityForm";
 import PublicParticipationForm from "../../features/events/PublicParticipationForm";
 import PublicTeamLineupSection from "../../features/lineup/PublicTeamLineupSection";
-import PublicIndividualLineupSection from "../../features/lineup/PublicIndividualLineupSection";
+import PublicIndividualLineupSection, {
+  type PublicIndividualMatchStartedNotice,
+} from "../../features/lineup/PublicIndividualLineupSection";
 import {
   EVENT_STATUS_LABELS,
   type PublicEventResponse,
@@ -118,6 +122,28 @@ export default function PublicEvent() {
   const [activePublicTab, setActivePublicTab] = useState<"mine" | "live">(
     "mine",
   );
+  const [matchStartNotice, setMatchStartNotice] =
+    useState<PublicIndividualMatchStartedNotice | null>(null);
+
+  const handleIndividualMatchStarted = useCallback(
+    (notice: PublicIndividualMatchStartedNotice) => {
+      setMatchStartNotice(notice);
+    },
+    [],
+  );
+
+  const openMyMatch = () => {
+    setActivePublicTab("mine");
+    setMatchStartNotice(null);
+
+    window.requestAnimationFrame(() => {
+      document.getElementById("public-panel-mine")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
   const loadEvent = () => {
     if (!token) {
       return;
@@ -281,14 +307,9 @@ export default function PublicEvent() {
                     </span>
 
                     <div>
-                      <h2>본인 확인 완료</h2>
+                      <h2>{identity.participant.displayName}님</h2>
 
-                      <p>
-                        <strong>{identity.participant.displayName}</strong>
-                        님의 참석이 등록됐습니다.
-                      </p>
-
-                      <p>현재 부수: {identity.participant.rank}부</p>
+                      <p>본인 확인 완료 · {identity.participant.rank}부</p>
                     </div>
                   </div>
                   <div
@@ -325,69 +346,87 @@ export default function PublicEvent() {
                       }
                       onClick={() => setActivePublicTab("live")}
                     >
-                      실시간 경기 현황
+                      경기 현황
                     </button>
                   </div>
 
-                  {activePublicTab === "mine" && (
-                    <div
-                      id="public-panel-mine"
-                      className={styles.publicTabPanel}
-                      role="tabpanel"
-                      aria-labelledby="public-tab-mine"
+                  {matchStartNotice && (
+                    <button
+                      type="button"
+                      className={styles.matchStartNotice}
+                      onClick={openMyMatch}
                     >
-                      {event.participationStatus === "open" &&
-                      !identity.participant.hasResponded ? (
-                        <PublicParticipationForm
+                      <span className={styles.matchStartNoticeIcon}>
+                        <BellRing size={20} aria-hidden="true" />
+                      </span>
+                      <span className={styles.matchStartNoticeText}>
+                        <strong>
+                          {matchStartNotice.tableNumber}번 테이블 경기 시작
+                        </strong>
+                        <small>
+                          {matchStartNotice.opponentName}님과 경기할 차례입니다.
+                        </small>
+                      </span>
+                      <ChevronRight size={19} aria-hidden="true" />
+                    </button>
+                  )}
+
+                  <div
+                    id="public-panel-mine"
+                    className={styles.publicTabPanel}
+                    role="tabpanel"
+                    aria-labelledby="public-tab-mine"
+                    hidden={activePublicTab !== "mine"}
+                  >
+                    {event.participationStatus === "open" &&
+                    !identity.participant.hasResponded ? (
+                      <PublicParticipationForm
+                        responseToken={identity.responseToken}
+                        participant={identity.participant}
+                        onUpdated={(
+                          updatedParticipant: PublicIdentifiedParticipant,
+                        ) => {
+                          const updatedIdentity = {
+                            ...identity,
+                            participant: updatedParticipant,
+                          };
+
+                          setIdentity(updatedIdentity);
+
+                          sessionStorage.setItem(
+                            `event-participant:${token}`,
+                            JSON.stringify(updatedIdentity),
+                          );
+                        }}
+                      />
+                    ) : (
+                      <div className={styles.lockedNotice}>
+                        <strong>
+                          {event.participationStatus === "closed"
+                            ? "참가 신청 마감"
+                            : "참가 신청 완료"}
+                        </strong>
+                        <p>변경은 운영진에게 문의해 주세요.</p>
+                      </div>
+                    )}
+
+                    {identity.participant.gameParticipationStatus ===
+                      "playing" &&
+                      identity.competitionType === "team_league" && (
+                        <PublicTeamLineupSection
                           responseToken={identity.responseToken}
-                          participant={identity.participant}
-                          onUpdated={(
-                            updatedParticipant: PublicIdentifiedParticipant,
-                          ) => {
-                            const updatedIdentity = {
-                              ...identity,
-                              participant: updatedParticipant,
-                            };
-
-                            setIdentity(updatedIdentity);
-
-                            sessionStorage.setItem(
-                              `event-participant:${token}`,
-                              JSON.stringify(updatedIdentity),
-                            );
-                          }}
                         />
-                      ) : (
-                        <div className={styles.lockedNotice}>
-                          <strong>
-                            {event.participationStatus === "closed"
-                              ? "참가 신청이 최종 마감되었습니다."
-                              : "참가 여부 제출이 완료되었습니다."}
-                          </strong>
-                          <p>
-                            저장한 참가 여부는 직접 수정할 수 없습니다. 변경이
-                            필요하면 운영진에게 문의해 주세요.
-                          </p>
-                        </div>
                       )}
 
-                      {identity.participant.gameParticipationStatus ===
-                        "playing" &&
-                        identity.competitionType === "team_league" && (
-                          <PublicTeamLineupSection
-                            responseToken={identity.responseToken}
-                          />
-                        )}
-
-                      {identity.participant.gameParticipationStatus ===
-                        "playing" &&
-                        identity.competitionType === "individual_singles" && (
-                          <PublicIndividualLineupSection
-                            responseToken={identity.responseToken}
-                          />
-                        )}
-                    </div>
-                  )}
+                    {identity.participant.gameParticipationStatus ===
+                      "playing" &&
+                      identity.competitionType === "individual_singles" && (
+                        <PublicIndividualLineupSection
+                          responseToken={identity.responseToken}
+                          onMatchStarted={handleIndividualMatchStarted}
+                        />
+                      )}
+                  </div>
 
                   {activePublicTab === "live" && (
                     <div

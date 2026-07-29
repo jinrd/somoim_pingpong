@@ -586,6 +586,16 @@ const saveLineup = function (teamMatchId, responseToken, input) {
      * 라인업 저장 시에는 증가시키지 않습니다.
      */
     transactionDao.saveRecord(teamMatchRecord);
+    /*
+     * 양 팀 라인업이 확정됐더라도 이전 라운드가 진행 중이면 ready로 대기합니다.
+     * 현재 활성 라운드라면 자동으로 in_progress 상태가 됩니다.
+     */
+    const operationService = require(`${__hooks}/match_operation_service.js`);
+
+    operationService.advanceTeamRound(
+      transactionDao,
+      teamMatchRecord.getString("game_setting"),
+    );
   });
 
   return buildLineupContext(teamMatchId, responseToken);

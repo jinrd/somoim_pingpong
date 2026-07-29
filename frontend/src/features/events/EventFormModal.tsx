@@ -2,7 +2,7 @@ import { useState, type SubmitEvent } from "react";
 import { X } from "lucide-react";
 
 import { createEvent } from "./api";
-import type { EventStatus, SomoimEvent } from "./types";
+import type { SomoimEvent } from "./types";
 
 import styles from "./Events.module.css";
 import { DOMAIN_LIMITS } from "../../config/domain";
@@ -34,8 +34,6 @@ export default function EventFormModal({ onClose, onCreated }: Props) {
   const [title, setTitle] = useState(getDefaultTitle);
   const [eventDate, setEventDate] = useState(getTodayInputValue);
 
-  const [status, setStatus] = useState<EventStatus>("draft");
-
   const [notice, setNotice] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
@@ -51,7 +49,6 @@ export default function EventFormModal({ onClose, onCreated }: Props) {
       const createdEvent = await createEvent({
         title,
         eventDate,
-        status,
         notice,
       });
 
@@ -134,22 +131,6 @@ export default function EventFormModal({ onClose, onCreated }: Props) {
               }}
               required
             />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label htmlFor="event-status">초기 상태</label>
-
-            <select
-              id="event-status"
-              className={styles.input}
-              value={status}
-              onChange={(changeEvent) => {
-                setStatus(changeEvent.target.value as EventStatus);
-              }}
-            >
-              <option value="draft">준비 중</option>
-              <option value="active">진행 중</option>
-            </select>
           </div>
 
           <div className={styles.formGroup}>

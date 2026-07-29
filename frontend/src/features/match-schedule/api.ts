@@ -283,6 +283,7 @@ export interface StoredIndividualMatch extends StoredMatchResult {
 
   homeParticipant: RoundRobinTeam;
   awayParticipant: RoundRobinTeam;
+  tableNumber: number;
 }
 export interface StoredIndividualScheduleRound {
   round: number;
@@ -301,6 +302,8 @@ export interface IndividualScheduleContext {
 
   canRegenerate: boolean;
   rounds: StoredIndividualScheduleRound[];
+  operationStatus: "not_started" | "in_progress" | "completed";
+  tableCount: number;
 }
 export const getIndividualSchedule = async (
   gameSettingId: string,
@@ -433,6 +436,33 @@ export const cancelIndividualMatchResult = async (
         expectedVersion: input.expectedVersion,
         reason: input.reason,
       },
+    },
+  );
+};
+
+export interface StartIndividualLeagueResult {
+  operationStatus: "in_progress" | "completed";
+  tableCount: number;
+
+  assignedMatches: Array<{
+    matchId: string;
+    tableNumber: number;
+  }>;
+}
+
+export const startIndividualLeague = async (
+  gameSettingId: string,
+): Promise<StartIndividualLeagueResult> => {
+  if (!gameSettingId) {
+    throw new Error("게임 설정 정보가 없습니다.");
+  }
+
+  return pb.send<StartIndividualLeagueResult>(
+    `/api/somoim/admin/game-settings/${encodeURIComponent(
+      gameSettingId,
+    )}/individual-operation/start`,
+    {
+      method: "POST",
     },
   );
 };

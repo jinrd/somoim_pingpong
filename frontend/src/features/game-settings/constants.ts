@@ -7,6 +7,7 @@ export const DEFAULT_GAME_SETTING_INPUT: GameSettingInput = {
 
   individualBestOf: 3,
   individualCountsForRanking: false,
+  individualTableCount: 4,
 };
 
 export const DEFAULT_MATCH_FORMAT_INPUT: MatchFormatInput = {

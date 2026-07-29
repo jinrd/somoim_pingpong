@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Copy, Link2, Link2Off, RefreshCw } from "lucide-react";
+import {
+  CalendarClock,
+  Copy,
+  Link2,
+  Link2Off,
+  RefreshCw,
+} from "lucide-react";
 import { ClientResponseError } from "pocketbase";
 
 import {
@@ -44,14 +50,36 @@ const toDateTimeLocalValue = (value?: string): string => {
   ].join("");
 };
 
+const getEventDayExpiration = (eventRecord: SomoimEvent): string => {
+  const localEventDate = toDateTimeLocalValue(eventRecord.event_date);
+  const eventDate = localEventDate
+    ? localEventDate.slice(0, 10)
+    : eventRecord.event_date.slice(0, 10);
+
+  return `${eventDate}T23:59`;
+};
+
 const getInitialExpiration = (eventRecord: SomoimEvent): string => {
   if (eventRecord.public_expires_at) {
     return toDateTimeLocalValue(eventRecord.public_expires_at);
   }
 
-  const eventDate = eventRecord.event_date.slice(0, 10);
+  return getEventDayExpiration(eventRecord);
+};
 
-  return `${eventDate}T23:59`;
+const formatExpiration = (value: string): string => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 };
 
 const getErrorMessage = (error: unknown): string => {
@@ -86,6 +114,18 @@ export default function PublicLinkManager({
 
   const [isRecoverable, setIsRecoverable] = useState(true);
 
+  const [activeExpiration, setActiveExpiration] = useState(() =>
+    eventRecord.public_expires_at
+      ? toDateTimeLocalValue(eventRecord.public_expires_at)
+      : "",
+  );
+
+  const [isIssueFormOpen, setIssueFormOpen] = useState(
+    () => !eventRecord.public_access_enabled,
+  );
+
+  const [isDisableConfirmOpen, setDisableConfirmOpen] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -102,9 +142,16 @@ export default function PublicLinkManager({
             `${window.location.origin}` + `/join/events/${result.token}`;
 
           setIssuedLink(restoredLink);
-          setExpiration(toDateTimeLocalValue(result.expiresAt));
+          const restoredExpiration = toDateTimeLocalValue(result.expiresAt);
+
+          setExpiration(restoredExpiration);
+          setActiveExpiration(restoredExpiration);
         } else {
           setIssuedLink("");
+
+          if (result.enabled && !result.recoverable) {
+            setIssueFormOpen(true);
+          }
         }
       })
       .catch((caughtError) => {
@@ -141,15 +188,6 @@ export default function PublicLinkManager({
       return;
     }
 
-    if (
-      isEnabled &&
-      !window.confirm(
-        "기존 참석 링크는 사용할 수 없게 됩니다. 새 링크를 발급할까요?",
-      )
-    ) {
-      return;
-    }
-
     setIsWorking(true);
     setError("");
     setMessage("");
@@ -167,7 +205,12 @@ export default function PublicLinkManager({
 
       setIssuedLink(publicLink);
       setIsRecoverable(true);
-      setExpiration(toDateTimeLocalValue(result.expiresAt));
+      const issuedExpiration = toDateTimeLocalValue(result.expiresAt);
+
+      setExpiration(issuedExpiration);
+      setActiveExpiration(issuedExpiration);
+      setIssueFormOpen(false);
+      setDisableConfirmOpen(false);
 
       setMessage(
         "새 링크가 발급됐습니다. 페이지를 벗어나기 전에 복사해 주세요.",
@@ -197,10 +240,6 @@ export default function PublicLinkManager({
   };
 
   const handleDisable = async () => {
-    if (!window.confirm("현재 참석 링크를 비활성화할까요?")) {
-      return;
-    }
-
     setIsWorking(true);
     setError("");
     setMessage("");
@@ -212,6 +251,10 @@ export default function PublicLinkManager({
 
       setIssuedLink("");
       setIsRecoverable(false);
+      setActiveExpiration("");
+      setExpiration(getEventDayExpiration(updatedEvent));
+      setIssueFormOpen(true);
+      setDisableConfirmOpen(false);
       setMessage("참석 링크를 비활성화했습니다.");
 
       onEventUpdated(updatedEvent);
@@ -240,112 +283,206 @@ export default function PublicLinkManager({
         </span>
       </div>
 
-      <div className={styles.publicLinkControls}>
-        <label>
-          <span>링크 만료 시간</span>
+      <div className={styles.publicLinkBody}>
+        {isInitialLoading && (
+          <p className={styles.publicLinkHint}>
+            기존 참석 링크를 불러오는 중입니다…
+          </p>
+        )}
 
-          <input
-            type="datetime-local"
-            className={styles.input}
-            value={expiration}
-            disabled={isWorking}
-            onChange={(event) => {
-              setExpiration(event.target.value);
-            }}
-          />
-        </label>
+        {!isInitialLoading && isEnabled && !issuedLink && !isRecoverable && (
+          <p className={styles.publicLinkHint}>
+            이 링크는 암호화 저장 기능이 추가되기 전에 발급되어 원본을 복원할 수
+            없습니다. 새 링크를 한 번 재발급해 주세요.
+          </p>
+        )}
 
-        <div className={styles.publicLinkActions}>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            disabled={isWorking}
-            onClick={() => {
-              void handleIssue();
-            }}
-          >
-            {isEnabled ? (
-              <RefreshCw size={18} aria-hidden="true" />
-            ) : (
-              <Link2 size={18} aria-hidden="true" />
+        {isEnabled && activeExpiration && (
+          <div className={styles.publicLinkExpirationSummary}>
+            <CalendarClock size={18} aria-hidden="true" />
+            <span>만료</span>
+            <strong>{formatExpiration(activeExpiration)}</strong>
+          </div>
+        )}
+
+        {issuedLink && (
+          <div className={styles.issuedLinkBox}>
+            <label htmlFor="issued-public-link">현재 참석 링크</label>
+
+            <div>
+              <input
+                id="issued-public-link"
+                type="text"
+                value={issuedLink}
+                readOnly
+                onFocus={(event) => {
+                  event.currentTarget.select();
+                }}
+              />
+
+              <button
+                type="button"
+                className={styles.copyButton}
+                onClick={() => {
+                  void handleCopy();
+                }}
+              >
+                <Copy size={18} aria-hidden="true" />
+                복사
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(isIssueFormOpen || !isEnabled) && (
+          <section className={styles.publicLinkSetup}>
+            <header className={styles.publicLinkSetupHeader}>
+              <strong>
+                {isEnabled ? "새 링크 재발급" : "참석 링크 만들기"}
+              </strong>
+
+              {isEnabled && (
+                <button
+                  type="button"
+                  disabled={isWorking}
+                  onClick={() => {
+                    setIssueFormOpen(false);
+                    setError("");
+                  }}
+                >
+                  취소
+                </button>
+              )}
+            </header>
+
+            {isEnabled && (
+              <p className={styles.publicLinkWarning}>
+                재발급하면 현재 링크는 즉시 사용할 수 없게 됩니다.
+              </p>
             )}
 
-            {isWorking
-              ? "처리 중…"
-              : isEnabled
-                ? "새 링크 재발급"
-                : "참석 링크 만들기"}
-          </button>
+            <div className={styles.publicLinkExpirationField}>
+              <div className={styles.publicLinkExpirationHeader}>
+                <label htmlFor="public-link-expiration">링크 만료 시간</label>
 
-          {isEnabled && (
+                <button
+                  type="button"
+                  disabled={isWorking}
+                  onClick={() => {
+                    setExpiration(getEventDayExpiration(eventRecord));
+                  }}
+                >
+                  모임일 23:59
+                </button>
+              </div>
+
+              <input
+                id="public-link-expiration"
+                type="datetime-local"
+                className={styles.input}
+                value={expiration}
+                disabled={isWorking}
+                onChange={(event) => {
+                  setExpiration(event.target.value);
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              className={styles.primaryButton}
+              disabled={isWorking}
+              onClick={() => {
+                void handleIssue();
+              }}
+            >
+              {isEnabled ? (
+                <RefreshCw size={18} aria-hidden="true" />
+              ) : (
+                <Link2 size={18} aria-hidden="true" />
+              )}
+
+              {isWorking
+                ? "처리 중…"
+                : isEnabled
+                  ? "기존 링크 폐기 후 재발급"
+                  : "참석 링크 만들기"}
+            </button>
+          </section>
+        )}
+
+        {isEnabled && !isIssueFormOpen && !isDisableConfirmOpen && (
+          <div className={styles.publicLinkCompactActions}>
+            <button
+              type="button"
+              className={styles.publicLinkSecondaryButton}
+              disabled={isWorking}
+              onClick={() => {
+                setIssueFormOpen(true);
+                setMessage("");
+                setError("");
+              }}
+            >
+              <RefreshCw size={17} aria-hidden="true" />
+              새 링크 재발급
+            </button>
+
             <button
               type="button"
               className={styles.dangerButton}
               disabled={isWorking}
               onClick={() => {
-                void handleDisable();
+                setDisableConfirmOpen(true);
+                setMessage("");
+                setError("");
               }}
             >
-              <Link2Off size={18} aria-hidden="true" />
+              <Link2Off size={17} aria-hidden="true" />
               비활성화
             </button>
-          )}
-        </div>
-      </div>
-
-      {isInitialLoading && (
-        <p className={styles.publicLinkHint}>
-          기존 참석 링크를 불러오는 중입니다…
-        </p>
-      )}
-
-      {!isInitialLoading && isEnabled && !issuedLink && !isRecoverable && (
-        <p className={styles.publicLinkHint}>
-          이 링크는 암호화 저장 기능이 추가되기 전에 발급되어 원본을 복원할 수
-          없습니다. 새 링크를 한 번 재발급해 주세요.
-        </p>
-      )}
-
-      {issuedLink && (
-        <div className={styles.issuedLinkBox}>
-          <label htmlFor="issued-public-link">새로 발급된 참석 링크</label>
-
-          <div>
-            <input
-              id="issued-public-link"
-              type="text"
-              value={issuedLink}
-              readOnly
-              onFocus={(event) => {
-                event.currentTarget.select();
-              }}
-            />
-
-            <button
-              type="button"
-              className={styles.copyButton}
-              onClick={() => {
-                void handleCopy();
-              }}
-            >
-              <Copy size={18} aria-hidden="true" />
-              복사
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {message && (
-        <p className={styles.publicLinkSuccess} role="status">
-          {message}
-        </p>
-      )}
+        {isEnabled && isDisableConfirmOpen && (
+          <div className={styles.publicLinkDisableConfirm}>
+            <strong>참석 링크를 비활성화할까요?</strong>
+            <p>비활성화하면 참가자는 현재 링크로 접속할 수 없습니다.</p>
 
-      {error && (
-        <p className={styles.formError} role="alert">
-          {error}
-        </p>
-      )}
+            <div>
+              <button
+                type="button"
+                disabled={isWorking}
+                onClick={() => setDisableConfirmOpen(false)}
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                className={styles.dangerButton}
+                disabled={isWorking}
+                onClick={() => {
+                  void handleDisable();
+                }}
+              >
+                {isWorking ? "처리 중…" : "비활성화"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {message && (
+          <p className={styles.publicLinkSuccess} role="status">
+            {message}
+          </p>
+        )}
+
+        {error && (
+          <p className={styles.formError} role="alert">
+            {error}
+          </p>
+        )}
+      </div>
     </section>
   );
 }

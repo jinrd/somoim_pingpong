@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   AlertTriangle,
@@ -27,6 +27,8 @@ interface PublicMatchResultFormProps {
   responseToken: string;
   onResultUpdated?: () => void | Promise<void>;
 }
+
+const RESULT_REFRESH_INTERVAL_MS = 5_000;
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof ClientResponseError) {
@@ -71,24 +73,34 @@ export default function PublicMatchResultForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const applyContext = useCallback((nextContext: PublicMatchResultContext) => {
-    setContext(nextContext);
+  const contextRef = useRef<PublicMatchResultContext | null>(null);
 
-    if (nextContext.result) {
-      setHomeScore(nextContext.result.homeScore);
-      setAwayScore(nextContext.result.awayScore);
-      return;
-    }
+  const applyContext = useCallback(
+    (nextContext: PublicMatchResultContext, syncScores = true) => {
+      contextRef.current = nextContext;
+      setContext(nextContext);
 
-    if (nextContext.ownSubmission) {
-      setHomeScore(nextContext.ownSubmission.homeScore);
-      setAwayScore(nextContext.ownSubmission.awayScore);
-      return;
-    }
+      if (!syncScores) {
+        return;
+      }
 
-    setHomeScore(0);
-    setAwayScore(0);
-  }, []);
+      if (nextContext.result) {
+        setHomeScore(nextContext.result.homeScore);
+        setAwayScore(nextContext.result.awayScore);
+        return;
+      }
+
+      if (nextContext.ownSubmission) {
+        setHomeScore(nextContext.ownSubmission.homeScore);
+        setAwayScore(nextContext.ownSubmission.awayScore);
+        return;
+      }
+
+      setHomeScore(0);
+      setAwayScore(0);
+    },
+    [],
+  );
 
   const loadContext = useCallback(async () => {
     setIsLoading(true);
@@ -124,6 +136,68 @@ export default function PublicMatchResultForm({
       window.clearTimeout(loadId);
     };
   }, [loadContext]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let isRequesting = false;
+
+    const refreshContext = async () => {
+      if (cancelled || isRequesting || document.visibilityState !== "visible") {
+        return;
+      }
+
+      isRequesting = true;
+
+      try {
+        const nextContext =
+          targetType === "team_game"
+            ? await getTeamGameResultContext(targetId, responseToken)
+            : await getIndividualMatchResultContext(targetId, responseToken);
+
+        if (cancelled) {
+          return;
+        }
+
+        const currentContext = contextRef.current;
+
+        const shouldSyncScores =
+          !currentContext ||
+          currentContext.status !== nextContext.status ||
+          currentContext.resultStatus !== nextContext.resultStatus ||
+          currentContext.result?.confirmedAt !==
+            nextContext.result?.confirmedAt ||
+          currentContext.ownSubmission?.version !==
+            nextContext.ownSubmission?.version;
+
+        applyContext(nextContext, shouldSyncScores);
+      } catch {
+        /*
+         * 자동 갱신 실패 시 현재 화면과 사용자가 선택 중인 점수를 유지합니다.
+         * 사용자가 새로고침 버튼을 누르면 상세 오류를 표시합니다.
+         */
+      } finally {
+        isRequesting = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshContext();
+    }, RESULT_REFRESH_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshContext();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [applyContext, responseToken, targetId, targetType]);
 
   const handleSubmit = async () => {
     if (!context) {
@@ -246,7 +320,14 @@ export default function PublicMatchResultForm({
       </div>
 
       <div className={styles.scoreBoard}>
-        <div className={styles.competitor}>
+        <div
+          className={`${styles.competitor} ${
+            context.side === "home" ? styles.competitorMine : ""
+          }`}
+        >
+          <span className={styles.sideBadge}>
+            {context.side === "home" ? "내 팀" : "상대"}
+          </span>
           <strong>{context.home.label}</strong>
           <small>{getPlayersLabel(context.home.players)}</small>
         </div>
@@ -255,51 +336,120 @@ export default function PublicMatchResultForm({
           {isConfirmed ? (
             <>
               <strong>{context.result?.homeScore}</strong>
-              <span>:</span>
+              <span className={styles.scoreSeparator}>:</span>
               <strong>{context.result?.awayScore}</strong>
             </>
           ) : (
             <>
-              <select
-                value={homeScore}
-                disabled={!canSubmit || isSaving || isLoading}
-                aria-label={`${context.home.label} 점수`}
-                onChange={(event) => {
-                  setHomeScore(Number(event.currentTarget.value));
-                  setError("");
-                  setMessage("");
-                }}
-              >
-                {scoreOptions.map((score) => (
-                  <option key={score} value={score}>
-                    {score}
-                  </option>
-                ))}
-              </select>
+              <div className={styles.desktopScoreInputs}>
+                <select
+                  value={homeScore}
+                  disabled={!canSubmit || isSaving || isLoading}
+                  aria-label={`${context.home.label} 점수`}
+                  onChange={(event) => {
+                    setHomeScore(Number(event.currentTarget.value));
+                    setError("");
+                    setMessage("");
+                  }}
+                >
+                  {scoreOptions.map((score) => (
+                    <option key={score} value={score}>
+                      {score}
+                    </option>
+                  ))}
+                </select>
 
-              <span>:</span>
+                <span className={styles.scoreSeparator}>:</span>
 
-              <select
-                value={awayScore}
-                disabled={!canSubmit || isSaving || isLoading}
-                aria-label={`${context.away.label} 점수`}
-                onChange={(event) => {
-                  setAwayScore(Number(event.currentTarget.value));
-                  setError("");
-                  setMessage("");
-                }}
-              >
-                {scoreOptions.map((score) => (
-                  <option key={score} value={score}>
-                    {score}
-                  </option>
-                ))}
-              </select>
+                <select
+                  value={awayScore}
+                  disabled={!canSubmit || isSaving || isLoading}
+                  aria-label={`${context.away.label} 점수`}
+                  onChange={(event) => {
+                    setAwayScore(Number(event.currentTarget.value));
+                    setError("");
+                    setMessage("");
+                  }}
+                >
+                  {scoreOptions.map((score) => (
+                    <option key={score} value={score}>
+                      {score}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.mobileScoreInputs}>
+                <fieldset className={styles.mobileScoreGroup}>
+                  <legend>{context.home.label}</legend>
+
+                  <div className={styles.mobileScoreOptions}>
+                    {scoreOptions.map((score) => (
+                      <button
+                        key={score}
+                        type="button"
+                        className={
+                          homeScore === score
+                            ? styles.mobileScoreOptionActive
+                            : styles.mobileScoreOption
+                        }
+                        disabled={!canSubmit || isSaving || isLoading}
+                        aria-label={`${context.home.label} ${score}점`}
+                        aria-pressed={homeScore === score}
+                        onClick={() => {
+                          setHomeScore(score);
+                          setError("");
+                          setMessage("");
+                        }}
+                      >
+                        {score}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <span className={styles.mobileVersus}>VS</span>
+
+                <fieldset className={styles.mobileScoreGroup}>
+                  <legend>{context.away.label}</legend>
+
+                  <div className={styles.mobileScoreOptions}>
+                    {scoreOptions.map((score) => (
+                      <button
+                        key={score}
+                        type="button"
+                        className={
+                          awayScore === score
+                            ? styles.mobileScoreOptionActive
+                            : styles.mobileScoreOption
+                        }
+                        disabled={!canSubmit || isSaving || isLoading}
+                        aria-label={`${context.away.label} ${score}점`}
+                        aria-pressed={awayScore === score}
+                        onClick={() => {
+                          setAwayScore(score);
+                          setError("");
+                          setMessage("");
+                        }}
+                      >
+                        {score}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
             </>
           )}
         </div>
 
-        <div className={styles.competitor}>
+        <div
+          className={`${styles.competitor} ${
+            context.side === "away" ? styles.competitorMine : ""
+          }`}
+        >
+          <span className={styles.sideBadge}>
+            {context.side === "away" ? "내 팀" : "상대"}
+          </span>
           <strong>{context.away.label}</strong>
           <small>{getPlayersLabel(context.away.players)}</small>
         </div>

@@ -230,9 +230,12 @@
   border-radius: 13px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 800px) {
   .panel {
-    padding: 16px;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 13px;
+    box-shadow: none;
   }
 
   .header {
@@ -240,18 +243,67 @@
     flex-direction: column;
   }
 
+  .scheduleHeader {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .scheduleHeader h2 {
+    font-size: 1.05rem;
+  }
+
+  .scheduleHeader p {
+    font-size: 0.76rem;
+  }
+
+  .refreshButton {
+    width: 42px;
+    min-width: 42px;
+    padding: 0;
+    font-size: 0;
+  }
+
   .summary {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .summary > div {
+    min-width: 0;
+    justify-items: center;
+    gap: 3px;
+    padding: 8px 3px;
+    text-align: center;
+    border-radius: 10px;
+  }
+
+  .summary span {
+    font-size: 0.64rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .summary strong {
+    font-size: 0.92rem;
+    white-space: nowrap;
   }
 
   .actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
-  .actions button,
-  .header button {
+  .actions button {
     width: 100%;
+    min-width: 0;
+    padding-inline: 7px;
+    font-size: 0.76rem;
+  }
+
+  .actions > button:only-child,
+  .actions > button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .teams {
@@ -259,7 +311,16 @@
   }
 
   .roundCard > header {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    padding: 12px;
+  }
+
+  .roundCard {
+    border-radius: 12px;
+  }
+
+  .matchCard {
+    padding: 13px 11px;
   }
 }

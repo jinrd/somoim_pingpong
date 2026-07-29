@@ -199,6 +199,24 @@ export const archiveEvent = async (
 };
 
 /**
+ * 준비 중인 회차를 연결된 데이터와 함께 삭제합니다.
+ */
+export const deleteEvent = async (
+  eventId: string,
+  expectedVersion: number,
+): Promise<void> => {
+  await pb.send(
+    `/api/somoim/admin/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "DELETE",
+      body: {
+        expectedVersion,
+      },
+    },
+  );
+};
+
+/**
  * 회차 공용 참석 링크를 새로 발급한다.
  *
  * 기존 링크가 있다면 이전 링크는 즉시 무효화됩니다.

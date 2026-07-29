@@ -20,6 +20,8 @@ export interface EventGameSetting extends RecordModel {
 
   status: GameSettingStatus;
   version: number;
+  individual_table_count: number;
+  operation_status: MatchOperationStatus;
 }
 
 export interface EventMatchFormat extends RecordModel {
@@ -37,7 +39,7 @@ export interface GameSettingInput {
 
   individualBestOf: number;
   individualCountsForRanking: boolean;
-
+  individualTableCount: number;
 }
 
 export interface MatchFormatInput {
@@ -64,3 +66,5 @@ export const MATCH_TYPE_LABELS: Record<MatchType, string> = {
   singles: "단식",
   doubles: "복식",
 };
+
+export type MatchOperationStatus = "not_started" | "in_progress" | "completed";

@@ -66,7 +66,9 @@ routerAdd(
  */
 onRecordBeforeCreateRequest((event) => {
   if (event.record.getString("participation_status") !== "open") {
-    throw new BadRequestError("새 회차의 참가 신청 상태는 접수 중이어야 합니다.");
+    throw new BadRequestError(
+      "새 회차의 참가 신청 상태는 접수 중이어야 합니다.",
+    );
   }
 }, "events");
 
@@ -143,9 +145,7 @@ routerAdd(
         participantRecord.getString("participant_type") === "member" &&
         nextStatus === "playing"
       ) {
-        const integrity = require(
-          `${__hooks}/event_participant_integrity.js`,
-        );
+        const integrity = require(`${__hooks}/event_participant_integrity.js`);
 
         integrity.ensureActiveParticipantMember(participantRecord);
       }
@@ -186,10 +186,7 @@ routerAdd(
         "participation_responded_at",
         nextStatus === "undecided" ? "" : new Date().toISOString(),
       );
-      participantRecord.set(
-        "version",
-        participantRecord.getInt("version") + 1,
-      );
+      participantRecord.set("version", participantRecord.getInt("version") + 1);
 
       transactionDao.saveRecord(participantRecord);
 
@@ -219,6 +216,7 @@ routerAdd(
       autoTeamBalance: false,
       individualBestOf: 0,
       individualCountsForRanking: false,
+      individualTableCount: 0,
       expectedVersion: 0,
     });
 
@@ -228,6 +226,7 @@ routerAdd(
     const teamSize = Number(requestData.teamSize || 0);
     const individualBestOf = Number(requestData.individualBestOf || 0);
     const expectedVersion = Number(requestData.expectedVersion || 0);
+    const individualTableCount = Number(requestData.individualTableCount || 0);
 
     if (!["team_league", "individual_singles"].includes(competitionType)) {
       throw new BadRequestError("게임 운영 방식을 확인해 주세요.");
@@ -248,6 +247,15 @@ routerAdd(
       throw new BadRequestError("개인 단식 경기 판수는 홀수여야 합니다.");
     }
 
+    if (
+      competitionType === "individual_singles" &&
+      (!Number.isInteger(individualTableCount) || individualTableCount < 1)
+    ) {
+      throw new BadRequestError(
+        "개인 단식에서 사용할 테이블 수는 1 이상의 정수여야 합니다.",
+      );
+    }
+
     let savedSetting = null;
 
     $app.dao().runInTransaction((transactionDao) => {
@@ -261,7 +269,8 @@ routerAdd(
       const currentSetting = workflow.findGameSetting(transactionDao, eventId);
 
       if (
-        (currentSetting && currentSetting.getInt("version") !== expectedVersion) ||
+        (currentSetting &&
+          currentSetting.getInt("version") !== expectedVersion) ||
         (!currentSetting && expectedVersion !== 0)
       ) {
         throw new ApiError(
@@ -287,19 +296,16 @@ routerAdd(
        */
       if (
         currentSetting &&
-        workflow.hasDownstreamConfiguration(
-          transactionDao,
-          currentSetting.id,
-        )
+        workflow.hasDownstreamConfiguration(transactionDao, currentSetting.id)
       ) {
         transactionDao.deleteRecord(currentSetting);
         editableSetting = null;
       }
 
-      const settingsCollection =
-        transactionDao.findCollectionByNameOrId("event_game_settings");
-      const settingRecord =
-        editableSetting || new Record(settingsCollection);
+      const settingsCollection = transactionDao.findCollectionByNameOrId(
+        "event_game_settings",
+      );
+      const settingRecord = editableSetting || new Record(settingsCollection);
 
       if (editableSetting && competitionType === "individual_singles") {
         const obsoleteFormats = transactionDao.findRecordsByFilter(
@@ -333,6 +339,14 @@ routerAdd(
         "individual_counts_for_ranking",
         Boolean(requestData.individualCountsForRanking),
       );
+
+      settingRecord.set(
+        "individual_table_count",
+        competitionType === "individual_singles" ? individualTableCount : 0,
+      );
+
+      settingRecord.set("operation_status", "not_started");
+
       settingRecord.set("status", "draft");
       settingRecord.set(
         "version",
@@ -483,12 +497,14 @@ routerAdd(
         individualCountsForRanking: currentSetting.getBool(
           "individual_counts_for_ranking",
         ),
+        individualTableCount: currentSetting.getInt("individual_table_count"),
       };
 
       transactionDao.deleteRecord(currentSetting);
 
-      const settingsCollection =
-        transactionDao.findCollectionByNameOrId("event_game_settings");
+      const settingsCollection = transactionDao.findCollectionByNameOrId(
+        "event_game_settings",
+      );
       const draftSetting = new Record(settingsCollection);
 
       draftSetting.set("event", eventId);
@@ -502,6 +518,9 @@ routerAdd(
       );
       draftSetting.set("status", "draft");
       draftSetting.set("version", 1);
+      draftSetting.set("individual_table_count", snapshot.individualTableCount);
+
+      draftSetting.set("operation_status", "not_started");
 
       transactionDao.saveRecord(draftSetting);
       savedSetting = workflow.toGameSettingDto(draftSetting);
