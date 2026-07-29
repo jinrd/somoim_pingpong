@@ -35,6 +35,38 @@ const normalizeInput = function (input) {
   };
 };
 
+const normalizeConfirmInput = function (input) {
+  const requestId = String(input.requestId || "").trim();
+  const expectedVersion = Number(input.expectedVersion);
+  const reason = String(input.reason || "").trim();
+
+  if (!requestId || requestId.length > 100) {
+    throw new ApiError(400, "요청 식별 정보가 올바르지 않습니다.");
+  }
+
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+    throw new ApiError(400, "결과 버전 정보가 올바르지 않습니다.");
+  }
+
+  if (!reason) {
+    throw new ApiError(400, "운영진 입력 사유를 입력해 주세요.");
+  }
+
+  if (reason.length > 500) {
+    throw new ApiError(400, "입력 사유는 500자 이하로 입력해 주세요.");
+  }
+
+  return {
+    requestId,
+    expectedVersion,
+    reason,
+    homeScore: input.homeScore,
+    awayScore: input.awayScore,
+    adminId: String(input.adminId || ""),
+    adminName: String(input.adminName || "관리자"),
+  };
+};
+
 const deleteGameSubmissions = function (dao, matchGameId) {
   const submissions = dao.findRecordsByFilter(
     "match_result_submissions",
@@ -107,6 +139,15 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
       teamMatch = txDao.findRecordById("team_matches", teamMatchId);
     } catch {
       throw new ApiError(404, "팀 대결을 찾을 수 없습니다.");
+    }
+
+    const eventRecord = txDao.findRecordById(
+      "events",
+      teamMatch.getString("event"),
+    );
+
+    if (eventRecord.getString("status") === "archived") {
+      throw new ApiError(409, "보관된 회차의 결과는 취소할 수 없습니다.");
     }
 
     if (teamMatch.getInt("version") !== normalized.expectedVersion) {
@@ -222,6 +263,15 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
         })),
       },
     });
+
+    const eventStatusService = require(
+      `${__hooks}/event_status_service.js`,
+    );
+
+    eventStatusService.syncEventStatus(
+      txDao,
+      teamMatch.getString("event"),
+    );
   });
 
   const rankingService = require(`${__hooks}/ranking_service.js`);
@@ -264,6 +314,15 @@ const cancelIndividualMatchResult = function (individualMatchId, input) {
       match = txDao.findRecordById("individual_matches", individualMatchId);
     } catch {
       throw new ApiError(404, "개인 경기를 찾을 수 없습니다.");
+    }
+
+    const eventRecord = txDao.findRecordById(
+      "events",
+      match.getString("event"),
+    );
+
+    if (eventRecord.getString("status") === "archived") {
+      throw new ApiError(409, "보관된 회차의 결과는 취소할 수 없습니다.");
     }
 
     if (match.getInt("version") !== normalized.expectedVersion) {
@@ -338,6 +397,12 @@ const cancelIndividualMatchResult = function (individualMatchId, input) {
         version: match.getInt("version"),
       },
     });
+
+    const eventStatusService = require(
+      `${__hooks}/event_status_service.js`,
+    );
+
+    eventStatusService.syncEventStatus(txDao, match.getString("event"));
   });
 
   const rankingService = require(`${__hooks}/ranking_service.js`);
@@ -355,7 +420,218 @@ const cancelIndividualMatchResult = function (individualMatchId, input) {
   };
 };
 
+const confirmMatchResult = function (targetType, targetId, input) {
+  const normalized = normalizeConfirmInput(input);
+  const resultService = require(`${__hooks}/match_results_service.js`);
+  const isTeamGame =
+    targetType === resultService.TARGET_TYPE_TEAM_GAME;
+
+  if (
+    !isTeamGame &&
+    targetType !== resultService.TARGET_TYPE_INDIVIDUAL_MATCH
+  ) {
+    throw new ApiError(400, "지원하지 않는 경기 종류입니다.");
+  }
+
+  const collectionName = isTeamGame
+    ? "match_games"
+    : "individual_matches";
+
+  $app.dao().runInTransaction((txDao) => {
+    const previousHistory = historyService.findHistoryByRequestId(
+      txDao,
+      normalized.requestId,
+    );
+
+    if (previousHistory) {
+      const previousTargetId = isTeamGame
+        ? previousHistory.getString("match_game")
+        : previousHistory.getString("individual_match");
+
+      if (
+        previousHistory.getString("target_type") === targetType &&
+        previousTargetId === targetId &&
+        previousHistory.getString("actor_admin") === normalized.adminId &&
+        previousHistory.getString("action") === "confirmed"
+      ) {
+        return;
+      }
+
+      throw new ApiError(409, "이미 다른 요청에서 사용된 요청 정보입니다.");
+    }
+
+    let target;
+
+    try {
+      target = txDao.findRecordById(collectionName, targetId);
+    } catch (_) {
+      throw new ApiError(
+        404,
+        isTeamGame
+          ? "팀 세부 경기를 찾을 수 없습니다."
+          : "개인 경기를 찾을 수 없습니다.",
+      );
+    }
+
+    if (target.getInt("version") !== normalized.expectedVersion) {
+      throw new ApiError(
+        409,
+        "경기 정보가 변경되었습니다. 새로고침 후 다시 시도해 주세요.",
+      );
+    }
+
+    if (
+      target.getString("status") === "completed" ||
+      target.getString("result_status") === RESULT_STATUS_CONFIRMED
+    ) {
+      throw new ApiError(
+        409,
+        "이미 확정된 결과입니다. 결과를 취소한 뒤 다시 입력해 주세요.",
+      );
+    }
+
+    if (target.getString("status") !== "in_progress") {
+      throw new ApiError(409, "진행 중인 경기만 결과를 입력할 수 있습니다.");
+    }
+
+    let eventId = target.getString("event");
+
+    if (isTeamGame) {
+      const teamMatch = txDao.findRecordById(
+        "team_matches",
+        target.getString("team_match"),
+      );
+
+      if (teamMatch.getString("status") !== "in_progress") {
+        throw new ApiError(
+          409,
+          "진행 중인 팀 대결의 세부 경기만 결과를 입력할 수 있습니다.",
+        );
+      }
+
+      eventId = teamMatch.getString("event");
+    }
+
+    const eventRecord = txDao.findRecordById("events", eventId);
+
+    if (
+      eventRecord.getString("status") === "archived" ||
+      eventRecord.getString("status") === "completed"
+    ) {
+      throw new ApiError(
+        409,
+        "종료되거나 보관된 회차에는 결과를 입력할 수 없습니다.",
+      );
+    }
+
+    const validatedScore = resultService.validateScore(
+      target.getInt("best_of"),
+      normalized.homeScore,
+      normalized.awayScore,
+    );
+
+    const beforeData = {
+      status: target.getString("status"),
+      resultStatus:
+        target.getString("result_status") || RESULT_STATUS_PENDING,
+      homeScore: target.getInt("home_score"),
+      awayScore: target.getInt("away_score"),
+      winnerSide: target.getString("winner_side"),
+      resultConfirmedAt: target.getString("result_confirmed_at"),
+      version: target.getInt("version"),
+    };
+
+    const confirmedAt = new Date().toISOString();
+
+    target.set("status", "completed");
+    target.set("result_status", RESULT_STATUS_CONFIRMED);
+    target.set("home_score", validatedScore.homeScore);
+    target.set("away_score", validatedScore.awayScore);
+    target.set("winner_side", validatedScore.winnerSide);
+    target.set("result_confirmed_at", confirmedAt);
+    target.set("version", target.getInt("version") + 1);
+
+    if (!isTeamGame) {
+      target.set("completed_at", confirmedAt);
+    }
+
+    txDao.saveRecord(target);
+
+    historyService.createHistory(txDao, {
+      eventId,
+      targetType,
+      targetId,
+      action: "confirmed",
+      requestId: normalized.requestId,
+      actorType: "admin",
+      actorId: normalized.adminId,
+      actorName: normalized.adminName,
+      reason: normalized.reason,
+      beforeData,
+
+      afterData: {
+        status: target.getString("status"),
+        resultStatus: target.getString("result_status"),
+        homeScore: target.getInt("home_score"),
+        awayScore: target.getInt("away_score"),
+        winnerSide: target.getString("winner_side"),
+        resultConfirmedAt: target.getString("result_confirmed_at"),
+        version: target.getInt("version"),
+      },
+    });
+
+    const completionService = require(
+      `${__hooks}/match_result_completion_service.js`,
+    );
+
+    completionService.completeConfirmedResult(
+      txDao,
+      targetType,
+      target,
+    );
+  });
+
+  const rankingService = require(`${__hooks}/ranking_service.js`);
+
+  rankingService.recalculateAllCandidates($app.dao());
+
+  const record = $app.dao().findRecordById(collectionName, targetId);
+
+  return {
+    id: record.id,
+    status: record.getString("status"),
+    resultStatus: record.getString("result_status"),
+    homeScore: record.getInt("home_score"),
+    awayScore: record.getInt("away_score"),
+    winnerSide: record.getString("winner_side"),
+    resultConfirmedAt: record.getString("result_confirmed_at"),
+    version: record.getInt("version"),
+  };
+};
+
+const confirmTeamGameResult = function (matchGameId, input) {
+  const resultService = require(`${__hooks}/match_results_service.js`);
+
+  return confirmMatchResult(
+    resultService.TARGET_TYPE_TEAM_GAME,
+    matchGameId,
+    input,
+  );
+};
+
+const confirmIndividualMatchResult = function (individualMatchId, input) {
+  const resultService = require(`${__hooks}/match_results_service.js`);
+
+  return confirmMatchResult(
+    resultService.TARGET_TYPE_INDIVIDUAL_MATCH,
+    individualMatchId,
+    input,
+  );
+};
+
 module.exports = Object.freeze({
   cancelTeamMatchResult,
   cancelIndividualMatchResult,
+  confirmTeamGameResult,
+  confirmIndividualMatchResult,
 });

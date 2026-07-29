@@ -366,11 +366,56 @@
 
 .resultLine,
 .resultDisputed {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 7px 9px;
   border-radius: 8px;
   font-size: 0.76rem;
   line-height: 1.45;
+}
+
+.resultContent {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.resultContent strong {
+  color: #334155;
+  font-size: 0.72rem;
+}
+
+.resultContent span {
+  overflow-wrap: anywhere;
+}
+
+.inputResultButton {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 10px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.inputResultButton:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.inputResultButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .resultLine {
@@ -462,6 +507,10 @@
   font-weight: 800;
 }
 
+.cancelModal header .resultModalEyebrow {
+  color: #1d4ed8;
+}
+
 .cancelModal h3 {
   margin: 5px 0 0;
   color: #0f172a;
@@ -499,6 +548,66 @@
   margin: 0;
   font-size: 0.83rem;
   line-height: 1.55;
+}
+
+.resultHelp,
+.scoreRule {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.scoreEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+
+.scoreEditor > strong {
+  padding-bottom: 13px;
+  color: #64748b;
+  font-size: 1.25rem;
+}
+
+.scoreEditor label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.scoreEditor label > span {
+  overflow: hidden;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreEditor select {
+  width: 100%;
+  min-height: 48px;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.scoreEditor select:focus {
+  border-color: #2563eb;
+  outline: 3px solid rgb(37 99 235 / 12%);
+}
+
+.scoreRule {
+  margin-top: -10px;
+  text-align: center;
 }
 
 .reasonField {
@@ -542,7 +651,8 @@
 }
 
 .modalCancelButton,
-.confirmCancelButton {
+.confirmCancelButton,
+.confirmResultButton {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -565,7 +675,13 @@
   background: #dc2626;
 }
 
+.confirmResultButton {
+  color: #ffffff;
+  background: #2563eb;
+}
+
 .confirmCancelButton:disabled,
+.confirmResultButton:disabled,
 .modalCancelButton:disabled,
 .modalCloseButton:disabled {
   cursor: not-allowed;
@@ -604,5 +720,15 @@
 
   .modalActions {
     grid-template-columns: 1fr;
+  }
+
+  .scoreEditor {
+    gap: 8px;
+  }
+
+  .inputResultButton {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 0.69rem;
   }
 }

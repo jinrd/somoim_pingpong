@@ -121,7 +121,7 @@ export const createEvent = async (
   const data = {
     title: validateTitle(input.title),
     event_date: toPocketBaseDate(input.eventDate),
-    status: input.status ?? "draft",
+    status: "draft",
     notice: validateNotice(input.notice ?? ""),
     participation_status: "open",
     participation_closed_at: "",
@@ -143,25 +143,22 @@ export const createEvent = async (
  * expectedVersion은 화면에서 조회했을 당시의 version입니다.
  * 현재 서버 version과 다르면 다른 운영진이 먼저 수정한 것으로 처리합니다.
  *
- * PocketBase 일반 Record API만 사용하는 현재 구현은
- * 조회와 수정 사이가 완전히 원자적이지는 않습니다.
- * 추후 서버 hook에서 조건부 update로 강화할 수 있습니다.
+ * 버전 확인과 수정은 서버 트랜잭션 안에서 한 번에 처리합니다.
  */
 export const updateEvent = async (
   eventId: string,
   input: UpdateEventInput,
   expectedVersion: number,
 ): Promise<SomoimEvent> => {
-  const currentEvent = await getEvent(eventId);
-
-  if (currentEvent.version !== expectedVersion) {
-    throw new Error(
-      "다른 운영진이 먼저 회차를 수정했습니다. 최신 정보를 다시 불러와 주세요.",
-    );
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+    throw new Error("회차 버전 정보가 올바르지 않습니다.");
   }
 
-  const data: Record<string, string | number> = {
-    version: currentEvent.version + 1,
+  const data: Record<string, string | number | boolean> = {
+    expectedVersion,
+    updateTitle: input.title !== undefined,
+    updateEventDate: input.eventDate !== undefined,
+    updateNotice: input.notice !== undefined,
   };
 
   if (input.title !== undefined) {
@@ -169,17 +166,20 @@ export const updateEvent = async (
   }
 
   if (input.eventDate !== undefined) {
-    data.event_date = toPocketBaseDate(input.eventDate);
-  }
-
-  if (input.status !== undefined) {
-    data.status = input.status;
+    data.eventDate = toPocketBaseDate(input.eventDate);
   }
 
   if (input.notice !== undefined) {
     data.notice = validateNotice(input.notice);
   }
-  return pb.collection(EVENTS_COLLECTION).update<SomoimEvent>(eventId, data);
+
+  return pb.send<SomoimEvent>(
+    `/api/somoim/admin/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      body: data,
+    },
+  );
 };
 
 /**
@@ -189,12 +189,32 @@ export const archiveEvent = async (
   eventId: string,
   expectedVersion: number,
 ): Promise<SomoimEvent> => {
-  return updateEvent(
-    eventId,
+  return pb.send<SomoimEvent>(
+    `/api/somoim/admin/events/${encodeURIComponent(eventId)}/archive`,
     {
-      status: "archived",
+      method: "POST",
+      body: {
+        expectedVersion,
+      },
     },
-    expectedVersion,
+  );
+};
+
+/**
+ * 진행 중인 회차의 미완료 경기를 취소하고 회차를 즉시 종료합니다.
+ */
+export const forceCompleteEvent = async (
+  eventId: string,
+  expectedVersion: number,
+): Promise<SomoimEvent> => {
+  return pb.send<SomoimEvent>(
+    `/api/somoim/admin/events/${encodeURIComponent(eventId)}/complete`,
+    {
+      method: "POST",
+      body: {
+        expectedVersion,
+      },
+    },
   );
 };
 

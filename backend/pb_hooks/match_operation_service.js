@@ -73,6 +73,18 @@ const startTeamMatch = (dao, matchRecord) => {
 
   markEventActive(dao, matchRecord.getString("event"));
 
+  const settingRecord = dao.findRecordById(
+    "event_game_settings",
+    matchRecord.getString("game_setting"),
+  );
+
+  if (
+    settingRecord.getString("operation_status") !== OPERATION_IN_PROGRESS
+  ) {
+    settingRecord.set("operation_status", OPERATION_IN_PROGRESS);
+    dao.saveRecord(settingRecord);
+  }
+
   gameRecords.forEach((gameRecord) => {
     if (gameRecord.getString("status") !== "scheduled") {
       return;

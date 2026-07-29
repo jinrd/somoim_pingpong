@@ -139,6 +139,7 @@ export interface TeamScheduleFormat {
 
 export interface StoredMatchGame extends TeamScheduleFormat, StoredMatchResult {
   id: string;
+  version: number;
 
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
 
@@ -319,82 +320,70 @@ export const getIndividualSchedule = async (
   );
 };
 
-export type MatchStatus =
-  | "scheduled"
-  | "ready"
-  | "in_progress"
-  | "completed"
-  | "cancelled";
-
-export interface MatchStatusChangeResult {
-  match: {
-    id: string;
-    status: MatchStatus;
-    version: number;
-    startedAt: string;
-    completedAt: string;
-  };
-}
-
-interface ChangeMatchStatusInput {
-  expectedVersion: number;
-  nextStatus: MatchStatus;
-}
-
-/**
- * 팀 경기 상태를 변경합니다.
- */
-export const changeTeamMatchStatus = async (
-  matchId: string,
-  input: ChangeMatchStatusInput,
-): Promise<MatchStatusChangeResult> => {
-  if (!matchId) {
-    throw new Error("팀 경기 정보가 없습니다.");
-  }
-
-  if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
-    throw new Error("경기 버전 정보가 올바르지 않습니다.");
-  }
-
-  return pb.send<MatchStatusChangeResult>(
-    `/api/somoim/admin/team-matches/${encodeURIComponent(matchId)}/status`,
-    {
-      method: "PATCH",
-      body: input,
-    },
-  );
-};
-
-/**
- * 개인 단식 경기 상태를 변경합니다.
- */
-export const changeIndividualMatchStatus = async (
-  matchId: string,
-  input: ChangeMatchStatusInput,
-): Promise<MatchStatusChangeResult> => {
-  if (!matchId) {
-    throw new Error("개인 단식 경기 정보가 없습니다.");
-  }
-
-  if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
-    throw new Error("경기 버전 정보가 올바르지 않습니다.");
-  }
-
-  return pb.send<MatchStatusChangeResult>(
-    `/api/somoim/admin/individual-matches/${encodeURIComponent(
-      matchId,
-    )}/status`,
-    {
-      method: "PATCH",
-      body: input,
-    },
-  );
-};
-
 export interface CancelMatchResultInput {
   expectedVersion: number;
   reason: string;
 }
+
+export interface ConfirmMatchResultInput {
+  expectedVersion: number;
+  homeScore: number;
+  awayScore: number;
+  reason: string;
+}
+
+export interface ConfirmMatchResultResponse {
+  id: string;
+  status: TeamMatchStatus;
+  resultStatus: MatchResultStatus;
+  homeScore: number;
+  awayScore: number;
+  winnerSide: MatchWinnerSide;
+  resultConfirmedAt: string;
+  version: number;
+}
+
+export const confirmTeamGameResult = async (
+  matchGameId: string,
+  input: ConfirmMatchResultInput,
+): Promise<ConfirmMatchResultResponse> => {
+  return pb.send<ConfirmMatchResultResponse>(
+    `/api/somoim/admin/match-games/${encodeURIComponent(
+      matchGameId,
+    )}/result/confirm`,
+    {
+      method: "POST",
+      body: {
+        requestId: crypto.randomUUID(),
+        expectedVersion: input.expectedVersion,
+        homeScore: input.homeScore,
+        awayScore: input.awayScore,
+        reason: input.reason,
+      },
+    },
+  );
+};
+
+export const confirmIndividualMatchResult = async (
+  matchId: string,
+  input: ConfirmMatchResultInput,
+): Promise<ConfirmMatchResultResponse> => {
+  return pb.send<ConfirmMatchResultResponse>(
+    `/api/somoim/admin/individual-matches/${encodeURIComponent(
+      matchId,
+    )}/result/confirm`,
+    {
+      method: "POST",
+      body: {
+        requestId: crypto.randomUUID(),
+        expectedVersion: input.expectedVersion,
+        homeScore: input.homeScore,
+        awayScore: input.awayScore,
+        reason: input.reason,
+      },
+    },
+  );
+};
 
 export interface CancelMatchResultResponse {
   id: string;

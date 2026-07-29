@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  Activity,
+  Archive,
   ArrowLeft,
   CalendarDays,
+  CircleStop,
   ListOrdered,
   Loader2,
   Trash2,
@@ -19,7 +22,12 @@ import type { TeamFormationStatus } from "../../features/team-formation/types";
 import type { EventGameSetting } from "../../features/game-settings/types";
 import ParticipantManager from "../../features/events/ParticipantManager";
 import PublicLinkManager from "../../features/events/PublicLinkManager";
-import { deleteEvent, getEvent } from "../../features/events/api";
+import {
+  archiveEvent,
+  deleteEvent,
+  forceCompleteEvent,
+  getEvent,
+} from "../../features/events/api";
 import GameSettingsPanel from "../../features/game-settings/GameSettingsPanel";
 import IndividualSchedulePanel from "../../features/match-schedule/IndividualSchedulePanel";
 import {
@@ -33,8 +41,6 @@ import {
 } from "../../features/events/types";
 
 import styles from "../../features/events/Events.module.css";
-
-import { Activity } from "lucide-react";
 
 import MatchMonitorPanel from "../../features/match-monitor/MatchMonitorPanel";
 import MatchResultsPanel from "../../features/match-results/MatchResultsPanel";
@@ -68,6 +74,13 @@ export default function EventDetail() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [isArchiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [archiveError, setArchiveError] = useState("");
+  const [isForceCompleting, setIsForceCompleting] = useState(false);
+  const [isForceCompleteDialogOpen, setForceCompleteDialogOpen] =
+    useState(false);
+  const [forceCompleteError, setForceCompleteError] = useState("");
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
     "participants" | "game-settings" | "schedule" | "monitor"
@@ -117,6 +130,15 @@ export default function EventDetail() {
     setHasSchedule(false);
   }, []);
 
+  const refreshEventRecord = useCallback(async () => {
+    if (!eventId) {
+      return;
+    }
+
+    const latestEvent = await getEvent(eventId);
+    setEventRecord(latestEvent);
+  }, [eventId]);
+
   const isScheduleAvailable =
     gameSetting?.status === "confirmed" &&
     (gameSetting.competition_type === "individual_singles" ||
@@ -141,6 +163,60 @@ export default function EventDetail() {
       );
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleArchiveEvent = async () => {
+    if (!eventRecord || eventRecord.status !== "completed") {
+      return;
+    }
+
+    setIsArchiving(true);
+    setArchiveError("");
+
+    try {
+      const archivedEvent = await archiveEvent(
+        eventRecord.id,
+        eventRecord.version,
+      );
+
+      setEventRecord(archivedEvent);
+      setArchiveDialogOpen(false);
+    } catch (caughtError) {
+      setArchiveError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "회차를 보관하지 못했습니다.",
+      );
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleForceCompleteEvent = async () => {
+    if (!eventRecord || eventRecord.status !== "active") {
+      return;
+    }
+
+    setIsForceCompleting(true);
+    setForceCompleteError("");
+
+    try {
+      const completedEvent = await forceCompleteEvent(
+        eventRecord.id,
+        eventRecord.version,
+      );
+
+      setEventRecord(completedEvent);
+      setForceCompleteDialogOpen(false);
+    } catch (caughtError) {
+      setForceCompleteError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "회차를 강제로 종료하지 못했습니다.",
+      );
+    } finally {
+      setIsForceCompleting(false);
     }
   };
 
@@ -202,7 +278,7 @@ export default function EventDetail() {
   }, [eventId]);
 
   useEffect(() => {
-    if (!eventId || eventRecord?.status !== "draft") {
+    if (!eventId || eventRecord?.status === "archived") {
       return;
     }
 
@@ -346,11 +422,43 @@ export default function EventDetail() {
             회차 삭제
           </button>
         )}
+
+        {eventRecord.status === "completed" && (
+          <button
+            type="button"
+            className={styles.archiveButton}
+            disabled={isArchiving}
+            onClick={() => {
+              setArchiveError("");
+              setArchiveDialogOpen(true);
+            }}
+          >
+            <Archive size={17} aria-hidden="true" />
+            회차 보관
+          </button>
+        )}
+
+        {eventRecord.status === "active" && (
+          <button
+            type="button"
+            className={styles.dangerButton}
+            disabled={isForceCompleting}
+            onClick={() => {
+              setForceCompleteError("");
+              setForceCompleteDialogOpen(true);
+            }}
+          >
+            <CircleStop size={17} aria-hidden="true" />
+            회차 강제 종료
+          </button>
+        )}
       </header>
-      <PublicLinkManager
-        eventRecord={eventRecord}
-        onEventUpdated={setEventRecord}
-      />
+      {eventRecord.status !== "archived" && (
+        <PublicLinkManager
+          eventRecord={eventRecord}
+          onEventUpdated={setEventRecord}
+        />
+      )}
       <nav className={styles.detailTabs} aria-label="회차 관리 메뉴">
         <button
           type="button"
@@ -596,7 +704,10 @@ export default function EventDetail() {
 
       {activeTab === "monitor" && hasSchedule && (
         <div className={styles.tabPanel}>
-          <MatchMonitorPanel setting={gameSetting} />
+          <MatchMonitorPanel
+            setting={gameSetting}
+            onEventStatusChanged={refreshEventRecord}
+          />
         </div>
       )}
 
@@ -655,6 +766,127 @@ export default function EventDetail() {
                   <Trash2 size={17} aria-hidden="true" />
                 )}
                 삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isArchiveDialogOpen && (
+        <div className={styles.confirmOverlay}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="archive-event-title"
+            aria-describedby="archive-event-description"
+          >
+            <h2 id="archive-event-title">종료된 회차를 보관할까요?</h2>
+
+            <p id="archive-event-description">
+              경기 및 결과 기록은 그대로 유지되고 공개 링크는 비활성화됩니다.
+            </p>
+
+            <p>보관한 회차는 다시 진행 상태로 되돌릴 수 없습니다.</p>
+
+            {archiveError && (
+              <p className={styles.formError} role="alert">
+                {archiveError}
+              </p>
+            )}
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                disabled={isArchiving}
+                onClick={() => {
+                  setArchiveError("");
+                  setArchiveDialogOpen(false);
+                }}
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmArchiveButton}
+                disabled={isArchiving}
+                onClick={() => {
+                  void handleArchiveEvent();
+                }}
+              >
+                {isArchiving ? (
+                  <Loader2
+                    size={17}
+                    className={styles.spinner}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Archive size={17} aria-hidden="true" />
+                )}
+                보관
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isForceCompleteDialogOpen && (
+        <div className={styles.confirmOverlay}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="force-complete-event-title"
+            aria-describedby="force-complete-event-description"
+          >
+            <h2 id="force-complete-event-title">회차를 강제로 종료할까요?</h2>
+
+            <p id="force-complete-event-description">
+              완료된 경기 결과는 유지되고, 아직 끝나지 않은 모든 경기는
+              취소됩니다.
+            </p>
+
+            <p>취소된 경기는 자동으로 다시 시작되지 않습니다.</p>
+
+            {forceCompleteError && (
+              <p className={styles.formError} role="alert">
+                {forceCompleteError}
+              </p>
+            )}
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                disabled={isForceCompleting}
+                onClick={() => {
+                  setForceCompleteError("");
+                  setForceCompleteDialogOpen(false);
+                }}
+              >
+                돌아가기
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmCloseButton}
+                disabled={isForceCompleting}
+                onClick={() => {
+                  void handleForceCompleteEvent();
+                }}
+              >
+                {isForceCompleting ? (
+                  <Loader2
+                    size={17}
+                    className={styles.spinner}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <CircleStop size={17} aria-hidden="true" />
+                )}
+                남은 경기 취소 후 종료
               </button>
             </div>
           </section>

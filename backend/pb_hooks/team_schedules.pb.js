@@ -648,6 +648,7 @@ routerAdd(
 
           return {
             id: game.id,
+            version: game.getInt("version"),
             sequence: game.getInt("sequence"),
             matchType: game.getString("match_type"),
             bestOf: game.getInt("best_of"),

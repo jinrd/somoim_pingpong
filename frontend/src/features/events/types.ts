@@ -53,14 +53,12 @@ export type EventParticipantWithMember = EventParticipant & {
 export interface CreateEventInput {
   title: string;
   eventDate: string;
-  status?: EventStatus;
   notice?: string;
 }
 
 export interface UpdateEventInput {
   title?: string;
   eventDate?: string;
-  status?: EventStatus;
   notice?: string;
 }
 

@@ -616,77 +616,15 @@ const saveResultSubmission = (targetType, targetId, input) => {
       },
     });
 
-    /*
-     * 팀 대결의 모든 세부 경기 결과가 확정되면
-     * 부모 team_matches도 자동으로 완료합니다.
-     */
-    if (
-      targetType === TARGET_TYPE_TEAM_GAME &&
-      target.getString("result_status") === RESULT_STATUS_CONFIRMED
-    ) {
-      const teamMatchId = target.getString("team_match");
-
-      const matchGameRecords = txDao.findRecordsByFilter(
-        "match_games",
-        "team_match = {:teamMatchId}",
-        "sequence",
-        100,
-        0,
-        {
-          teamMatchId,
-        },
+    if (target.getString("result_status") === RESULT_STATUS_CONFIRMED) {
+      const completionService = require(
+        `${__hooks}/match_result_completion_service.js`,
       );
 
-      const allGamesConfirmed =
-        matchGameRecords.length > 0 &&
-        matchGameRecords.every(
-          (matchGameRecord) =>
-            matchGameRecord.getString("status") === "completed" &&
-            matchGameRecord.getString("result_status") ===
-              RESULT_STATUS_CONFIRMED,
-        );
-
-      if (allGamesConfirmed) {
-        const teamMatchRecord = txDao.findRecordById(
-          "team_matches",
-          teamMatchId,
-        );
-
-        if (teamMatchRecord.getString("status") === "in_progress") {
-          teamMatchRecord.set("status", "completed");
-          teamMatchRecord.set("completed_at", new Date().toISOString());
-          teamMatchRecord.set("version", teamMatchRecord.getInt("version") + 1);
-
-          txDao.saveRecord(teamMatchRecord);
-
-          const operationService = require(
-            `${__hooks}/match_operation_service.js`,
-          );
-
-          operationService.advanceTeamRound(
-            txDao,
-            teamMatchRecord.getString("game_setting"),
-          );
-        }
-      }
-    }
-
-    /*
-     * 주의:
-     * 이 코드는 위의 팀 경기 조건문 밖에 있어야 합니다.
-     *
-     * 개인 단식 결과가 확정되면 빈 테이블에
-     * 다음으로 진행 가능한 경기를 자동 배정합니다.
-     */
-    if (
-      targetType === TARGET_TYPE_INDIVIDUAL_MATCH &&
-      target.getString("result_status") === RESULT_STATUS_CONFIRMED
-    ) {
-      const operationService = require(`${__hooks}/match_operation_service.js`);
-
-      operationService.assignIndividualMatches(
+      completionService.completeConfirmedResult(
         txDao,
-        target.getString("game_setting"),
+        targetType,
+        target,
       );
     }
   });
@@ -705,6 +643,8 @@ const saveResultSubmission = (targetType, targetId, input) => {
 module.exports = {
   TARGET_TYPE_TEAM_GAME,
   TARGET_TYPE_INDIVIDUAL_MATCH,
+  getRequiredWins,
+  validateScore,
   buildResultContext,
   saveResultSubmission,
 };

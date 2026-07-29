@@ -65,6 +65,10 @@ routerAdd(
  * 내부 workflow route의 DAO 저장은 request hook 대상이 아닙니다.
  */
 onRecordBeforeCreateRequest((event) => {
+  if (event.record.getString("status") !== "draft") {
+    throw new BadRequestError("새 회차는 준비 중 상태로 생성해야 합니다.");
+  }
+
   if (event.record.getString("participation_status") !== "open") {
     throw new BadRequestError(
       "새 회차의 참가 신청 상태는 접수 중이어야 합니다.",
@@ -76,13 +80,15 @@ onRecordBeforeUpdateRequest((event) => {
   const originalRecord = $app.dao().findRecordById("events", event.record.id);
 
   if (
+    originalRecord.getString("status") !==
+      event.record.getString("status") ||
     originalRecord.getString("participation_status") !==
       event.record.getString("participation_status") ||
     originalRecord.getString("participation_closed_at") !==
       event.record.getString("participation_closed_at")
   ) {
     throw new BadRequestError(
-      "참가 신청 상태는 참석자 관리 화면의 최종 마감 기능으로만 변경할 수 있습니다.",
+      "회차 진행 상태와 참가 신청 상태는 전용 관리 기능으로만 변경할 수 있습니다.",
     );
   }
 }, "events");
