@@ -9,6 +9,11 @@ migrate(
         name: "users",
         type: "auth",
         system: false,
+        listRule: null,
+        viewRule: null,
+        createRule: null,
+        updateRule: null,
+        deleteRule: null,
         schema: [
           {
             system: false,
@@ -2964,6 +2969,25 @@ migrate(
     ];
 
     const collections = snapshot.map((item) => new Collection(item));
+
+    /*
+     * users Auth Collection의 일반 Record API를 전부 잠급니다.
+     * 로그인과 토큰 갱신은 Auth API이므로 계속 사용할 수 있습니다.
+     */
+    const usersCollection = collections.find(
+      (collection) => collection.name === "users",
+    );
+
+    if (!usersCollection) {
+      throw new Error("users 컬렉션을 찾을 수 없습니다.");
+    }
+
+    usersCollection.listRule = null;
+    usersCollection.viewRule = null;
+    usersCollection.createRule = null;
+    usersCollection.updateRule = null;
+    usersCollection.deleteRule = null;
+
     const dao = new Dao(db);
 
     /*
