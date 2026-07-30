@@ -161,11 +161,11 @@ migrate(
             id: "rw0yeazq",
             name: "rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -252,7 +252,7 @@ migrate(
             id: "ylbz8cx7",
             name: "min_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
@@ -308,11 +308,11 @@ migrate(
             id: "defmemberrank",
             name: "default_member_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -322,11 +322,11 @@ migrate(
             id: "defguestrank",
             name: "default_guest_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -616,11 +616,11 @@ migrate(
             id: "opg5hma5",
             name: "rank_snapshot",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -1250,11 +1250,11 @@ migrate(
             id: "memberranksnap",
             name: "rank_snapshot",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -2624,11 +2624,11 @@ migrate(
             id: "rankcandcurrent",
             name: "current_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -2638,11 +2638,11 @@ migrate(
             id: "rankcandpropose",
             name: "proposed_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -2875,11 +2875,11 @@ migrate(
             id: "rankhistprev",
             name: "previous_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -2889,11 +2889,11 @@ migrate(
             id: "rankhistnext",
             name: "new_rank",
             type: "number",
-            required: true,
+            required: false,
             presentable: false,
             unique: false,
             options: {
-              min: 1,
+              min: 0,
               max: 99,
               noDecimal: true,
             },
@@ -3014,7 +3014,7 @@ migrate(
     if (existingRankSettings.length === 0) {
       const rankSettingsRecord = new Record(rankSettingsCollection);
 
-      rankSettingsRecord.set("min_rank", 1);
+      rankSettingsRecord.set("min_rank", 0);
       rankSettingsRecord.set("max_rank", 8);
       rankSettingsRecord.set("default_member_rank", 8);
       rankSettingsRecord.set("default_guest_rank", 8);

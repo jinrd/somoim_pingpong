@@ -34,8 +34,7 @@ export default function Members() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<MemberStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("all");
 
   const memberCounts = useMemo(
     () => ({
@@ -147,8 +146,7 @@ export default function Members() {
             onClick={openNewMember}
             className={styles.btnPrimary}
           >
-            <UserPlus size={18} aria-hidden="true" />
-            새 회원 추가
+            <UserPlus size={18} aria-hidden="true" />새 회원 추가
           </button>
         </div>
       </div>
@@ -252,7 +250,7 @@ export default function Members() {
                   </td>
                   <td>
                     <div className={styles.rowActions}>
-                      <button
+                      {/* <button
                         type="button"
                         onClick={() =>
                           navigate(`/rankings?member=${member.id}`)
@@ -261,7 +259,7 @@ export default function Members() {
                         aria-label={`${member.nickname} 공식 단식 전적`}
                       >
                         <Trophy size={18} aria-hidden="true" />
-                      </button>
+                      </button> */}
                       <button
                         type="button"
                         onClick={() => openEditMember(member)}
@@ -339,7 +337,8 @@ export default function Members() {
                 </span>
 
                 <span className={styles.contact}>
-                  {getGenderLabel(member.gender)} · {member.phone || "연락처 없음"}
+                  {getGenderLabel(member.gender)} ·{" "}
+                  {member.phone || "연락처 없음"}
                 </span>
               </div>
             </article>

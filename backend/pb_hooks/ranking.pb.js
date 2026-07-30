@@ -148,7 +148,7 @@ const validateRankSettings = (event) => {
   const promotionThreshold = record.getInt("promotion_threshold");
   const demotionThreshold = record.getInt("demotion_threshold");
 
-  if (minRank < 1 || maxRank <= minRank) {
+  if (minRank < 0 || maxRank <= minRank) {
     throw new BadRequestError("최고 부수와 최저 부수 범위를 확인해 주세요.");
   }
 

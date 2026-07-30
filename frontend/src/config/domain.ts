@@ -5,7 +5,7 @@ import type { RankSettingsInput } from "../features/members/api";
  * 아래 값은 설정 레코드가 아직 없을 때만 사용하는 초기값입니다.
  */
 export const DEFAULT_RANK_SETTINGS: RankSettingsInput = {
-  min_rank: 1,
+  min_rank: 0,
   max_rank: 8,
   default_member_rank: 8,
   default_guest_rank: 8,
@@ -18,7 +18,8 @@ export const DEFAULT_RANK_SETTINGS: RankSettingsInput = {
  * 운영자가 설정 화면에서 변경하는 값과 구분합니다.
  */
 export const DOMAIN_LIMITS = {
-  absoluteRankMin: 1,
+  absoluteRankMin: 0,
+  positiveCountMin: 1,
   absoluteRankMax: 99,
   eventTitleMaxLength: 150,
   eventNoticeMaxLength: 3000,

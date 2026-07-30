@@ -10,16 +10,8 @@ import Members from "./pages/admin/Members";
 import Rankings from "./pages/admin/Rankings";
 import EventDetail from "./pages/admin/EventDetail";
 import PublicEvent from "./pages/public/PublicEvent";
+import Dashboard from "./pages/admin/Dashboard";
 import { useAuthStore } from "./store/authStore";
-
-const Dashboard = () => {
-  return (
-    <div>
-      <h2>환영합니다!</h2>
-      <p>메뉴에서 회원 또는 회차 관리를 선택해 주세요.</p>
-    </div>
-  );
-};
 
 interface ProtectedRouteProps {
   children: JSX.Element;

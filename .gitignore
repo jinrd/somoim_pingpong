@@ -16,4 +16,6 @@ frontend/node_modules/.tmp/
 .DS_Store
 *.log
 *.md
+!README.md
+!OPERATING_GUIDE.md
 prompt

@@ -1,0 +1,360 @@
+.dashboardContainer {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #1e293b;
+}
+
+.heroHeader {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+  border-radius: 20px;
+  padding: 2.25rem 2rem;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 25px rgba(49, 46, 129, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #e0e7ff;
+}
+
+.heroTitle {
+  font-size: 1.875rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+  font-size: 1rem;
+  color: #c7d2fe;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.actionCard {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.actionCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border-color: #818cf8;
+}
+
+.actionCardLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.iconBox {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.iconBoxMembers {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.iconBoxRankings {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.iconBoxEvents {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.actionTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: #0f172a;
+}
+
+.actionDesc {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.actionArrow {
+  color: #94a3b8;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.actionCard:hover .actionArrow {
+  transform: translateX(4px);
+  color: #4f46e5;
+}
+
+.guideSection {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  padding: 2rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sectionIcon {
+  color: #4f46e5;
+}
+
+.sectionTitle {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0;
+  color: #0f172a;
+}
+
+.tabsContainer {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 2px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.tabBtn {
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.tabBtn:hover {
+  color: #4f46e5;
+}
+
+.tabActive {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+.guideContent {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.policyCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.policyCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.875rem;
+  color: #334155;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.policyList {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #475569;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.policyList li {
+  margin-bottom: 0.375rem;
+}
+
+.stepsTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stepItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.stepBadge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.stepTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.375rem 0;
+}
+
+.stepDesc {
+  font-size: 0.875rem;
+  color: #475569;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.copyGuideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.copyGuideTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  transition: all 0.2s ease;
+}
+
+.copyBtn:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.copyBtnCopied {
+  background: #059669 !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
+}
+
+.snippetBox {
+  background: #0f172a;
+  color: #f1f5f9;
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 640px) {
+  .dashboardContainer {
+    padding: 1rem;
+  }
+  .heroHeader {
+    padding: 1.75rem 1.25rem;
+  }
+  .heroTitle {
+    font-size: 1.5rem;
+  }
+  .guideSection {
+    padding: 1.25rem;
+  }
+  .policyGrid {
+    grid-template-columns: 1fr;
+  }
+  .copyGuideHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .copyBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}

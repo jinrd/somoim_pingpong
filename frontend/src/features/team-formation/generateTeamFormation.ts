@@ -37,7 +37,7 @@ const validateParticipants = (participants: FormationParticipant[]): void => {
 
     if (
       !Number.isInteger(participant.rankSnapshot) ||
-      participant.rankSnapshot < 1
+      participant.rankSnapshot < 0
     ) {
       throw new Error(
         `${participant.displayName} 참가자의 부수 정보가 올바르지 않습니다.`,

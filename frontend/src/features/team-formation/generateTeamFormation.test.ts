@@ -148,6 +148,42 @@ describe("generateTeamFormation", () => {
     ).toThrow("중복된 참가자가 포함되어 있습니다.");
   });
 
+  it("0부 참가자를 정상적으로 편성한다", () => {
+    const participants = createParticipants(6);
+
+    participants[0] = {
+      ...participants[0],
+      rankSnapshot: 0,
+    };
+
+    const result = generateTeamFormation({
+      participants,
+      targetTeamSize: 3,
+      method: "balanced",
+    });
+
+    expect(getAllParticipantIds(result)).toContain(
+      participants[0].participantId,
+    );
+  });
+
+  it("음수 부수 참가자는 거부한다", () => {
+    const participants = createParticipants(6);
+
+    participants[0] = {
+      ...participants[0],
+      rankSnapshot: -1,
+    };
+
+    expect(() =>
+      generateTeamFormation({
+        participants,
+        targetTeamSize: 3,
+        method: "balanced",
+      }),
+    ).toThrow("참가자의 부수 정보가 올바르지 않습니다.");
+  });
+
   it("동일한 난수 입력은 동일한 무작위 편성을 만든다", () => {
     const participants = createParticipants(12);
 

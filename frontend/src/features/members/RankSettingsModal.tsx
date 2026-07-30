@@ -169,7 +169,7 @@ export default function RankSettingsModal({
             <input
               id="promotion-threshold"
               type="number"
-              min={DOMAIN_LIMITS.absoluteRankMin}
+              min={DOMAIN_LIMITS.positiveCountMin}
               required
               className={styles.input}
               value={formData.promotion_threshold}
@@ -183,7 +183,7 @@ export default function RankSettingsModal({
             <input
               id="demotion-threshold"
               type="number"
-              min={DOMAIN_LIMITS.absoluteRankMin}
+              min={DOMAIN_LIMITS.positiveCountMin}
               required
               className={styles.input}
               value={formData.demotion_threshold}
