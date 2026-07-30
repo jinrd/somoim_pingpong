@@ -1,16 +1,20 @@
 import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowRight, LoaderCircle, Lock, Mail } from "lucide-react";
 import { pb } from "../lib/pocketbase";
+import styles from "./Login.module.css";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       // 서비스 운영진은 PocketBase superuser가 아닌 users Auth Collection으로 로그인합니다.
@@ -18,113 +22,86 @@ export default function Login() {
       navigate("/"); // 로그인 성공 시 대시보드로 이동
     } catch {
       setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#f3f4f6",
-      }}
-    >
-      <form
-        onSubmit={handleLogin}
-        style={{
-          padding: "2rem",
-          backgroundColor: "white",
-          borderRadius: "8px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-          width: "100%",
-          maxWidth: "400px",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "1.5rem",
-            fontWeight: "bold",
-            marginBottom: "1.5rem",
-            textAlign: "center",
-          }}
-        >
-          소모임 탁구 매니저
-        </h1>
+    <div className={styles.pageContainer}>
+      <div className={styles.glowOrb1} />
+      <div className={styles.glowOrb2} />
 
-        {error && (
-          <div
-            style={{ color: "red", marginBottom: "1rem", fontSize: "0.875rem" }}
-          >
-            {error}
+      <div className={styles.card}>
+        <div className={styles.brandHeader}>
+          <div className={styles.brandBadge}>🏓</div>
+          <h1 className={styles.title}>탁꾸러기 메이트</h1>
+          <p className={styles.subtitle}>Tak-kkoorugi Mate · 관리자 로그인</p>
+        </div>
+
+        <form onSubmit={handleLogin} className={styles.form}>
+          {error && (
+            <div className={styles.errorAlert}>
+              <AlertCircle size={18} aria-hidden="true" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className={styles.fieldGroup}>
+            <label htmlFor="admin-email" className={styles.label}>
+              관리자 이메일
+            </label>
+            <div className={styles.inputWrapper}>
+              <input
+                id="admin-email"
+                type="email"
+                className={styles.input}
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Mail size={18} className={styles.inputIcon} aria-hidden="true" />
+            </div>
           </div>
-        )}
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "0.5rem",
-              fontSize: "0.875rem",
-            }}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="admin-password" className={styles.label}>
+              비밀번호
+            </label>
+            <div className={styles.inputWrapper}>
+              <input
+                id="admin-password"
+                type="password"
+                className={styles.input}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Lock size={18} className={styles.inputIcon} aria-hidden="true" />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={loading}
           >
-            관리자 이메일
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.5rem",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-            }}
-            required
-          />
-        </div>
-
-        <div style={{ marginBottom: "1.5rem" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "0.5rem",
-              fontSize: "0.875rem",
-            }}
-          >
-            비밀번호
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.5rem",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-            }}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            padding: "0.75rem",
-            backgroundColor: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          로그인
-        </button>
-      </form>
+            {loading ? (
+              <>
+                <LoaderCircle size={20} className={styles.spinner} aria-hidden="true" />
+                <span>로그인 중...</span>
+              </>
+            ) : (
+              <>
+                <span>로그인</span>
+                <ArrowRight size={18} aria-hidden="true" />
+              </>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

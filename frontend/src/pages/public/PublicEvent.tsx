@@ -264,7 +264,7 @@ export default function PublicEvent() {
           <span className={styles.brandIcon}>
             <Trophy size={20} aria-hidden="true" />
           </span>
-          소모임 탁구 매니저
+          탁꾸러기 메이트 (Tak-kkoorugi Mate)
         </div>
 
         <article className={styles.card}>

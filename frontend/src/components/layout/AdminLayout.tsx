@@ -26,7 +26,7 @@ export default function AdminLayout() {
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
-        <div className={styles.logo}>🏓 탁구 매니저</div>
+        <div className={styles.logo}>🏓 탁꾸러기 메이트</div>
 
         <nav className={styles.nav} aria-label="관리자 주요 메뉴">
           <NavLink to="/" className={getNavLinkClassName} end>
@@ -62,7 +62,7 @@ export default function AdminLayout() {
       </aside>
 
       <main className={styles.mainContent}>
-        <header className={styles.header}>Somoim PingPong Manager</header>
+        <header className={styles.header}>🏓 탁꾸러기 메이트 (Tak-kkoorugi Mate)</header>
 
         <div className={styles.content}>
           <Outlet />
