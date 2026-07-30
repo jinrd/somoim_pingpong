@@ -51,6 +51,12 @@ services:
 
     logging: *default-logging
 
+    networks:
+      default:
+      caddy_proxy:
+        aliases:
+          - somoim-pingpong-pocketbase
+
   frontend:
     build:
       context: ./frontend
@@ -72,41 +78,13 @@ services:
 
     logging: *default-logging
 
-  caddy:
-    image: caddy:2-alpine
+    networks:
+      default:
+      caddy_proxy:
+        aliases:
+          - somoim-pingpong-frontend
 
-    restart: unless-stopped
-    init: true
-
-    depends_on:
-      pocketbase:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
-
-    environment:
-      APP_ADDRESS: "${APP_ADDRESS:-:80}"
-
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-
-    volumes:
-      - type: bind
-        source: ./deploy/Caddyfile
-        target: /etc/caddy/Caddyfile
-        read_only: true
-
-      - type: bind
-        source: "${CADDY_DATA_PATH}"
-        target: /data
-
-      - type: bind
-        source: "${CADDY_CONFIG_PATH}"
-        target: /config
-
-    security_opt:
-      - no-new-privileges:true
-
-    logging: *default-logging
+networks:
+  caddy_proxy:
+    external: true
+    name: caddy_proxy
