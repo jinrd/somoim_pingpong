@@ -16,13 +16,15 @@ import {
 } from "lucide-react";
 import styles from "./Dashboard.module.css";
 
-const PARTICIPANT_GUIDE_TEXT = `[🏓 탁꾸러기 메이트 참석 및 이용 안내]
+const PARTICIPANT_GUIDE_TEXT = `[🏓 탁꾸러기 메이트 이용 안내]
 
-1. 참석 링크 접속 ➔ 본인 이름 선택 및 본인 확인
-2. 참석/불참 여부 제출 (마감 전까지 변경 가능)
-3. 모임 당일 [내 경기] 탭에서 탁구대 번호 확인 후 경기 진행
-4. 경기 완료 후 세트 스코어(예: 2:1) 직접 입력
-5. [경기 현황] 탭에서 실시간 팀/개인 순위 확인`;
+1. 참석 링크에서 본인 확인
+2. 참석 여부와 게임 참가 여부 선택
+3. 제출 후 변경이 필요하면 운영진에게 요청
+4. 모임 당일 [내 경기]에서 경기 순서와 탁구대 확인
+5. 경기 후 양측이 같은 스코어를 입력하면 결과 확정
+6. 잘못 입력한 결과는 운영진에게 취소 요청
+7. [경기 현황]에서 전체 결과와 순위 확인`;
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"policy" | "admin" | "participant">("policy");
@@ -43,11 +45,11 @@ export default function Dashboard() {
       <header className={styles.heroHeader}>
         <div className={styles.heroBadge}>
           <Zap size={14} aria-hidden="true" />
-          <span>탁꾸러기 메이트 공식 모임 매니저</span>
+          <span>오늘의 모임 운영</span>
         </div>
-        <h1 className={styles.heroTitle}>🏓 탁꾸러기 메이트 대시보드</h1>
+        <h1 className={styles.heroTitle}>탁꾸러기 메이트</h1>
         <p className={styles.heroSubtitle}>
-          회원 및 부수 관리, 회차별 참가 신청, 팀/대진 구성부터 실시간 리그 모니터링까지 스마트하게 운영하세요.
+          회원부터 경기 결과까지 한곳에서 관리하세요.
         </p>
       </header>
 
@@ -60,7 +62,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h3 className={styles.actionTitle}>회원 관리</h3>
-              <p className={styles.actionDesc}>회원 등록, 닉네임, 연락처 및 활동 상태</p>
+              <p className={styles.actionDesc}>등록 · 수정 · 활동 상태</p>
             </div>
           </div>
           <ChevronRight size={20} className={styles.actionArrow} aria-hidden="true" />
@@ -73,7 +75,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h3 className={styles.actionTitle}>부수 관리</h3>
-              <p className={styles.actionDesc}>부수 기준 포인트 & 승급/강등 후보 반영</p>
+              <p className={styles.actionDesc}>부수 설정 · 승강 후보</p>
             </div>
           </div>
           <ChevronRight size={20} className={styles.actionArrow} aria-hidden="true" />
@@ -86,7 +88,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h3 className={styles.actionTitle}>회차 관리</h3>
-              <p className={styles.actionDesc}>회차 생성, 참석 링크 발급, 대진 및 진행</p>
+              <p className={styles.actionDesc}>참가 · 편성 · 경기 진행</p>
             </div>
           </div>
           <ChevronRight size={20} className={styles.actionArrow} aria-hidden="true" />
@@ -97,7 +99,12 @@ export default function Dashboard() {
       <section className={styles.guideSection}>
         <div className={styles.sectionHeader}>
           <BookOpen size={24} className={styles.sectionIcon} aria-hidden="true" />
-          <h2 className={styles.sectionTitle}>모임 운영 정책 및 가이드</h2>
+          <div>
+            <h2 className={styles.sectionTitle}>운영 안내</h2>
+            <p className={styles.sectionDescription}>
+              필요한 내용을 선택해 빠르게 확인하세요.
+            </p>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -110,7 +117,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("policy")}
           >
             <ShieldCheck size={18} aria-hidden="true" />
-            <span>운영 정책 (Policy)</span>
+            <span>운영 정책</span>
           </button>
           <button
             type="button"
@@ -120,7 +127,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("admin")}
           >
             <Activity size={18} aria-hidden="true" />
-            <span>운영진 사용 방법 (Admin)</span>
+            <span>운영진</span>
           </button>
           <button
             type="button"
@@ -130,7 +137,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("participant")}
           >
             <UserCheck size={18} aria-hidden="true" />
-            <span>참가자 가이드 (Member)</span>
+            <span>참가자</span>
           </button>
         </div>
 
@@ -141,35 +148,64 @@ export default function Dashboard() {
               <div className={styles.policyCard}>
                 <div className={styles.policyCardHeader}>
                   <Award size={20} color="#4f46e5" aria-hidden="true" />
-                  <span>회원 및 부수 규정</span>
+                  <span>회원과 부수</span>
                 </div>
                 <ul className={styles.policyList}>
-                  <li><strong>기본 부수:</strong> 신규 회원 및 게스트는 기본 6부로 적용됩니다.</li>
-                  <li><strong>부수 범위:</strong> 1부부터 9부까지 운용하며, 수치가 작을수록 고부수입니다.</li>
-                  <li><strong>승급/강등:</strong> 공식 단식 경기 승점이 기준 포인트를 달성하면 [부수 관리]에서 승인 반영됩니다.</li>
+                  <li>
+                    <strong>부수:</strong> 0부가 가장 높으며 숫자가 클수록
+                    낮은 부수입니다.
+                  </li>
+                  <li>
+                    <strong>기본값:</strong> 신규 회원과 게스트 부수는 운영
+                    설정을 따릅니다.
+                  </li>
+                  <li>
+                    <strong>승급·강등:</strong> 공식 단식의 연속 경기 조건을
+                    충족하면 후보가 생성되고 운영진 승인 후 반영됩니다.
+                  </li>
                 </ul>
               </div>
 
               <div className={styles.policyCard}>
                 <div className={styles.policyCardHeader}>
                   <CalendarDays size={20} color="#059669" aria-hidden="true" />
-                  <span>참가 신청 및 팀 배치</span>
+                  <span>참가 신청과 편성</span>
                 </div>
                 <ul className={styles.policyList}>
-                  <li><strong>참가 마감:</strong> 참석 링크로 마감 전까지 자율 응답 후 운영진 마감 처리.</li>
-                  <li><strong>팀 구성 (Balanced):</strong> 참가자 부수 합산 평균이 균등하도록 알고리즘이 자동 편성.</li>
-                  <li><strong>개인전 풀리그:</strong> 테이블 수에 따라 1:1 풀리그가 자동 세팅됩니다.</li>
+                  <li>
+                    <strong>참가 응답:</strong> 한 번 제출하면 참가자가 직접
+                    바꿀 수 없으며 변경은 운영진에게 요청합니다.
+                  </li>
+                  <li>
+                    <strong>신청 마감:</strong> 최종 마감 후에는 다시 열거나
+                    참석자를 삭제할 수 없습니다.
+                  </li>
+                  <li>
+                    <strong>팀 편성:</strong> 부수를 기준으로 자동 편성한 뒤
+                    운영진이 팀원을 조정하고 확정합니다.
+                  </li>
                 </ul>
               </div>
 
               <div className={styles.policyCard}>
                 <div className={styles.policyCardHeader}>
                   <Trophy size={20} color="#d97706" aria-hidden="true" />
-                  <span>경기 결과 & 순위 규정</span>
+                  <span>경기 결과와 순위</span>
                 </div>
                 <ul className={styles.policyList}>
-                  <li><strong>결과 검증:</strong> 승자 입력 후 상대방 수락 시 최종 확정되며, 분쟁 시 운영진 대리 수정 가능.</li>
-                  <li><strong>동률 발생 시 순위:</strong> ① 승리 수 ➔ ② 세트 득실률 ➔ ③ 승자승 우선순위로 결정.</li>
+                  <li>
+                    <strong>결과 확정:</strong> 양측 입력이 일치하면 자동
+                    확정됩니다. 불일치하거나 미입력된 경기는 운영진이
+                    처리할 수 있습니다.
+                  </li>
+                  <li>
+                    <strong>잘못된 결과:</strong> 참가자는 확정 결과를 직접
+                    수정할 수 없으며 운영진이 취소 후 다시 입력합니다.
+                  </li>
+                  <li>
+                    <strong>동률 순위:</strong> 승점 → 승자승 → 세트 득실률
+                    순으로 결정합니다.
+                  </li>
                 </ul>
               </div>
             </div>
@@ -183,9 +219,9 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>1</div>
                 <div>
-                  <h4 className={styles.stepTitle}>회차 생성 및 참석 링크 공유</h4>
+                  <h4 className={styles.stepTitle}>회차 만들기</h4>
                   <p className={styles.stepDesc}>
-                    [회차 관리] ➔ [새 회차 생성]에서 모임 날짜 및 공지를 작성한 뒤, <strong>[참석 링크 복사]</strong>로 카톡방에 공유하세요.
+                    회차를 만든 뒤 참석 링크를 발급해 모임방에 공유합니다.
                   </p>
                 </div>
               </div>
@@ -193,9 +229,10 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>2</div>
                 <div>
-                  <h4 className={styles.stepTitle}>참가 신청 마감 & 팀/대진 구성</h4>
+                  <h4 className={styles.stepTitle}>참가자 확인하고 마감하기</h4>
                   <p className={styles.stepDesc}>
-                    참석자 모집 완료 후 <strong>[참가 마감]</strong> 클릭 ➔ 팀 리그(자동 팀 배치) 또는 개인전 풀리그를 선택해 대진표를 생성합니다.
+                    미정 응답을 정리하고 게임 참가 인원을 확인한 뒤 신청을
+                    최종 마감합니다.
                   </p>
                 </div>
               </div>
@@ -203,9 +240,32 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>3</div>
                 <div>
-                  <h4 className={styles.stepTitle}>실시간 모니터링 & 승급 반영</h4>
+                  <h4 className={styles.stepTitle}>게임 설정과 편성 확정하기</h4>
                   <p className={styles.stepDesc}>
-                    [경기 모니터링]에서 탁구대별 진행 현황을 파악하고 오입력을 관리합니다. 회차 종료 후 [부수 관리]에서 승급 대상자를 승인하세요.
+                    운영 방식을 저장·확정합니다. 팀 리그는 팀 편성까지 확정한
+                    뒤 대진표를 만듭니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.stepItem}>
+                <div className={styles.stepBadge}>4</div>
+                <div>
+                  <h4 className={styles.stepTitle}>경기 진행 확인하기</h4>
+                  <p className={styles.stepDesc}>
+                    진행·대기·완료 경기를 확인하고 미입력 또는 잘못된 결과를
+                    운영진 권한으로 처리합니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.stepItem}>
+                <div className={styles.stepBadge}>5</div>
+                <div>
+                  <h4 className={styles.stepTitle}>회차와 부수 마무리하기</h4>
+                  <p className={styles.stepDesc}>
+                    모든 경기가 끝나면 회차 완료를 확인하고 부수 관리에서
+                    승급·강등 후보를 검토합니다.
                   </p>
                 </div>
               </div>
@@ -217,7 +277,12 @@ export default function Dashboard() {
         {activeTab === "participant" && (
           <div className={styles.guideContent}>
             <div className={styles.copyGuideHeader}>
-              <h3 className={styles.copyGuideTitle}>📢 카카오톡 단톡방 전송용 안내 문구</h3>
+              <div>
+                <h3 className={styles.copyGuideTitle}>참가자 안내 문구</h3>
+                <p className={styles.copyGuideDescription}>
+                  모임방에 바로 공유할 수 있습니다.
+                </p>
+              </div>
               <button
                 type="button"
                 className={`${styles.copyBtn} ${isCopied ? styles.copyBtnCopied : ""}`}
@@ -226,12 +291,12 @@ export default function Dashboard() {
                 {isCopied ? (
                   <>
                     <Check size={16} aria-hidden="true" />
-                    <span>클립보드에 복사됨!</span>
+                    <span>복사 완료</span>
                   </>
                 ) : (
                   <>
                     <Copy size={16} aria-hidden="true" />
-                    <span>안내 문구 복사</span>
+                    <span>문구 복사</span>
                   </>
                 )}
               </button>
@@ -246,9 +311,10 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>1</div>
                 <div>
-                  <h4 className={styles.stepTitle}>참석 링크 접속 및 본인 확인</h4>
+                  <h4 className={styles.stepTitle}>본인 확인</h4>
                   <p className={styles.stepDesc}>
-                    단톡방 공유 링크로 접속해 본인의 이름/연락처 뒷자리를 확인하고 등록합니다.
+                    공유된 참석 링크에서 본인을 선택하고 안내에 따라
+                    확인합니다.
                   </p>
                 </div>
               </div>
@@ -256,9 +322,10 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>2</div>
                 <div>
-                  <h4 className={styles.stepTitle}>참가 여부 응답 & 라인업 제출</h4>
+                  <h4 className={styles.stepTitle}>참가 여부 제출</h4>
                   <p className={styles.stepDesc}>
-                    [참석] / [미참석] 상태를 선택하고, 경기 시작 시 팀원 단식/복식 라인업을 작성합니다.
+                    참석 여부와 게임 참가 여부를 선택합니다. 제출 후 변경이
+                    필요하면 운영진에게 요청합니다.
                   </p>
                 </div>
               </div>
@@ -266,9 +333,31 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>3</div>
                 <div>
-                  <h4 className={styles.stepTitle}>내 경기 스코어 입력 & 실시간 순위 조회</h4>
+                  <h4 className={styles.stepTitle}>내 경기 확인</h4>
                   <p className={styles.stepDesc}>
-                    [내 경기] 탭에서 내 탁구대 번호 확인 후 경기 세트 스코어를 입력하며, [경기 현황]에서 실시간 순위를 확인합니다.
+                    내 경기에서 순서와 탁구대를 확인합니다. 팀 경기는 팀원과
+                    라인업을 정해 제출합니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.stepItem}>
+                <div className={styles.stepBadge}>4</div>
+                <div>
+                  <h4 className={styles.stepTitle}>결과 입력</h4>
+                  <p className={styles.stepDesc}>
+                    경기 후 스코어를 입력합니다. 양측 결과가 같으면 자동
+                    확정되며 잘못 입력했다면 운영진에게 요청합니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.stepItem}>
+                <div className={styles.stepBadge}>5</div>
+                <div>
+                  <h4 className={styles.stepTitle}>실시간 현황 확인</h4>
+                  <p className={styles.stepDesc}>
+                    경기 현황에서 전체 경기 결과와 현재 순위를 확인합니다.
                   </p>
                 </div>
               </div>

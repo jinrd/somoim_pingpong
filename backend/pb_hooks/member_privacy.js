@@ -23,6 +23,15 @@ function normalizePhone(value) {
 
   const digits = input.replace(/[^0-9]/g, "");
 
+  /*
+   * 신규 회원 폼의 000-0000-0000은 실제 번호가 없다는 표시입니다.
+   * 동일한 가짜 번호를 암호화·해시해 본인 확인 대상이 되지 않도록
+   * 빈 연락처로 저장합니다.
+   */
+  if (digits === "00000000000") {
+    return "";
+  }
+
   if (digits.length !== 11 || digits.slice(0, 3) !== "010") {
     throw new BadRequestError(
       "연락처는 010-1234-5678 형식으로 입력해 주세요.",

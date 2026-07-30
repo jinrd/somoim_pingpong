@@ -154,6 +154,13 @@
   color: #0f172a;
 }
 
+.sectionDescription {
+  margin: 0.2rem 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
 .tabsContainer {
   display: flex;
   gap: 0.5rem;
@@ -292,6 +299,12 @@
   margin: 0;
 }
 
+.copyGuideDescription {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
 .copyBtn {
   display: inline-flex;
   align-items: center;
@@ -335,26 +348,250 @@
 
 @media (max-width: 640px) {
   .dashboardContainer {
-    padding: 1rem;
+    padding: 0;
   }
+
   .heroHeader {
-    padding: 1.75rem 1.25rem;
+    margin-bottom: 12px;
+    padding: 18px 16px;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(49, 46, 129, 0.18);
   }
+
+  .heroBadge {
+    margin-bottom: 9px;
+    padding: 4px 9px;
+    font-size: 0.72rem;
+  }
+
   .heroTitle {
-    font-size: 1.5rem;
+    margin-bottom: 4px;
+    font-size: 1.35rem;
   }
+
+  .heroSubtitle {
+    font-size: 0.84rem;
+  }
+
+  .quickActionsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .actionCard {
+    min-width: 0;
+    min-height: 88px;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 6px;
+    border-radius: 14px;
+  }
+
+  .actionCard:hover {
+    transform: none;
+  }
+
+  .actionCardLeft {
+    min-width: 0;
+    flex-direction: column;
+    gap: 7px;
+    text-align: center;
+  }
+
+  .iconBox {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+
+  .iconBox svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .actionTitle {
+    margin: 0;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .actionDesc,
+  .actionArrow {
+    display: none;
+  }
+
   .guideSection {
-    padding: 1.25rem;
+    padding: 14px 12px 16px;
+    border-radius: 16px;
   }
+
+  .sectionHeader {
+    gap: 9px;
+    margin-bottom: 12px;
+    padding: 0 2px 11px;
+  }
+
+  .sectionIcon {
+    width: 21px;
+    height: 21px;
+  }
+
+  .sectionTitle {
+    font-size: 1.05rem;
+  }
+
+  .sectionDescription {
+    font-size: 0.76rem;
+  }
+
+  .tabsContainer {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 12px;
+    padding: 4px;
+    overflow: visible;
+    background: #f1f5f9;
+    border: 0;
+    border-radius: 12px;
+  }
+
+  .tabBtn {
+    min-width: 0;
+    min-height: 48px;
+    justify-content: center;
+    gap: 5px;
+    margin: 0;
+    padding: 7px 3px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-size: 0.76rem;
+  }
+
+  .tabBtn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tabActive {
+    color: #4338ca;
+    background: #ffffff;
+    border-color: #e0e7ff;
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.08);
+  }
+
+  .guideContent {
+    animation-duration: 0.18s;
+  }
+
   .policyGrid {
     grid-template-columns: 1fr;
+    gap: 9px;
   }
+
+  .policyCard {
+    padding: 13px;
+    border-radius: 12px;
+  }
+
+  .policyCardHeader {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+  }
+
+  .policyCardHeader svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .policyList {
+    padding-left: 17px;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  .policyList li {
+    margin-bottom: 7px;
+  }
+
+  .policyList li:last-child {
+    margin-bottom: 0;
+  }
+
+  .stepsTimeline {
+    gap: 8px;
+  }
+
+  .stepItem {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .stepBadge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+  }
+
+  .stepTitle {
+    margin-bottom: 3px;
+    font-size: 0.88rem;
+  }
+
+  .stepDesc {
+    font-size: 0.79rem;
+    line-height: 1.5;
+  }
+
   .copyGuideHeader {
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px;
+    margin-bottom: 10px;
   }
+
+  .copyGuideTitle {
+    font-size: 0.9rem;
+  }
+
+  .copyGuideDescription {
+    font-size: 0.74rem;
+  }
+
+  .copyBtn {
+    min-height: 40px;
+    width: auto;
+    justify-content: center;
+    padding: 8px 11px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .snippetBox {
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .tabBtn {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.7rem;
+  }
+
+  .copyGuideHeader {
+    grid-template-columns: 1fr;
+  }
+
   .copyBtn {
     width: 100%;
-    justify-content: center;
   }
 }
