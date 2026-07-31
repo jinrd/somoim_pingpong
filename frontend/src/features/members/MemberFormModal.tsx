@@ -18,9 +18,8 @@ interface Props {
   rankSettings: RankSettingsInput;
 }
 
-const EMPTY_PHONE_INPUT = "00000000000";
-const EMPTY_PHONE_FORMATTED = "000-0000-0000";
-const PHONE_PATTERN = /^(?:010-[0-9]{4}-[0-9]{4}|000-0000-0000)$/;
+const EMPTY_PHONE_INPUT = "01000000000";
+const PHONE_PATTERN = /^010-[0-9]{4}-[0-9]{4}$/;
 
 const formatPhoneNumber = (value: string): string => {
   const digits = value.replace(/[^0-9]/g, "").slice(0, 11);
@@ -98,9 +97,7 @@ export default function MemberFormModal({
     const phone = formData.phone?.trim() ?? "";
 
     if (phone && !PHONE_PATTERN.test(phone)) {
-      setError(
-        `연락처는 010-1234-5678 형식이나 ${EMPTY_PHONE_FORMATTED}을 입력해 주세요.`,
-      );
+      setError("연락처는 010-1234-5678 형식으로 입력해 주세요.");
       return;
     }
 
@@ -209,8 +206,8 @@ export default function MemberFormModal({
               placeholder="010-1234-5678"
               value={formData.phone}
               maxLength={DOMAIN_LIMITS.formattedPhoneLength}
-              pattern="(?:010-[0-9]{4}-[0-9]{4}|000-0000-0000)"
-              title="010-1234-5678 형식이나 000-0000-0000을 입력해 주세요."
+              pattern="(?:010-[0-9]{4}-[0-9]{4}|010-0000-0000)"
+              title="010-1234-5678 형식이나 010-0000-0000을 입력해 주세요."
               onChange={(event) => {
                 setFormData({
                   ...formData,
