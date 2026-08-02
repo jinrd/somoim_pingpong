@@ -621,7 +621,7 @@ export default function GameSettingsPanel({
         <div className={styles.notice}>
           <strong>참가 신청 마감 후 게임 설정을 시작할 수 있습니다.</strong>
           <p>
-            참석자 관리에서 미정 상태를 모두 확정하고 참가 신청 최종 마감을
+            참석자 관리에서 게임 참가 인원을 확인하고 참가 신청 최종 마감을
             진행해 주세요.
           </p>
         </div>
