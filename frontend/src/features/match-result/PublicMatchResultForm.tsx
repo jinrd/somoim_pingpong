@@ -66,6 +66,7 @@ export default function PublicMatchResultForm({
 
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
+  const [participantIds, setParticipantIds] = useState<string[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +80,15 @@ export default function PublicMatchResultForm({
     (nextContext: PublicMatchResultContext, syncScores = true) => {
       contextRef.current = nextContext;
       setContext(nextContext);
+
+      if (syncScores && nextContext.targetType === "team_game") {
+        const ownSide =
+          nextContext.side === "home" ? nextContext.home : nextContext.away;
+
+        setParticipantIds(
+          ownSide.players.map((player) => player.participantId),
+        );
+      }
 
       if (!syncScores) {
         return;
@@ -206,6 +216,16 @@ export default function PublicMatchResultForm({
 
     const requiredWins = context.requiredWins;
 
+    if (
+      targetType === "team_game" &&
+      participantIds.length !== context.requiredPlayerCount
+    ) {
+      setError(
+        `실제 출전 선수 ${context.requiredPlayerCount}명을 선택해 주세요.`,
+      );
+      return;
+    }
+
     const homeWon = homeScore === requiredWins && awayScore < requiredWins;
 
     const awayWon = awayScore === requiredWins && homeScore < requiredWins;
@@ -228,6 +248,8 @@ export default function PublicMatchResultForm({
         expectedVersion: context.ownSubmission?.version ?? 0,
         homeScore,
         awayScore,
+        participantIds:
+          targetType === "team_game" ? participantIds : undefined,
       };
 
       const result =
@@ -287,6 +309,7 @@ export default function PublicMatchResultForm({
     context.resultStatus === "confirmed" && context.result !== null;
 
   const canSubmit = context.status === "in_progress" && !isConfirmed;
+  const ownSide = context.side === "home" ? context.home : context.away;
 
   return (
     <section className={styles.container}>
@@ -318,6 +341,54 @@ export default function PublicMatchResultForm({
           {context.side === "home" ? context.home.label : context.away.label}
         </strong>
       </div>
+
+      {targetType === "team_game" && canSubmit && (
+        <fieldset className={styles.playerSelection}>
+          <legend>
+            실제 출전 선수 {participantIds.length}/
+            {context.requiredPlayerCount}
+          </legend>
+
+          <div className={styles.playerOptions}>
+            {(ownSide.members ?? []).map((member) => {
+              const selected = participantIds.includes(member.participantId);
+
+              return (
+                <button
+                  key={member.participantId}
+                  type="button"
+                  className={
+                    selected
+                      ? styles.playerOptionSelected
+                      : styles.playerOption
+                  }
+                  disabled={isSaving || isLoading}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    setParticipantIds((current) => {
+                      if (current.includes(member.participantId)) {
+                        return current.filter(
+                          (participantId) =>
+                            participantId !== member.participantId,
+                        );
+                      }
+
+                      if (current.length >= context.requiredPlayerCount) {
+                        return [...current.slice(1), member.participantId];
+                      }
+
+                      return [...current, member.participantId];
+                    });
+                    setError("");
+                  }}
+                >
+                  {member.name}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
 
       <div className={styles.scoreBoard}>
         <div

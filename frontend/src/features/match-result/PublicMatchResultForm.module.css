@@ -56,6 +56,55 @@
   color: #4338ca;
 }
 
+.playerSelection {
+  min-width: 0;
+  padding: 11px;
+  margin: 0;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+}
+
+.playerSelection legend {
+  padding: 0 5px;
+  color: #344054;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.playerOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.playerOption,
+.playerOptionSelected {
+  min-width: 0;
+  min-height: 42px;
+  padding: 7px 8px;
+  overflow-wrap: anywhere;
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.playerOptionSelected {
+  color: #3730a3;
+  background: #eef2ff;
+  border-color: #818cf8;
+}
+
+.playerOption:disabled,
+.playerOptionSelected:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .scoreBoard {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

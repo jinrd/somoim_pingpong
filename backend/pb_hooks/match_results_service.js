@@ -1,8 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-const { findParticipantByResponseToken } = require(
-  `${__hooks}/team_lineups_service.js`,
-);
+const teamLineupService = require(`${__hooks}/team_lineups_service.js`);
+const { findParticipantByResponseToken } = teamLineupService;
 const historyService = require(`${__hooks}/match_result_history_service.js`);
 
 const TARGET_TYPE_TEAM_GAME = "team_game";
@@ -163,6 +162,33 @@ const loadTeamPlayers = (dao, teamMatchId, matchGameId, teamId) => {
   });
 };
 
+const loadTeamMembers = (dao, formationId, teamId) => {
+  const membershipRecords = dao.findRecordsByFilter(
+    "team_members",
+    "formation = {:formationId} && team = {:teamId}",
+    "sort_order",
+    100,
+    0,
+    {
+      formationId,
+      teamId,
+    },
+  );
+
+  return membershipRecords.map((membershipRecord) => {
+    const participant = dao.findRecordById(
+      "event_participants",
+      membershipRecord.getString("participant"),
+    );
+
+    return {
+      participantId: participant.id,
+      name: getRecordDisplayName(participant),
+      position: membershipRecord.getInt("sort_order"),
+    };
+  });
+};
+
 const findTeamGameAccess = (dao, matchGameId, participantRecord) => {
   let matchGame;
 
@@ -181,33 +207,16 @@ const findTeamGameAccess = (dao, matchGameId, participantRecord) => {
     throw new ApiError(403, "해당 회차의 경기가 아닙니다.");
   }
 
-  const playerRecords = dao.findRecordsByFilter(
-    "match_game_players",
-    "match_game = {:matchGameId} && participant = {:participantId}",
-    "",
-    2,
-    0,
-    {
-      matchGameId,
-      participantId: participantRecord.id,
-    },
+  const membership = teamLineupService.findParticipantTeam(
+    dao,
+    participantRecord,
+    teamMatch,
   );
 
-  if (playerRecords.length !== 1) {
-    throw new ApiError(
-      403,
-      "이 경기에 실제로 출전하는 참가자만 결과를 제출할 수 있습니다.",
-    );
-  }
-
-  const lineup = dao.findRecordById(
-    "team_match_lineups",
-    playerRecords[0].getString("lineup"),
-  );
-
-  const participantTeamId = lineup.getString("team");
+  const participantTeamId = membership.getString("team");
   const homeTeamId = teamMatch.getString("home_team");
   const awayTeamId = teamMatch.getString("away_team");
+  const formationId = teamMatch.getString("formation");
 
   let side;
 
@@ -231,13 +240,96 @@ const findTeamGameAccess = (dao, matchGameId, participantRecord) => {
       id: homeTeamId,
       label: homeTeam.getString("name") || "홈 팀",
       players: loadTeamPlayers(dao, teamMatch.id, matchGame.id, homeTeamId),
+      members: loadTeamMembers(dao, formationId, homeTeamId),
     },
     away: {
       id: awayTeamId,
       label: awayTeam.getString("name") || "원정 팀",
       players: loadTeamPlayers(dao, teamMatch.id, matchGame.id, awayTeamId),
+      members: loadTeamMembers(dao, formationId, awayTeamId),
     },
   };
+};
+
+const saveTeamGamePlayers = (dao, access, participantIds) => {
+  if (!Array.isArray(participantIds)) {
+    throw new ApiError(400, "실제 출전 선수를 선택해 주세요.");
+  }
+
+  const requiredPlayerCount =
+    access.target.getString("match_type") === "doubles" ? 2 : 1;
+
+  const normalizedIds = participantIds.map((participantId) =>
+    String(participantId || "").trim(),
+  );
+
+  if (
+    normalizedIds.length !== requiredPlayerCount ||
+    normalizedIds.some((participantId) => !participantId) ||
+    new Set(normalizedIds).size !== normalizedIds.length
+  ) {
+    throw new ApiError(
+      400,
+      `${requiredPlayerCount}명의 실제 출전 선수를 선택해 주세요.`,
+    );
+  }
+
+  const ownSide = access.side === SIDE_HOME ? access.home : access.away;
+  const memberIds = new Set(
+    ownSide.members.map((member) => member.participantId),
+  );
+
+  if (normalizedIds.some((participantId) => !memberIds.has(participantId))) {
+    throw new ApiError(400, "자기 팀에 속한 선수만 선택할 수 있습니다.");
+  }
+
+  normalizedIds.forEach((participantId) => {
+    const participant = dao.findRecordById(
+      "event_participants",
+      participantId,
+    );
+
+    if (participant.getString("game_participation_status") !== "playing") {
+      throw new ApiError(400, "게임 참가 상태인 선수만 선택할 수 있습니다.");
+    }
+  });
+
+  const lineup = dao.findFirstRecordByFilter(
+    "team_match_lineups",
+    "team_match = {:teamMatchId} && team = {:teamId}",
+    {
+      teamMatchId: access.target.getString("team_match"),
+      teamId: ownSide.id,
+    },
+  );
+
+  const previousPlayers = dao.findRecordsByFilter(
+    "match_game_players",
+    "lineup = {:lineupId} && match_game = {:matchGameId}",
+    "",
+    10,
+    0,
+    {
+      lineupId: lineup.id,
+      matchGameId: access.target.id,
+    },
+  );
+
+  previousPlayers.forEach((playerRecord) => dao.deleteRecord(playerRecord));
+
+  const playersCollection =
+    dao.findCollectionByNameOrId("match_game_players");
+
+  normalizedIds.forEach((participantId, index) => {
+    const playerRecord = new Record(playersCollection);
+
+    playerRecord.set("lineup", lineup.id);
+    playerRecord.set("match_game", access.target.id);
+    playerRecord.set("participant", participantId);
+    playerRecord.set("position", index + 1);
+
+    dao.saveRecord(playerRecord);
+  });
 };
 
 const findIndividualMatchAccess = (
@@ -383,6 +475,11 @@ const buildResultContext = (targetType, targetId, responseToken) => {
     resultStatus,
     bestOf: access.bestOf,
     requiredWins: getRequiredWins(access.bestOf),
+    requiredPlayerCount:
+      targetType === TARGET_TYPE_TEAM_GAME &&
+      access.target.getString("match_type") === "doubles"
+        ? 2
+        : 1,
     side: access.side,
     home: access.home,
     away: access.away,
@@ -457,6 +554,10 @@ const saveResultSubmission = (targetType, targetId, input) => {
       input.homeScore,
       input.awayScore,
     );
+
+    if (targetType === TARGET_TYPE_TEAM_GAME) {
+      saveTeamGamePlayers(txDao, access, input.participantIds);
+    }
 
     let ownSubmission = findSubmission(
       txDao,

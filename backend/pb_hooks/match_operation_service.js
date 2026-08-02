@@ -35,27 +35,6 @@ const startTeamMatch = (dao, matchRecord) => {
     return false;
   }
 
-  const lineupRecords = dao.findRecordsByFilter(
-    "team_match_lineups",
-    "team_match = {:teamMatchId}",
-    "",
-    2,
-    0,
-    {
-      teamMatchId: matchRecord.id,
-    },
-  );
-
-  const bothLineupsConfirmed =
-    lineupRecords.length === 2 &&
-    lineupRecords.every(
-      (lineupRecord) => lineupRecord.getString("status") === "confirmed",
-    );
-
-  if (!bothLineupsConfirmed) {
-    return false;
-  }
-
   const gameRecords = dao.findRecordsByFilter(
     "match_games",
     "team_match = {:teamMatchId}",
@@ -110,7 +89,7 @@ const startTeamMatch = (dao, matchRecord) => {
 /*
  * 완료되지 않은 가장 앞 라운드만 활성 라운드로 판단합니다.
  *
- * 현재 라운드에서 양 팀 라인업이 확정된 경기는 자동 시작하지만,
+ * 현재 라운드의 경기는 라인업 작성 여부와 관계없이 자동 시작하지만,
  * 다음 라운드는 이전 라운드가 전부 끝날 때까지 시작하지 않습니다.
  */
 const advanceTeamRound = (dao, gameSettingId) => {

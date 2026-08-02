@@ -50,13 +50,14 @@ export default function TeamColumn({
           value={team.name}
           maxLength={30}
           disabled={disabled}
-          aria-label={`${team.name} 팀 이름`}
+          aria-label={`${team.name} 팀 이름 `}
           onChange={(event) => onNameChange(event.target.value)}
         />
 
         <div className={styles.teamStats}>
-          <span>{team.members.length}명</span>
-          <span>평균 {averageRank || "-"}부</span>
+          <span>
+            ({team.members.length}명, 평균 {averageRank || "-"}부)
+          </span>
         </div>
       </header>
 

@@ -276,11 +276,9 @@ export default function PublicLineupSection({ responseToken }: Props) {
     <section className={styles.section}>
       <header className={styles.header}>
         <div>
-          <h2>내 팀 경기와 라인업</h2>
+          <h2>내 팀 경기</h2>
 
-          <p>
-            같은 팀 참가자는 경기마다 출전 순서를 작성하고 확정할 수 있습니다.
-          </p>
+          <p>경기 후 결과를 입력하면서 실제 출전 선수를 함께 기록합니다.</p>
         </div>
 
         <button
@@ -382,12 +380,6 @@ export default function PublicLineupSection({ responseToken }: Props) {
           <div className={styles.gameList}>
             {context.games.map((game) => {
               const selectedIds = selections[game.id] ?? [];
-              const requesterIsPlayer = context.lineup.players.some(
-                (player) =>
-                  player.matchGameId === game.id &&
-                  player.participantId === context.requester.participantId,
-              );
-
               const selectedMembers = context.members.filter((member) =>
                 selectedIds.includes(member.participantId),
               );
@@ -460,19 +452,12 @@ export default function PublicLineupSection({ responseToken }: Props) {
                         </strong>
                       </div>
 
-                      {requesterIsPlayer ? (
-                        <PublicMatchResultForm
-                          targetType="team_game"
-                          targetId={game.id}
-                          responseToken={responseToken}
-                          onResultUpdated={reloadMatches}
-                        />
-                      ) : (
-                        <p className={styles.notPlayingNotice}>
-                          이 세부 경기의 출전 선수가 아니므로 결과를 입력할 수
-                          없습니다.
-                        </p>
-                      )}
+                      <PublicMatchResultForm
+                        targetType="team_game"
+                        targetId={game.id}
+                        responseToken={responseToken}
+                        onResultUpdated={reloadMatches}
+                      />
                     </div>
                   )}
                 </article>

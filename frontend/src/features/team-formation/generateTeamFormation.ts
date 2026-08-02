@@ -383,7 +383,7 @@ const createWarnings = (
 
   if (metrics.averageRankDifference > ACCEPTABLE_AVERAGE_RANK_DIFFERENCE) {
     warnings.push(
-      `팀 평균 부수 차이가 ${metrics.averageRankDifference}입니다. 운영자 조정을 권장합니다.`,
+      `팀 평균 부수 차이가 ${metrics.averageRankDifference}입니다.`,
     );
   }
 

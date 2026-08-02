@@ -197,6 +197,39 @@
   font-weight: 850;
 }
 
+.singleMatchRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.playerName {
+  color: #101828;
+  font-size: 0.95rem;
+}
+
+.vsText {
+  color: #98a2b3;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.formatText {
+  color: #667085;
+  font-size: 0.8rem;
+}
+
+.tableBadge {
+  padding: 2px 6px;
+  color: #475467;
+  background: #eef2ff;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
 .formatList,
 .lineupStatus {
   display: flex;
@@ -230,6 +263,53 @@
   border-radius: 13px;
 }
 
+.loadingState,
+.emptyState {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-height: 140px;
+  padding: 24px 12px;
+  color: #667085;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px dashed #d0d5dd;
+  border-radius: 8px;
+}
+
+.loadingState {
+  align-content: center;
+}
+
+.loadingState p,
+.emptyState p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.emptyState p + p {
+  color: #98a2b3;
+  font-size: 0.78rem;
+}
+
+.spinner {
+  flex: 0 0 auto;
+  animation: schedule-spin 0.8s linear infinite;
+}
+
+@keyframes schedule-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
 @media (max-width: 800px) {
   .panel {
     gap: 14px;
@@ -243,48 +323,29 @@
     flex-direction: column;
   }
 
-  .scheduleHeader {
-    align-items: center;
-    flex-direction: row;
-  }
-
-  .scheduleHeader h2 {
-    font-size: 1.05rem;
-  }
-
-  .scheduleHeader p {
-    font-size: 0.76rem;
-  }
-
-  .refreshButton {
-    width: 42px;
-    min-width: 42px;
-    padding: 0;
-    font-size: 0;
-  }
-
   .summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 5px;
+    gap: 4px;
   }
 
   .summary > div {
     min-width: 0;
     justify-items: center;
-    gap: 3px;
-    padding: 8px 3px;
+    gap: 2px;
+    padding: 6px 2px;
     text-align: center;
-    border-radius: 10px;
+    border-radius: 8px;
   }
 
   .summary span {
-    font-size: 0.64rem;
-    line-height: 1.2;
+    font-size: 0.58rem;
+    line-height: 1.1;
     white-space: nowrap;
+    letter-spacing: -0.3px;
   }
 
   .summary strong {
-    font-size: 0.92rem;
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 
@@ -306,21 +367,72 @@
     grid-column: 1 / -1;
   }
 
-  .teams {
+  .roundList {
     gap: 8px;
   }
 
-  .roundCard > header {
-    align-items: center;
-    flex-direction: row;
-    padding: 12px;
+  .roundCard {
+    border-radius: 10px;
   }
 
-  .roundCard {
-    border-radius: 12px;
+  .roundCard > header {
+    padding: 8px 12px;
+  }
+
+  .roundCard h3 {
+    font-size: 0.85rem;
+  }
+
+  .roundCard header span {
+    font-size: 0.7rem;
   }
 
   .matchCard {
-    padding: 13px 11px;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .teams {
+    gap: 6px;
+  }
+
+  .teams strong {
+    font-size: 0.82rem;
+  }
+
+  .teams span {
+    font-size: 0.65rem;
+    padding: 0 4px;
+  }
+
+  .singleMatchRow {
+    gap: 6px;
+  }
+
+  .playerName {
+    font-size: 0.82rem;
+  }
+
+  .vsText {
+    font-size: 0.7rem;
+  }
+
+  .formatText {
+    font-size: 0.7rem;
+  }
+
+  .tableBadge {
+    font-size: 0.65rem;
+  }
+
+  .formatList,
+  .lineupStatus {
+    gap: 4px;
+  }
+
+  .formatList span,
+  .lineupStatus span {
+    padding: 2px 6px;
+    font-size: 0.65rem;
   }
 }

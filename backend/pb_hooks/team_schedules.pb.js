@@ -386,7 +386,7 @@ routerAdd(
 
           teamMatch.set("format_snapshot", formatSnapshotJson);
 
-          teamMatch.set("status", "scheduled");
+          teamMatch.set("status", "ready");
           teamMatch.set("version", nextScheduleVersion);
 
           transactionDao.saveRecord(teamMatch);
@@ -425,6 +425,12 @@ routerAdd(
           });
         });
     });
+
+    const operationService = require(
+      `${__hooks}/match_operation_service.js`,
+    );
+
+    operationService.advanceTeamRound($app.dao(), gameSettingId);
 
     return context.json(200, {
       formationId: formation.id,

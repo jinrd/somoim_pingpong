@@ -20,6 +20,7 @@ export interface MatchResultSideInfo {
   id: string;
   label: string;
   players: MatchResultPlayer[];
+  members?: MatchResultPlayer[];
 }
 
 export interface OwnResultSubmission {
@@ -46,6 +47,7 @@ export interface PublicMatchResultContext {
 
   bestOf: number;
   requiredWins: number;
+  requiredPlayerCount: number;
 
   side: MatchResultSide;
 
@@ -64,4 +66,5 @@ export interface SubmitMatchResultInput {
   expectedVersion: number;
   homeScore: number;
   awayScore: number;
+  participantIds?: string[];
 }

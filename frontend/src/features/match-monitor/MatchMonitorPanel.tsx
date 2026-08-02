@@ -158,11 +158,7 @@ export default function MatchMonitorPanel({
                 status: match.status,
                 version: match.version,
                 title: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-                description:
-                  match.homeLineupStatus === "confirmed" &&
-                  match.awayLineupStatus === "confirmed"
-                    ? "양 팀 라인업 확정"
-                    : "라인업 확정 필요",
+                description: "결과 입력 시 실제 출전 선수를 기록합니다.",
                 results: match.games.map((game) => {
                   const typeLabel =
                     game.matchType === "singles" ? "단식" : "복식";

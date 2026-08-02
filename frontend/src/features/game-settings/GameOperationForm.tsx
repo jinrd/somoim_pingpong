@@ -139,7 +139,7 @@ export default function GameOperationForm({
               </label>
 
               <label className={styles.formField}>
-                <span>팀 편성</span>
+                <span>균형 팀 편성</span>
 
                 <span className={styles.checkboxField}>
                   <input

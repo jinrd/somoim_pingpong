@@ -39,6 +39,7 @@ routerAdd(
       expectedVersion: 0,
       homeScore: 0,
       awayScore: 0,
+      participantIds: [],
     });
 
     context.bind(requestData);
@@ -60,6 +61,7 @@ routerAdd(
         expectedVersion: requestData.expectedVersion,
         homeScore: requestData.homeScore,
         awayScore: requestData.awayScore,
+        participantIds: requestData.participantIds,
       },
     );
 
