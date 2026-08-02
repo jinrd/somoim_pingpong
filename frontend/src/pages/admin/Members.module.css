@@ -18,10 +18,43 @@
   letter-spacing: -0.04em;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.pageIcon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: #4338ca;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: #6366f1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .title p {
   margin: 6px 0 0;
   color: var(--color-muted);
   font-size: 0.86rem;
+}
+
+.pagePurpose {
+  max-width: 620px;
+  line-height: 1.5;
 }
 
 .actions {
@@ -152,6 +185,24 @@
 .iconButton:hover {
   color: var(--color-primary);
   background: var(--color-primary-soft);
+}
+
+.dangerIconButton {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #b42318;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dangerIconButton:hover {
+  color: #ffffff;
+  background: #d92d20;
 }
 
 .rowActions {
@@ -294,10 +345,26 @@
     margin-bottom: 16px;
   }
 
+  .titleRow {
+    align-items: flex-start;
+  }
+
+  .pageIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .pagePurpose {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
   .actions {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 7px;
   }
 
@@ -428,26 +495,31 @@
     font-weight: 800;
   }
 
-  .mobileCardActions {
-    display: flex;
-    gap: 5px;
-  }
-
-  .mobileRecordButton {
+  .mobileDeleteButton {
     min-height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
     padding: 0 9px;
-    color: #067647;
-    background: #ecfdf3;
+    color: #b42318;
+    background: #fff4f2;
     border: 0;
     border-radius: 9px;
     cursor: pointer;
     font: inherit;
     font-size: 0.7rem;
     font-weight: 800;
+  }
+
+  .mobileDeleteButton:hover {
+    color: #ffffff;
+    background: #d92d20;
+  }
+
+  .mobileCardActions {
+    display: flex;
+    gap: 5px;
   }
 
   .mobileMemberMeta {
@@ -458,11 +530,6 @@
     padding: 8px 10px;
     background: #f8fafc;
     border-top: 1px solid #eef2f6;
-  }
-
-  .rankBadge {
-    color: #312e81;
-    font-size: 0.72rem;
   }
 
   .mobileMemberMeta .activeBadge,

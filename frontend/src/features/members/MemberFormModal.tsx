@@ -6,7 +6,6 @@ import { DOMAIN_LIMITS } from "../../config/domain";
 import {
   type Member,
   type MemberInput,
-  type RankSettingsInput,
   createMember,
   updateMember,
 } from "./api";
@@ -15,7 +14,6 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   initialData?: Member | null;
-  rankSettings: RankSettingsInput;
 }
 
 const EMPTY_PHONE_INPUT = "01000000000";
@@ -66,13 +64,11 @@ const getSaveErrorMessage = (error: unknown): string => {
   return error.response.message || "회원 정보를 저장하지 못했습니다.";
 };
 
-const toFormData = (
-  rankSettings: RankSettingsInput,
-  member?: Member | null,
-): MemberInput => ({
+const toFormData = (member?: Member | null): MemberInput => ({
   name: member?.name ?? "",
   nickname: member?.nickname ?? "",
-  rank: member?.rank ?? rankSettings.default_member_rank,
+  // 기존 PocketBase members 스키마의 필수 필드 호환용
+  rank: member?.rank ?? 8,
   status: member?.status ?? "active",
   gender: member?.gender ?? "M",
   phone: formatPhoneNumber(member ? (member.phone ?? "") : EMPTY_PHONE_INPUT),
@@ -83,10 +79,9 @@ export default function MemberFormModal({
   onClose,
   onSaved,
   initialData,
-  rankSettings,
 }: Props) {
   const [formData, setFormData] = useState<MemberInput>(() =>
-    toFormData(rankSettings, initialData),
+    toFormData(initialData),
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -214,21 +209,6 @@ export default function MemberFormModal({
                   phone: formatPhoneNumber(event.target.value),
                 });
               }}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label htmlFor="member-rank">부수 *</label>
-            <input
-              id="member-rank"
-              type="number"
-              min={rankSettings.min_rank}
-              max={rankSettings.max_rank}
-              required
-              className={styles.input}
-              value={formData.rank}
-              onChange={(e) =>
-                setFormData({ ...formData, rank: Number(e.target.value) })
-              }
             />
           </div>
           <div className={styles.formGroup}>

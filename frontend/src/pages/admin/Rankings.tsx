@@ -5,6 +5,9 @@ import {
   ChevronRight,
   History,
   LoaderCircle,
+  Minus,
+  Pencil,
+  Plus,
   RefreshCw,
   ShieldCheck,
   Trophy,
@@ -23,9 +26,12 @@ import {
   type RankingOverview,
   recalculateRankings,
   rejectRankingCandidate,
+  updateMemberRank,
 } from "../../features/rankings/api";
 
 import styles from "./Rankings.module.css";
+
+type RankingTab = "members" | "candidates";
 
 interface ReviewTarget {
   candidate: RankingCandidate;
@@ -77,6 +83,10 @@ export default function Rankings() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<RankingTab>("members");
+  const [isRankEditing, setIsRankEditing] = useState(false);
+  const [rankInput, setRankInput] = useState(0);
+  const [isRankSaving, setIsRankSaving] = useState(false);
 
   const selectedMemberId = searchParams.get("member") ?? "";
 
@@ -106,6 +116,8 @@ export default function Rankings() {
         const result = await getMemberRankingDetail(memberId);
 
         setSelectedDetail(result);
+        setRankInput(result.member.currentRank);
+        setIsRankEditing(false);
       } catch (caughtError) {
         setError(
           getErrorMessage(caughtError, "회원 전적을 불러오지 못했습니다."),
@@ -120,6 +132,59 @@ export default function Rankings() {
   const closeMemberDetail = () => {
     setSelectedDetail(null);
     setSearchParams({});
+  };
+
+  const handleSaveMemberRank = async () => {
+    if (!selectedDetail || !overview) {
+      return;
+    }
+
+    const { minRank, maxRank } = overview.settings;
+
+    if (
+      !Number.isInteger(rankInput) ||
+      rankInput < minRank ||
+      rankInput > maxRank
+    ) {
+      setError(`${minRank}부부터 ${maxRank}부 사이로 입력해 주세요.`);
+      return;
+    }
+
+    if (rankInput === selectedDetail.member.currentRank) {
+      setIsRankEditing(false);
+      return;
+    }
+
+    setIsRankSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const memberId = selectedDetail.member.memberId;
+
+      await updateMemberRank(memberId, {
+        rank: rankInput,
+      });
+
+      const [nextOverview, nextDetail] = await Promise.all([
+        recalculateRankings(),
+        getMemberRankingDetail(memberId),
+      ]);
+
+      setOverview(nextOverview);
+      setSelectedDetail(nextDetail);
+      setRankInput(nextDetail.member.currentRank);
+      setIsRankEditing(false);
+      setMessage(
+        `${nextDetail.member.nickname}님의 부수를 ${nextDetail.member.currentRank}부로 변경했습니다.`,
+      );
+    } catch (caughtError) {
+      setError(
+        getErrorMessage(caughtError, "회원 부수를 변경하지 못했습니다."),
+      );
+    } finally {
+      setIsRankSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -153,7 +218,10 @@ export default function Rankings() {
   }, []);
 
   useEffect(() => {
-    if (!selectedMemberId || selectedDetail?.member.memberId === selectedMemberId) {
+    if (
+      !selectedMemberId ||
+      selectedDetail?.member.memberId === selectedMemberId
+    ) {
       return;
     }
 
@@ -247,28 +315,38 @@ export default function Rankings() {
   return (
     <div className={styles.container}>
       <header className={styles.pageHeader}>
-        <div>
-          <h1>부수·랭킹 관리</h1>
-          <p>공식 단식 전적을 확인하고 승급·강등 후보를 검토합니다.</p>
+        <div className={styles.pageTitle}>
+          <div className={styles.titleRow}>
+            <span className={styles.pageIcon} aria-hidden="true">
+              <Trophy size={22} />
+            </span>
+            <div>
+              <span className={styles.eyebrow}>운영 관리</span>
+              <h1>부수 관리</h1>
+            </div>
+          </div>
+          <p>회원별 부수와 승급·강등을 관리합니다.</p>
         </div>
 
-        <button
-          type="button"
-          className={styles.refreshButton}
-          disabled={isLoading}
-          onClick={() => {
-            setIsLoading(true);
-            setMessage("");
-            void loadOverview();
-          }}
-        >
-          <RefreshCw
-            size={17}
-            className={isLoading ? styles.spinner : undefined}
-            aria-hidden="true"
-          />
-          후보 다시 계산
-        </button>
+        {activeTab === "candidates" && (
+          <button
+            type="button"
+            className={styles.refreshButton}
+            disabled={isLoading}
+            onClick={() => {
+              setIsLoading(true);
+              setMessage("");
+              void loadOverview();
+            }}
+          >
+            <RefreshCw
+              size={17}
+              className={isLoading ? styles.spinner : undefined}
+              aria-hidden="true"
+            />
+            후보 다시 계산
+          </button>
+        )}
       </header>
 
       {error && (
@@ -283,179 +361,214 @@ export default function Rankings() {
           {message}
         </div>
       )}
+      <nav className={styles.tabList} aria-label="부수 관리 화면">
+        <button
+          type="button"
+          className={
+            activeTab === "members" ? styles.tabActive : styles.tabButton
+          }
+          aria-pressed={activeTab === "members"}
+          onClick={() => setActiveTab("members")}
+        >
+          회원 부수
+        </button>
 
-      <section className={styles.ruleNotice}>
-        <ShieldCheck size={22} aria-hidden="true" />
-        <div>
-          <strong>자동 계산, 운영자 승인 방식</strong>
-          <p>
-            상위 부수 상대 {overview?.settings.promotionThreshold ?? 3}연승은
-            1단계 승급, 하위 부수 상대{" "}
-            {overview?.settings.demotionThreshold ?? 4}연패는 1단계 강등
-            후보가 됩니다.
-          </p>
-        </div>
-      </section>
+        <button
+          type="button"
+          className={
+            activeTab === "candidates" ? styles.tabActive : styles.tabButton
+          }
+          aria-pressed={activeTab === "candidates"}
+          onClick={() => setActiveTab("candidates")}
+        >
+          승강 후보
+          {(overview?.pendingCandidateCount ?? 0) > 0 && (
+            <span className={styles.tabCount}>
+              {overview?.pendingCandidateCount}
+            </span>
+          )}
+        </button>
+      </nav>
+      {activeTab === "candidates" && (
+        <>
+          <section className={styles.ruleNotice}>
+            <ShieldCheck size={22} aria-hidden="true" />
+            <div>
+              <strong>자동 계산, 운영자 승인 방식</strong>
+              <p>
+                동일·상위 부수 상대 {overview?.settings.promotionThreshold ?? 3}
+                연승은 1단계 승급, 동일·하위 부수 상대{" "}
+                {overview?.settings.demotionThreshold ?? 4}연패는 1단계 강등
+                후보가 됩니다.
+              </p>
+            </div>
+          </section>
 
-      <section className={styles.summaryGrid} aria-label="부수 관리 요약">
-        <article>
-          <span>공식 단식</span>
-          <strong>{overview?.officialMatchCount ?? 0}</strong>
-        </article>
-        <article>
-          <span>검토 대기</span>
-          <strong>{overview?.pendingCandidateCount ?? 0}</strong>
-        </article>
-        <article>
-          <span>활동 회원</span>
-          <strong>{activeMemberCount}</strong>
-        </article>
-      </section>
+          <section className={styles.summaryGrid} aria-label="부수 관리 요약">
+            <article>
+              <span>공식 단식</span>
+              <strong>{overview?.officialMatchCount ?? 0}</strong>
+            </article>
+            <article>
+              <span>검토 대기</span>
+              <strong>{overview?.pendingCandidateCount ?? 0}</strong>
+            </article>
+            <article>
+              <span>활동 회원</span>
+              <strong>{activeMemberCount}</strong>
+            </article>
+          </section>
 
-      <section className={styles.section}>
-        <header className={styles.sectionHeader}>
-          <div>
-            <h2>승급·강등 후보</h2>
-            <p>승인해야 실제 회원 부수가 변경됩니다.</p>
-          </div>
-          <span>{overview?.pendingCandidates.length ?? 0}명</span>
-        </header>
+          <section className={styles.section}>
+            <header className={styles.sectionHeader}>
+              <div>
+                <h2>승급·강등 후보</h2>
+                <p>승인해야 실제 회원 부수가 변경됩니다.</p>
+              </div>
+              <span>{overview?.pendingCandidates.length ?? 0}명</span>
+            </header>
 
-        {isLoading ? (
-          <div className={styles.loadingState}>
-            <LoaderCircle
-              size={24}
-              className={styles.spinner}
-              aria-hidden="true"
-            />
-            후보를 계산하고 있습니다.
-          </div>
-        ) : !overview || overview.pendingCandidates.length === 0 ? (
-          <div className={styles.emptyState}>
-            현재 검토할 승급·강등 후보가 없습니다.
-          </div>
-        ) : (
-          <div className={styles.candidateList}>
-            {overview.pendingCandidates.map((candidate) => {
-              const isPromotion = candidate.direction === "promotion";
-
-              return (
-                <article
-                  key={candidate.id}
-                  className={
-                    isPromotion
-                      ? styles.promotionCard
-                      : styles.demotionCard
-                  }
-                >
-                  <span className={styles.directionIcon}>
-                    {isPromotion ? (
-                      <ArrowUp size={20} aria-hidden="true" />
-                    ) : (
-                      <ArrowDown size={20} aria-hidden="true" />
-                    )}
-                  </span>
-
-                  <div className={styles.candidateIdentity}>
-                    <strong>{candidate.memberNickname}</strong>
-                    <span>{candidate.memberName}</span>
-                  </div>
-
-                  <div className={styles.rankChange}>
-                    <span>{candidate.currentRank}부</span>
-                    <ChevronRight size={16} aria-hidden="true" />
-                    <strong>{candidate.proposedRank}부</strong>
-                  </div>
-
-                  <div className={styles.streakBadge}>
-                    {isPromotion ? "상위 상대" : "하위 상대"}{" "}
-                    {candidate.streakCount}
-                    {isPromotion ? "연승" : "연패"}
-                  </div>
-
-                  <div className={styles.candidateActions}>
-                    <button
-                      type="button"
-                      className={styles.rejectButton}
-                      onClick={() => beginReview(candidate, "reject")}
-                    >
-                      반려
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.approveButton}
-                      onClick={() => beginReview(candidate, "approve")}
-                    >
-                      승인
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className={styles.section}>
-        <header className={styles.sectionHeader}>
-          <div>
-            <h2>회원 공식 단식 전적</h2>
-            <p>승강 계산에는 공식 단식으로 지정된 경기만 포함됩니다.</p>
-          </div>
-          <span>{overview?.members.length ?? 0}명</span>
-        </header>
-
-        {isLoading ? (
-          <div className={styles.loadingState}>회원 전적을 불러오는 중…</div>
-        ) : (
-          <div className={styles.memberList}>
-            {overview?.members.map((member) => (
-              <button
-                key={member.memberId}
-                type="button"
-                className={styles.memberRow}
-                onClick={() => {
-                  void openMemberDetail(member.memberId);
-                }}
-              >
-                <span className={styles.memberRank}>{member.currentRank}부</span>
-                <span className={styles.memberIdentity}>
-                  <strong>{member.nickname}</strong>
-                  <small>{member.name}</small>
-                </span>
-                <span className={styles.record}>
-                  <strong>
-                    {member.wins}승 {member.losses}패
-                  </strong>
-                  <small>{member.officialMatchCount}경기</small>
-                </span>
-                <span className={styles.streaks}>
-                  {member.promotionStreak > 0 && (
-                    <small className={styles.promotionText}>
-                      승급 {member.promotionStreak}
-                    </small>
-                  )}
-                  {member.demotionStreak > 0 && (
-                    <small className={styles.demotionText}>
-                      강등 {member.demotionStreak}
-                    </small>
-                  )}
-                  {member.promotionStreak === 0 &&
-                    member.demotionStreak === 0 && <small>연속 기록 없음</small>}
-                </span>
-                {member.pendingCandidate && (
-                  <span className={styles.pendingBadge}>검토 대기</span>
-                )}
-                <ChevronRight
-                  className={styles.rowChevron}
-                  size={18}
+            {isLoading ? (
+              <div className={styles.loadingState}>
+                <LoaderCircle
+                  size={24}
+                  className={styles.spinner}
                   aria-hidden="true"
                 />
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+                후보를 계산하고 있습니다.
+              </div>
+            ) : !overview || overview.pendingCandidates.length === 0 ? (
+              <div className={styles.emptyState}>
+                현재 검토할 승급·강등 후보가 없습니다.
+              </div>
+            ) : (
+              <div className={styles.candidateList}>
+                {overview.pendingCandidates.map((candidate) => {
+                  const isPromotion = candidate.direction === "promotion";
+
+                  return (
+                    <article
+                      key={candidate.id}
+                      className={
+                        isPromotion ? styles.promotionCard : styles.demotionCard
+                      }
+                    >
+                      <span className={styles.directionIcon}>
+                        {isPromotion ? (
+                          <ArrowUp size={20} aria-hidden="true" />
+                        ) : (
+                          <ArrowDown size={20} aria-hidden="true" />
+                        )}
+                      </span>
+
+                      <div className={styles.candidateIdentity}>
+                        <strong>{candidate.memberNickname}</strong>
+                        <span>{candidate.memberName}</span>
+                      </div>
+
+                      <div className={styles.rankChange}>
+                        <span>{candidate.currentRank}부</span>
+                        <ChevronRight size={16} aria-hidden="true" />
+                        <strong>{candidate.proposedRank}부</strong>
+                      </div>
+
+                      <div className={styles.streakBadge}>
+                        {isPromotion ? "상위 상대" : "하위 상대"}{" "}
+                        {candidate.streakCount}
+                        {isPromotion ? "연승" : "연패"}
+                      </div>
+
+                      <div className={styles.candidateActions}>
+                        <button
+                          type="button"
+                          className={styles.rejectButton}
+                          onClick={() => beginReview(candidate, "reject")}
+                        >
+                          반려
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.approveButton}
+                          onClick={() => beginReview(candidate, "approve")}
+                        >
+                          승인
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {activeTab === "members" && (
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <div>
+              <h2>회원별 부수</h2>
+              <p>회원을 선택하면 현재 부수와 상세 기록을 확인할 수 있습니다.</p>
+            </div>
+            <span>{overview?.members.length ?? 0}명</span>
+          </header>
+
+          {isLoading ? (
+            <div className={styles.loadingState}>회원 전적을 불러오는 중…</div>
+          ) : (
+            <div className={styles.memberList}>
+              {overview?.members.map((member) => (
+                <button
+                  key={member.memberId}
+                  type="button"
+                  className={styles.memberRow}
+                  onClick={() => {
+                    void openMemberDetail(member.memberId);
+                  }}
+                >
+                  <span className={styles.memberRank}>
+                    {member.currentRank}부
+                  </span>
+                  <span className={styles.memberIdentity}>
+                    <strong>{member.nickname}</strong>
+                    <small>{member.name}</small>
+                  </span>
+                  <span className={styles.record}>
+                    <strong>
+                      {member.wins}승 {member.losses}패
+                    </strong>
+                    <small>{member.officialMatchCount}경기</small>
+                  </span>
+                  <span className={styles.streaks}>
+                    {member.promotionStreak > 0 && (
+                      <small className={styles.promotionText}>
+                        승급 {member.promotionStreak}
+                      </small>
+                    )}
+                    {member.demotionStreak > 0 && (
+                      <small className={styles.demotionText}>
+                        강등 {member.demotionStreak}
+                      </small>
+                    )}
+                    {member.promotionStreak === 0 &&
+                      member.demotionStreak === 0 && (
+                        <small>연속 기록 없음</small>
+                      )}
+                  </span>
+                  {member.pendingCandidate && (
+                    <span className={styles.pendingBadge}>검토 대기</span>
+                  )}
+                  <ChevronRight
+                    className={styles.rowChevron}
+                    size={18}
+                    aria-hidden="true"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {isDetailLoading && !selectedDetail && (
         <div className={styles.detailLoading} role="status">
@@ -499,6 +612,87 @@ export default function Rankings() {
             </header>
 
             <div className={styles.detailBody}>
+              <section className={styles.rankControl}>
+                <div>
+                  <span>현재 부수</span>
+                  <strong>{selectedDetail.member.currentRank}부</strong>
+                </div>
+
+                {isRankEditing ? (
+                  <div className={styles.rankEditor}>
+                    <button
+                      type="button"
+                      aria-label="부수 숫자 줄이기"
+                      disabled={
+                        isRankSaving ||
+                        rankInput <= (overview?.settings.minRank ?? 0)
+                      }
+                      onClick={() => setRankInput((current) => current - 1)}
+                    >
+                      <Minus size={17} aria-hidden="true" />
+                    </button>
+
+                    <label>
+                      <span className={styles.srOnly}>변경할 부수</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={overview?.settings.minRank}
+                        max={overview?.settings.maxRank}
+                        value={rankInput}
+                        disabled={isRankSaving}
+                        onChange={(event) =>
+                          setRankInput(Number(event.target.value))
+                        }
+                      />
+                      <strong>부</strong>
+                    </label>
+
+                    <button
+                      type="button"
+                      aria-label="부수 숫자 늘리기"
+                      disabled={
+                        isRankSaving ||
+                        rankInput >= (overview?.settings.maxRank ?? rankInput)
+                      }
+                      onClick={() => setRankInput((current) => current + 1)}
+                    >
+                      <Plus size={17} aria-hidden="true" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.rankCancelButton}
+                      disabled={isRankSaving}
+                      onClick={() => {
+                        setRankInput(selectedDetail.member.currentRank);
+                        setIsRankEditing(false);
+                      }}
+                    >
+                      취소
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.rankSaveButton}
+                      disabled={isRankSaving}
+                      onClick={() => void handleSaveMemberRank()}
+                    >
+                      {isRankSaving ? "저장 중" : "저장"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.rankEditButton}
+                    onClick={() => setIsRankEditing(true)}
+                  >
+                    <Pencil size={16} aria-hidden="true" />
+                    부수 수정
+                  </button>
+                )}
+              </section>
+
               <div className={styles.detailSummary}>
                 <article>
                   <span>공식 전적</span>
@@ -543,7 +737,8 @@ export default function Rankings() {
                         <div>
                           <strong>vs {match.opponentName}</strong>
                           <small>
-                            {match.eventTitle} · {formatDateTime(match.confirmedAt)}
+                            {match.eventTitle} ·{" "}
+                            {formatDateTime(match.confirmedAt)}
                           </small>
                           <small>
                             당시 {match.ownRank}부 vs {match.opponentRank}부
@@ -609,7 +804,9 @@ export default function Rankings() {
             <header>
               <div>
                 <span>
-                  {reviewTarget.action === "approve" ? "최종 확인" : "후보 반려"}
+                  {reviewTarget.action === "approve"
+                    ? "최종 확인"
+                    : "후보 반려"}
                 </span>
                 <h2 id="ranking-review-title">
                   {reviewTarget.candidate.memberNickname}님{" "}

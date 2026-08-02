@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./Members.module.css";
-import { getMembers, getRankSettings } from "../../features/members/api";
-import type { Member, RankSettings } from "../../features/members/api";
+import { getMembers, deleteMember } from "../../features/members/api";
+import type { Member } from "../../features/members/api";
 import MemberFormModal from "../../features/members/MemberFormModal";
-import RankSettingsModal from "../../features/members/RankSettingsModal";
-import { Edit, Search, Settings, Trophy, UserPlus } from "lucide-react";
-import { DEFAULT_RANK_SETTINGS } from "../../config/domain";
-import { useNavigate } from "react-router-dom";
+import { Edit, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { ClientResponseError } from "pocketbase";
 
 type MemberStatusFilter = "all" | Member["status"];
 
@@ -23,13 +21,10 @@ const getGenderLabel = (gender: Member["gender"]): string => {
 };
 
 export default function Members() {
-  const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
-  const [rankSettings, setRankSettings] = useState<RankSettings | null>(null);
-  const effectiveRankSettings = rankSettings ?? DEFAULT_RANK_SETTINGS;
 
   const [isMemberModalOpen, setMemberModalOpen] = useState(false);
-  const [isRankModalOpen, setRankModalOpen] = useState(false);
+
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -74,12 +69,8 @@ export default function Members() {
   const loadData = async () => {
     setError("");
     try {
-      const [membersData, settingsData] = await Promise.all([
-        getMembers(),
-        getRankSettings(),
-      ]);
+      const membersData = await getMembers();
       setMembers(membersData);
-      setRankSettings(settingsData);
     } catch {
       setError(
         "회원 정보를 불러오지 못했습니다. 서버 연결과 로그인 상태를 확인해 주세요.",
@@ -92,11 +83,10 @@ export default function Members() {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getMembers(), getRankSettings()])
-      .then(([membersData, settingsData]) => {
+    getMembers()
+      .then((membersData) => {
         if (cancelled) return;
         setMembers(membersData);
-        setRankSettings(settingsData);
       })
       .catch(() => {
         if (!cancelled) {
@@ -124,23 +114,62 @@ export default function Members() {
     setMemberModalOpen(true);
   };
 
+  const handleDeleteMember = async (member: Member) => {
+    const confirmed = window.confirm(
+      `${member.nickname} 회원을 삭제하시겠습니까?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError("");
+      await deleteMember(member.id);
+      setMembers((currentMembers) =>
+        currentMembers.filter(
+          (currentMember) => currentMember.id !== member.id,
+        ),
+      );
+    } catch (caughtError) {
+      if (caughtError instanceof ClientResponseError) {
+        if (caughtError.status === 401 || caughtError.status === 403) {
+          setError("회원 삭제 권한이 없습니다. 다시 로그인해 주세요.");
+        } else if (caughtError.status === 400) {
+          setError(
+            "이 회원을 참조하는 회차 또는 경기 기록이 있어 삭제할 수 없습니다.",
+          );
+        } else {
+          setError(
+            caughtError.response.message ||
+              "회원 삭제에 실패했습니다. 다시 시도해 주세요.",
+          );
+        }
+      } else {
+        setError("회원 삭제에 실패했습니다. 다시 시도해 주세요.");
+      }
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.title}>
-          <h2>회원 관리</h2>
-          <p>회원 정보와 활동 상태, 부수를 관리합니다.</p>
+          <div className={styles.titleRow}>
+            <span className={styles.pageIcon} aria-hidden="true">
+              <Users size={22} />
+            </span>
+            <div>
+              <span className={styles.eyebrow}>운영 관리</span>
+              <h2>회원 관리</h2>
+            </div>
+          </div>
+          <p className={styles.pagePurpose}>
+            우리 모임의 회원 정보를 한곳에서 관리합니다.
+          </p>
         </div>
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            onClick={() => setRankModalOpen(true)}
-            className={styles.btnSecondary}
-          >
-            <Settings size={18} aria-hidden="true" />
-            부수 승강 기준 설정
-          </button>
           <button
             type="button"
             onClick={openNewMember}
@@ -193,10 +222,6 @@ export default function Members() {
             onChange={(event) => setSearchQuery(event.target.value)}
           />
         </label>
-
-        <span className={styles.resultCount}>
-          {filteredMembers.length}명 표시
-        </span>
       </div>
 
       <div className={styles.tableContainer}>
@@ -205,7 +230,6 @@ export default function Members() {
             <tr>
               <th>이름</th>
               <th>닉네임</th>
-              <th>부수</th>
               <th>성별</th>
               <th>연락처</th>
               <th>상태</th>
@@ -215,13 +239,13 @@ export default function Members() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className={styles.emptyCell}>
+                <td colSpan={6} className={styles.emptyCell}>
                   불러오는 중…
                 </td>
               </tr>
             ) : filteredMembers.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.emptyCell}>
+                <td colSpan={6} className={styles.emptyCell}>
                   {members.length === 0
                     ? "등록된 회원이 없습니다."
                     : "조건에 맞는 회원이 없습니다."}
@@ -232,9 +256,6 @@ export default function Members() {
                 <tr key={member.id}>
                   <td>{member.name}</td>
                   <td>{member.nickname}</td>
-                  <td>
-                    <strong>{member.rank}부</strong>
-                  </td>
                   <td>{getGenderLabel(member.gender)}</td>
                   <td>{member.phone || "-"}</td>
                   <td>
@@ -250,16 +271,6 @@ export default function Members() {
                   </td>
                   <td>
                     <div className={styles.rowActions}>
-                      {/* <button
-                        type="button"
-                        onClick={() =>
-                          navigate(`/rankings?member=${member.id}`)
-                        }
-                        className={styles.iconButton}
-                        aria-label={`${member.nickname} 공식 단식 전적`}
-                      >
-                        <Trophy size={18} aria-hidden="true" />
-                      </button> */}
                       <button
                         type="button"
                         onClick={() => openEditMember(member)}
@@ -267,6 +278,15 @@ export default function Members() {
                         aria-label={`${member.nickname} 회원 수정`}
                       >
                         <Edit size={18} aria-hidden="true" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMember(member)}
+                        className={styles.dangerIconButton}
+                        aria-label={`${member.nickname} 회원 삭제`}
+                      >
+                        <Trash2 size={18} aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -304,15 +324,6 @@ export default function Members() {
                 <div className={styles.mobileCardActions}>
                   <button
                     type="button"
-                    onClick={() => navigate(`/rankings?member=${member.id}`)}
-                    className={styles.mobileRecordButton}
-                    aria-label={`${member.nickname} 공식 단식 전적`}
-                  >
-                    <Trophy size={16} aria-hidden="true" />
-                    전적
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => openEditMember(member)}
                     className={styles.mobileEditButton}
                     aria-label={`${member.nickname} 회원 수정`}
@@ -320,12 +331,20 @@ export default function Members() {
                     <Edit size={16} aria-hidden="true" />
                     수정
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteMember(member)}
+                    className={styles.mobileDeleteButton}
+                    aria-label={`${member.nickname} 회원 삭제`}
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                    삭제
+                  </button>
                 </div>
               </div>
 
               <div className={styles.mobileMemberMeta}>
-                <strong className={styles.rankBadge}>{member.rank}부</strong>
-
                 <span
                   className={
                     member.status === "active"
@@ -351,15 +370,6 @@ export default function Members() {
           key={selectedMember?.id ?? "new-member"}
           onClose={() => setMemberModalOpen(false)}
           initialData={selectedMember}
-          rankSettings={effectiveRankSettings}
-          onSaved={loadData}
-        />
-      )}
-      {isRankModalOpen && (
-        <RankSettingsModal
-          key={rankSettings?.id ?? "new-rank-settings"}
-          onClose={() => setRankModalOpen(false)}
-          initialData={rankSettings}
           onSaved={loadData}
         />
       )}

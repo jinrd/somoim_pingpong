@@ -298,8 +298,8 @@ const updateStreak = (
     return;
   }
 
-  const isPromotionWin = didWin && opponentRank < ownRank;
-  const isDemotionLoss = !didWin && opponentRank > ownRank;
+  const isPromotionWin = didWin && opponentRank <= ownRank;
+  const isDemotionLoss = !didWin && opponentRank >= ownRank;
 
   if (isPromotionWin) {
     performance.promotionStreak += 1;
@@ -485,7 +485,10 @@ const buildPerformanceMap = (dao) => {
 const markCandidateObsolete = (dao, candidateRecord) => {
   candidateRecord.set("status", CANDIDATE_STATUS_OBSOLETE);
   candidateRecord.set("reviewed_at", new Date().toISOString());
-  candidateRecord.set("review_note", "현재 공식 단식 결과와 조건이 달라졌습니다.");
+  candidateRecord.set(
+    "review_note",
+    "현재 공식 단식 결과와 조건이 달라졌습니다.",
+  );
   candidateRecord.set("version", candidateRecord.getInt("version") + 1);
   dao.saveRecord(candidateRecord);
 };
@@ -862,7 +865,10 @@ const reviewCandidate = (candidateId, input, action) => {
         : currentRank + 1;
 
     if (proposedRank !== expectedProposedRank) {
-      throw new ApiError(400, "한 번에 한 단계만 승급 또는 강등할 수 있습니다.");
+      throw new ApiError(
+        400,
+        "한 번에 한 단계만 승급 또는 강등할 수 있습니다.",
+      );
     }
 
     memberRecord.set("rank", proposedRank);
@@ -875,8 +881,9 @@ const reviewCandidate = (candidateId, input, action) => {
     candidateRecord.set("version", candidateRecord.getInt("version") + 1);
     txDao.saveRecord(candidateRecord);
 
-    const historyCollection =
-      txDao.findCollectionByNameOrId("member_rank_history");
+    const historyCollection = txDao.findCollectionByNameOrId(
+      "member_rank_history",
+    );
     const historyRecord = new Record(historyCollection);
     const direction = candidateRecord.getString("direction");
 
@@ -935,12 +942,7 @@ const rejectCandidate = (candidateId, input) => {
   return reviewCandidate(candidateId, input, CANDIDATE_STATUS_REJECTED);
 };
 
-const recordManualRankChange = (
-  dao,
-  memberRecord,
-  previousRank,
-  adminId,
-) => {
+const recordManualRankChange = (dao, memberRecord, previousRank, adminId) => {
   const newRank = memberRecord.getInt("rank");
 
   if (previousRank === newRank) {
@@ -956,7 +958,10 @@ const recordManualRankChange = (
   historyRecord.set("previous_rank", previousRank);
   historyRecord.set("new_rank", newRank);
   historyRecord.set("direction", "manual");
-  historyRecord.set("reason", "운영자가 회원 정보에서 부수를 직접 변경했습니다.");
+  historyRecord.set(
+    "reason",
+    "운영자가 회원 정보에서 부수를 직접 변경했습니다.",
+  );
   historyRecord.set("approved_by", adminId || "");
   historyRecord.set("effective_at", now);
 

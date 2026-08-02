@@ -49,7 +49,6 @@ export const getMembers = async (): Promise<Member[]> => {
 
 // 회원 추가
 export const createMember = async (data: MemberInput): Promise<Member> => {
-  await validateMemberRank(data.rank);
   return pb.collection("members").create<Member>(data);
 };
 
@@ -58,8 +57,12 @@ export const updateMember = async (
   id: string,
   data: MemberInput,
 ): Promise<Member> => {
-  await validateMemberRank(data.rank);
   return pb.collection("members").update<Member>(id, data);
+};
+
+// 회원 삭제
+export const deleteMember = async (id: string): Promise<void> => {
+  await pb.collection("members").delete(id);
 };
 
 // 승강 기준 조회 (보통 1개의 레코드만 존재)
@@ -70,24 +73,6 @@ export const getRankSettings = async (): Promise<RankSettings | null> => {
       sort: "-updated",
     });
   return records.items[0] ?? null;
-};
-
-const validateMemberRank = async (rank: number): Promise<void> => {
-  const settings = await getRankSettings();
-
-  if (!settings) {
-    throw new Error("부수 설정을 찾을 수 없습니다.");
-  }
-
-  if (
-    !Number.isInteger(rank) ||
-    rank < settings.min_rank ||
-    rank > settings.max_rank
-  ) {
-    throw new Error(
-      `부수는 ${settings.min_rank}부터 ${settings.max_rank} 사이의 정수여야 합니다.`,
-    );
-  }
 };
 
 // 승강 기준 수정 (또는 생성)

@@ -147,3 +147,16 @@ export const rejectRankingCandidate = async (
     },
   );
 };
+
+export interface UpdateMemberRankInput {
+  rank: number;
+}
+
+export const updateMemberRank = async (
+  memberId: string,
+  input: UpdateMemberRankInput,
+): Promise<void> => {
+  await pb.collection("members").update(memberId, {
+    rank: input.rank,
+  });
+};
