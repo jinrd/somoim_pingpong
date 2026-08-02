@@ -1,28 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  pointerWithin,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-
-import { CSS } from "@dnd-kit/utilities";
-
-import {
-  GripVertical,
-  RefreshCw,
-  RotateCcw,
-  Save,
-  Shuffle,
-  Users,
-} from "lucide-react";
-
+import { RefreshCw, RotateCcw, Save, Shuffle } from "lucide-react";
 import type { EventGameSetting } from "../game-settings/types";
 
 import {
@@ -36,16 +14,16 @@ import {
   generateTeamFormation,
 } from "./generateTeamFormation";
 
-import {
-  TEAM_FORMATION_METHOD_LABELS,
-} from "./constants";
+import TeamFormationBoard from "./TeamFormationBoard";
+import TeamFormationSummary from "./TeamFormationSummary";
+
+import { TEAM_FORMATION_METHOD_LABELS } from "./constants";
 
 import type {
   TeamDraft,
   TeamFormationContext,
   TeamFormationMethod,
   TeamFormationStatus,
-  TeamMemberDraft,
 } from "./types";
 
 import styles from "./TeamFormationPanel.module.css";
@@ -56,22 +34,6 @@ interface Props {
   onScheduleReset?: () => void;
 }
 
-interface TeamMemberCardProps {
-  member: TeamMemberDraft;
-  teamKey: string;
-  teams: TeamDraft[];
-  disabled: boolean;
-  onMove: (participantId: string, targetTeamKey: string) => void;
-}
-
-interface TeamColumnProps {
-  team: TeamDraft;
-  teams: TeamDraft[];
-  disabled: boolean;
-  onNameChange: (name: string) => void;
-  onMemberMove: (participantId: string, targetTeamKey: string) => void;
-}
-
 const cloneTeams = (teams: TeamDraft[]): TeamDraft[] =>
   teams.map((team) => ({
     ...team,
@@ -80,19 +42,6 @@ const cloneTeams = (teams: TeamDraft[]): TeamDraft[] =>
     })),
   }));
 
-const calculateAverageRank = (team: TeamDraft): number => {
-  if (team.members.length === 0) {
-    return 0;
-  }
-
-  const total = team.members.reduce(
-    (sum, member) => sum + member.rankSnapshot,
-    0,
-  );
-
-  return Math.round((total / team.members.length) * 100) / 100;
-};
-
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error) {
     return error.message;
@@ -100,130 +49,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
   return fallback;
 };
-
-function TeamMemberCard({
-  member,
-  teamKey,
-  teams,
-  disabled,
-  onMove,
-}: TeamMemberCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: `member:${member.participantId}`,
-      data: {
-        teamKey,
-      },
-      disabled,
-    });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={isDragging ? styles.memberCardDragging : styles.memberCard}
-      style={{
-        transform: CSS.Translate.toString(transform),
-      }}
-    >
-      <button
-        type="button"
-        className={styles.memberDragHandle}
-        disabled={disabled}
-        aria-label={`${member.displayName} 팀 이동`}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical size={17} aria-hidden="true" />
-      </button>
-
-      <div className={styles.memberInfo}>
-        <strong>{member.displayName}</strong>
-
-        <span>
-          {member.rankSnapshot}부 ·{" "}
-          {member.participantType === "guest" ? "게스트" : "회원"}
-        </span>
-      </div>
-
-      <label className={styles.mobileTeamMove}>
-        <span className={styles.visuallyHidden}>
-          {member.displayName} 이동할 팀
-        </span>
-
-        <select
-          value={teamKey}
-          disabled={disabled}
-          aria-label={`${member.displayName} 이동할 팀`}
-          onChange={(event) => {
-            onMove(member.participantId, event.target.value);
-          }}
-        >
-          {teams.map((team) => (
-            <option key={team.key} value={team.key}>
-              {team.name}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
-  );
-}
-
-function TeamColumn({
-  team,
-  teams,
-  disabled,
-  onNameChange,
-  onMemberMove,
-}: TeamColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `team:${team.key}`,
-    disabled,
-  });
-
-  const averageRank = calculateAverageRank(team);
-
-  return (
-    <article
-      ref={setNodeRef}
-      className={isOver ? styles.teamColumnOver : styles.teamColumn}
-    >
-      <header className={styles.teamHeader}>
-        <input
-          value={team.name}
-          maxLength={30}
-          disabled={disabled}
-          aria-label={`${team.name} 팀 이름`}
-          onChange={(event) => {
-            onNameChange(event.target.value);
-          }}
-        />
-
-        <div className={styles.teamStats}>
-          <span>{team.members.length}명</span>
-          <span>평균 {averageRank || "-"}부</span>
-        </div>
-      </header>
-
-      <div className={styles.memberList}>
-        {team.members.length === 0 ? (
-          <p className={styles.emptyTeam}>이곳에 팀원을 놓으세요.</p>
-        ) : (
-          team.members.map((member) => (
-            <TeamMemberCard
-              key={member.key}
-              member={member}
-              teamKey={team.key}
-              teams={teams}
-              disabled={disabled}
-              onMove={onMemberMove}
-            />
-          ))
-        )}
-      </div>
-    </article>
-  );
-}
 
 export default function TeamFormationPanel({
   setting,
@@ -251,15 +76,6 @@ export default function TeamFormationPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isConfirmFormationOpen, setConfirmFormationOpen] = useState(false);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 6,
-      },
-    }),
-    useSensor(KeyboardSensor),
-  );
 
   const metrics = useMemo(() => calculateTeamQuality(teams), [teams]);
 
@@ -336,10 +152,7 @@ export default function TeamFormationPanel({
       .catch((caughtError) => {
         if (!cancelled) {
           setError(
-            getErrorMessage(
-              caughtError,
-              "팀 편성 정보를 불러오지 못했습니다.",
-            ),
+            getErrorMessage(caughtError, "팀 편성 정보를 불러오지 못했습니다."),
           );
         }
       })
@@ -396,10 +209,7 @@ export default function TeamFormationPanel({
     }
   };
 
-  const handleMoveMember = (
-    participantId: string,
-    targetTeamKey: string,
-  ) => {
+  const handleMoveMember = (participantId: string, targetTeamKey: string) => {
     const sourceTeam = teams.find((team) =>
       team.members.some((member) => member.participantId === participantId),
     );
@@ -448,19 +258,6 @@ export default function TeamFormationPanel({
     setIsDirty(true);
     setError("");
     setMessage(`${member.displayName} 님을 이동했습니다.`);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const overId = event.over ? String(event.over.id) : "";
-
-    if (!overId.startsWith("team:")) {
-      return;
-    }
-
-    const participantId = String(event.active.id).replace(/^member:/, "");
-    const targetTeamKey = overId.replace(/^team:/, "");
-
-    handleMoveMember(participantId, targetTeamKey);
   };
 
   const handleUndo = () => {
@@ -543,14 +340,13 @@ export default function TeamFormationPanel({
     setMessage("");
 
     try {
-      await unlockTeamFormation(
-        setting.id,
-        context.formation.version,
-      );
+      await unlockTeamFormation(setting.id, context.formation.version);
       onScheduleReset?.();
       onFormationChanged?.("draft");
       await loadContext();
-      setMessage("대진표와 라인업을 초기화하고 팀 편성을 초안으로 전환했습니다.");
+      setMessage(
+        "대진표와 라인업을 초기화하고 팀 편성을 초안으로 전환했습니다.",
+      );
     } catch (caughtError) {
       setError(
         getErrorMessage(caughtError, "팀 편성 수정을 시작하지 못했습니다."),
@@ -628,8 +424,8 @@ export default function TeamFormationPanel({
           <h2>팀 편성</h2>
 
           <p>
-            자동 편성 후 PC에서는 드래그하고, 모바일에서는 이동할 팀을
-            선택하여 조정할 수 있습니다.
+            자동 편성 후 PC에서는 드래그하고, 모바일에서는 이동할 팀을 선택하여
+            조정할 수 있습니다.
           </p>
         </div>
 
@@ -662,28 +458,11 @@ export default function TeamFormationPanel({
         </p>
       ))}
 
-      <div className={styles.summaryGrid}>
-        <div>
-          <Users size={20} aria-hidden="true" />
-          <span>게임 참가자</span>
-          <strong>{context.participants.length}명</strong>
-        </div>
-
-        <div>
-          <span>팀 수</span>
-          <strong>{teams.length}팀</strong>
-        </div>
-
-        <div>
-          <span>품질 점수</span>
-          <strong>{metrics.qualityScore}점</strong>
-        </div>
-
-        <div>
-          <span>평균 부수 차이</span>
-          <strong>{metrics.averageRankDifference}</strong>
-        </div>
-      </div>
+      <TeamFormationSummary
+        participantCount={context.participants.length}
+        teamCount={teams.length}
+        metrics={metrics}
+      />
 
       <div className={styles.controls}>
         <label>
@@ -722,9 +501,7 @@ export default function TeamFormationPanel({
         <button
           type="button"
           className={styles.secondaryButton}
-          disabled={
-            isWorking || status === "confirmed" || history.length === 0
-          }
+          disabled={isWorking || status === "confirmed" || history.length === 0}
           onClick={handleUndo}
         >
           <RotateCcw size={18} aria-hidden="true" />
@@ -732,47 +509,24 @@ export default function TeamFormationPanel({
         </button>
       </div>
 
-      {teams.length === 0 ? (
-        <div className={styles.emptyFormation}>
-          <Users size={30} aria-hidden="true" />
-
-          <strong>아직 편성된 팀이 없습니다.</strong>
-
-          <span>자동 편성 버튼을 눌러 주세요.</span>
-        </div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={pointerWithin}
-          onDragEnd={handleDragEnd}
-        >
-          <div className={styles.teamGrid}>
-            {teams.map((team) => (
-              <TeamColumn
-                key={team.key}
-                team={team}
-                teams={teams}
-                disabled={isWorking || status === "confirmed"}
-                onMemberMove={handleMoveMember}
-                onNameChange={(name) => {
-                  setTeams((current) =>
-                    current.map((item) =>
-                      item.key === team.key
-                        ? {
-                            ...item,
-                            name,
-                          }
-                        : item,
-                    ),
-                  );
-
-                  setIsDirty(true);
-                }}
-              />
-            ))}
-          </div>
-        </DndContext>
-      )}
+      <TeamFormationBoard
+        teams={teams}
+        disabled={isWorking || status === "confirmed"}
+        onMemberMove={handleMoveMember}
+        onTeamNameChange={(teamKey, name) => {
+          setTeams((currentTeams) =>
+            currentTeams.map((team) =>
+              team.key === teamKey
+                ? {
+                    ...team,
+                    name,
+                  }
+                : team,
+            ),
+          );
+          setIsDirty(true);
+        }}
+      />
 
       <footer className={styles.saveBar}>
         {isDirty && <span>저장하지 않은 변경 사항이 있습니다.</span>}
@@ -800,7 +554,7 @@ export default function TeamFormationPanel({
               onClick={() => void handleSave("draft")}
             >
               <Save size={18} aria-hidden="true" />
-              {isWorking ? "저장 중…" : "임시 저장"}
+              {isWorking ? "저장 중…" : "저장"}
             </button>
             <button
               type="button"
@@ -859,7 +613,7 @@ export default function TeamFormationPanel({
                 disabled={isWorking}
                 onClick={() => void handleSave("confirmed")}
               >
-                {isWorking ? "확정 처리 중…" : "확인하고 최종 확정"}
+                {isWorking ? "확정 처리 중…" : "최종 확정"}
               </button>
             </div>
           </section>
