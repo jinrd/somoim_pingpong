@@ -1,4 +1,4 @@
-import styles from "./Events.module.css";
+import styles from "./GameSettings.module.css";
 
 interface Props {
   isOpen: boolean;
@@ -7,7 +7,7 @@ interface Props {
   onConfirm: () => void;
 }
 
-export default function ParticipationCloseDialog({
+export default function GameSettingConfirmDialog({
   isOpen,
   isWorking,
   onCancel,
@@ -23,23 +23,24 @@ export default function ParticipationCloseDialog({
         className={styles.confirmDialog}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="close-participation-title"
-        aria-describedby="close-participation-description"
+        aria-labelledby="confirm-game-setting-title"
+        aria-describedby="confirm-game-setting-description"
       >
-        <h2 id="close-participation-title">참가 신청을 최종 마감할까요?</h2>
+        <h2 id="confirm-game-setting-title">게임 설정을 최종 확정할까요?</h2>
 
-        <p id="close-participation-description">
-          마감 후에는 다시 열 수 없으며 참석자를 추가하거나 삭제할 수 없습니다.
+        <p id="confirm-game-setting-description">
+          현재 저장된 게임 설정과 세부 경기 구성을 최종 확정합니다.
         </p>
 
         <p>
-          운영진은 기존 참석자의 게임 참가·미참가 상태만 변경할 수 있습니다.
+          확정 후 수정하려면 팀 편성, 대진표와 라인업을 포함한 기존 경기 구성이
+          모두 초기화됩니다.
         </p>
 
         <div className={styles.confirmActions}>
           <button
             type="button"
-            className={styles.cancelButton}
+            className={styles.secondaryButton}
             disabled={isWorking}
             onClick={onCancel}
           >
@@ -48,11 +49,11 @@ export default function ParticipationCloseDialog({
 
           <button
             type="button"
-            className={styles.confirmCloseButton}
+            className={styles.confirmSettingButton}
             disabled={isWorking}
             onClick={onConfirm}
           >
-            {isWorking ? "마감 처리 중…" : "최종 마감"}
+            {isWorking ? "확정 처리 중…" : "최종 확정"}
           </button>
         </div>
       </section>

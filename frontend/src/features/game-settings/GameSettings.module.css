@@ -126,6 +126,32 @@
   font: inherit;
 }
 
+.formatRow input[type="number"],
+.newFormatRow input[type="number"] {
+  width: 54px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.formatRow select,
+.newFormatRow select {
+  width: auto;
+  min-width: 72px;
+}
+
+.inputWithUnit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.unitText {
+  color: #475467;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .formField input:focus,
 .formField select:focus,
 .formatRow input:focus,
@@ -159,11 +185,44 @@
   line-height: 1.45;
 }
 
+.teamOperationRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.teamFormGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.teamFormActions {
+  display: flex;
+  gap: 10px;
+}
+
+.teamFormActions > button {
+  height: 44px;
+}
+
 .formActions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   padding-top: 18px;
+}
+
+.finalizeActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.finalizeActions .confirmSettingButton {
+  min-width: 220px;
 }
 
 .primaryButton,
@@ -308,27 +367,20 @@
 
 .formatRow,
 .newFormatRow {
-  display: grid;
-  grid-template-columns:
-    104px minmax(110px, 1fr)
-    minmax(100px, 1fr)
-    minmax(135px, auto)
-    auto;
-  align-items: end;
-  gap: 10px;
-  padding: 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
   background: #f8fafc;
   border: 1px solid #e4e7ec;
   border-radius: 12px;
 }
 
 .newFormatRow {
-  grid-template-columns:
-    124px minmax(110px, 1fr)
-    minmax(100px, 1fr)
-    minmax(135px, auto)
-    auto;
-  margin-top: 14px;
+  grid-template-columns: 88px 90px 64px auto auto;
+  margin-top: 10px;
   background: #ffffff;
   border-style: dashed;
 }
@@ -342,6 +394,7 @@
   color: #667085;
   font-size: 0.78rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .orderCell strong,
@@ -387,18 +440,10 @@
   display: none;
 }
 
-.formatSaveBar {
+.headerActions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  padding-top: 16px;
-}
-
-.formatSaveBar span {
-  color: #b54708;
-  font-size: 0.8rem;
-  font-weight: 700;
+  gap: 12px;
 }
 
 .compactField {
@@ -413,6 +458,8 @@
 }
 
 .formatCheckbox {
+  width: max-content;
+  justify-self: start;
   height: 44px;
   display: flex;
   align-items: center;
@@ -427,6 +474,11 @@
   width: 18px;
   height: 18px;
   accent-color: #4f46e5;
+}
+
+.formatRow > .iconButton,
+.newFormatRow > .primaryButton {
+  margin-left: auto;
 }
 
 .emptyFormats {
@@ -475,11 +527,6 @@
 }
 
 @media (max-width: 900px) {
-  .formatRow,
-  .newFormatRow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .formatCheckbox {
     white-space: normal;
   }
@@ -499,17 +546,89 @@
   }
 
   .confirmActions {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .section {
     padding: 13px;
-    border-radius: 13px;
+    border-radius: 8px;
     box-shadow: none;
   }
 
-  .sectionHeader {
+  .operationSection {
+    padding: 10px;
+  }
+
+  .teamOperationSection {
+    display: block;
+  }
+
+  .teamOperationRow {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .teamFormGrid {
+    flex: 1;
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .teamFormActions {
+    width: 78px;
+    display: flex;
+  }
+
+  .teamOperationRow .formField {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    gap: 6px;
+    padding: 6px 8px;
+    align-items: center;
+  }
+
+  .teamOperationRow .formField > span:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .teamOperationRow .formField > input {
+    grid-column: 2;
+    grid-row: 1;
+    width: 38px;
+    height: 32px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .teamOperationRow .checkboxField {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-height: 32px;
+    justify-content: flex-end;
+  }
+
+  .teamFormActions > button {
+    flex: 1;
+    height: auto;
+    padding: 0 8px;
+    font-size: 0.76rem;
+  }
+
+  .teamFormActions > button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .sectionHeader {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 8px;
     margin-bottom: 12px;
   }
@@ -526,7 +645,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
     padding: 4px;
-    margin-bottom: 7px;
+    margin-bottom: 8px;
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
@@ -585,27 +704,55 @@
     display: block;
   }
 
-  .mobileModeDescription {
-    display: block;
-    padding: 0 4px;
-    margin: 0 0 12px;
-    color: #64748b;
-    font-size: 0.7rem;
-    line-height: 1.45;
-  }
-
   .formGrid {
     grid-template-columns: 1fr;
-    gap: 7px;
+    gap: 6px;
+  }
+
+  .operationSection:not(.teamOperationSection) .formGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .operationSection:not(.teamOperationSection) .formField {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    gap: 6px;
+    padding: 6px 8px;
+    align-items: center;
+  }
+
+  .operationSection:not(.teamOperationSection)
+    .formField
+    > span:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .operationSection:not(.teamOperationSection) .formField > input {
+    grid-column: 2;
+    grid-row: 1;
+    width: 38px;
+    height: 32px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .operationSection:not(.teamOperationSection) .checkboxField {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-height: 32px;
+    justify-content: flex-end;
   }
 
   .formField {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 104px;
+    grid-template-columns: minmax(0, 1fr) 84px;
     align-items: center;
-    gap: 4px 10px;
-    padding: 9px 10px;
+    gap: 8px;
+    padding: 8px 10px;
     background: #f8fafc;
     border: 1px solid #e4e7ec;
     border-radius: 10px;
@@ -614,14 +761,14 @@
   .formField input,
   .formField select {
     grid-column: 2;
-    grid-row: 1 / 3;
-    height: 42px;
+    grid-row: 1;
+    height: 38px;
   }
 
   .formField > span:first-child {
     grid-column: 1;
     grid-row: 1;
-    align-self: end;
+    align-self: center;
     font-size: 0.78rem;
   }
 
@@ -632,11 +779,12 @@
   }
 
   .checkboxField {
-    grid-column: 1 / -1 !important;
-    grid-row: 2 !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     height: auto;
-    min-height: 32px;
+    min-height: 38px;
     align-items: center;
+    justify-content: flex-end;
     font-size: 0.72rem;
     line-height: 1.4;
   }
@@ -693,83 +841,183 @@
   }
 
   .formActions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 12px;
+    display: flex;
+    justify-content: stretch;
+    margin-top: 10px;
     padding-top: 0;
+  }
+
+  .formActions button {
+    width: 100%;
+  }
+
+  .finalizeActions {
+    padding-top: 12px;
+  }
+
+  .finalizeActions .confirmSettingButton {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
   }
 
   .formActions > button:only-child {
     grid-column: 1 / -1;
   }
 
-  .formatSaveBar {
-    position: sticky;
-    bottom: calc(76px + env(safe-area-inset-bottom));
-    z-index: 12;
-    display: grid;
-    gap: 7px;
-    width: 100%;
-    padding: 9px;
-    box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #e4e7ec;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
-    backdrop-filter: blur(12px);
-  }
-
-  .formatSaveBar button {
-    width: 100%;
-  }
-
   .formatList {
-    gap: 8px;
+    gap: 6px;
   }
 
-  .formatRow {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 42px;
-    align-items: end;
-    gap: 9px;
-    padding: 11px;
-  }
-
-  .formatRow .orderCell {
-    grid-column: 1 / 3;
-    height: 38px;
+  .formatRow,
+  .newFormatRow {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
     justify-content: space-between;
+    gap: 4px;
+    padding: 8px 4px;
+  }
+
+  .formatRow > .compactField,
+  .newFormatRow > .compactField {
+    width: auto;
+    max-width: none;
+    flex-shrink: 1;
+  }
+
+  .formatRow select,
+  .newFormatRow select {
+    min-width: 60px;
+    padding: 0 6px;
+  }
+
+  .formatRow input[type="number"],
+  .newFormatRow input[type="number"] {
+    width: 44px;
+  }
+
+  .orderCell,
+  .newFormatOrder {
+    grid-column: auto;
+    grid-row: auto;
+    width: auto;
+    min-width: auto;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.74rem;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .orderCell strong,
+  .newFormatOrder strong {
+    font-size: 0.85rem;
+  }
+
+  .mobileOrderActions {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .mobileOrderActions button:disabled {
+    color: #98a2b3;
+    background: #f2f4f7;
+    border-color: #e4e7ec;
+  }
+
+  .formatRow > .compactField,
+  .newFormatRow > .compactField {
+    min-width: 0;
+    grid-column: auto;
+    grid-row: auto;
+    width: auto;
+    max-width: none;
+  }
+
+  .formatRow .compactField > span,
+  .newFormatRow .compactField > span {
+    display: none;
+  }
+
+  .formatRow input,
+  .formatRow select,
+  .newFormatRow input,
+  .newFormatRow select {
+    height: 34px;
+    padding: 0 4px;
+    font-size: 0.8rem;
+    border-radius: 7px;
+  }
+
+  .formatRow input[type="number"],
+  .newFormatRow input[type="number"] {
+    width: 42px;
+    padding: 0 2px;
+    text-align: center;
+  }
+
+  .formatRow select,
+  .newFormatRow select {
+    padding-left: 4px;
+  }
+
+  .formatRow .formatCheckbox,
+  .newFormatRow .formatCheckbox {
+    grid-column: auto;
+    grid-row: auto;
+    width: max-content;
+    justify-self: center;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .formatRow .formatCheckbox input,
+  .newFormatRow .formatCheckbox input {
+    width: 15px;
+    height: 15px;
+  }
+
+  .formatRow .formatCheckbox span,
+  .newFormatRow .formatCheckbox span {
+    font-size: 0;
+  }
+
+  .formatRow .formatCheckbox span::after,
+  .newFormatRow .formatCheckbox span::after {
+    content: "승강";
+    font-size: 0.7rem;
   }
 
   .formatRow > .iconButton {
-    grid-column: 3;
-    grid-row: 1;
-    width: 42px;
-  }
-
-  .formatRow .formatCheckbox {
-    grid-column: 1 / -1;
-    height: 36px;
-  }
-
-  .newFormatRow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
-    padding: 11px;
-  }
-
-  .newFormatOrder,
-  .newFormatRow .formatCheckbox,
-  .newFormatRow > .primaryButton {
-    grid-column: 1 / -1;
-  }
-
-  .newFormatOrder {
+    grid-column: auto;
+    grid-row: auto;
+    width: 34px;
     height: 34px;
+    border-radius: 7px;
+    justify-self: center;
   }
 
   .newFormatRow > .primaryButton {
-    width: 100%;
+    grid-column: auto;
+    grid-row: auto;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 7px;
+    justify-self: center;
+  }
+
+  .newFormatRow > .primaryButton span {
+    display: none;
   }
 
   .dragHandle {
@@ -783,8 +1031,8 @@
   }
 
   .mobileOrderActions button {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
