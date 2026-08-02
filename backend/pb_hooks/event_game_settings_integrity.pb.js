@@ -8,7 +8,6 @@ function assertGameSettingRequestAllowed(eventRecord, dao) {
   );
 
   workflow.assertRegistrationClosed(somoimEvent);
-  workflow.assertNoUndecidedParticipants(dao, somoimEvent.id);
   workflow.assertSetupEditable(dao, somoimEvent.id);
 }
 

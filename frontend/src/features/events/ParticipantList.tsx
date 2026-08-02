@@ -83,12 +83,11 @@ export default function ParticipantList({
                   }
                 >
                   {Object.entries(GAME_PARTICIPATION_STATUS_LABELS).map(
-                    ([value, label]) =>
-                      !isParticipationClosed || value !== "undecided" ? (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ) : null,
+                    ([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ),
                   )}
                 </select>
 

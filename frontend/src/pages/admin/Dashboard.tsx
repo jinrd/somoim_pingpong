@@ -231,8 +231,7 @@ export default function Dashboard() {
                 <div>
                   <h4 className={styles.stepTitle}>참가자 확인하고 마감하기</h4>
                   <p className={styles.stepDesc}>
-                    미정 응답을 정리하고 게임 참가 인원을 확인한 뒤 신청을
-                    최종 마감합니다.
+                    게임 참가 인원을 확인한 뒤 신청을 최종 마감합니다.
                   </p>
                 </div>
               </div>

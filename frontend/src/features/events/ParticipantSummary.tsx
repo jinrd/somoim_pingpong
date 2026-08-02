@@ -4,14 +4,12 @@ interface Props {
   totalCount: number;
   playingCount: number;
   notPlayingCount: number;
-  undecidedCount: number;
 }
 
 export default function ParticipantSummary({
   totalCount,
   playingCount,
   notPlayingCount,
-  undecidedCount,
 }: Props) {
   return (
     <div className={styles.participantSummaryGrid}>
@@ -28,11 +26,6 @@ export default function ParticipantSummary({
       <div className={styles.summaryCard}>
         <span>게임 미참가</span>
         <strong>{notPlayingCount}</strong>
-      </div>
-
-      <div className={styles.summaryCard}>
-        <span>미정</span>
-        <strong>{undecidedCount}</strong>
       </div>
     </div>
   );

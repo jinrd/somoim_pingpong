@@ -339,7 +339,7 @@ export const getAvailableMembers = async (
 export const addMembersToEvent = async (
   eventId: string,
   members: Member[],
-  gameParticipationStatus: GameParticipationStatus = "undecided",
+  gameParticipationStatus: GameParticipationStatus = "playing",
 ): Promise<AddMembersResult> => {
   if (members.length === 0) {
     return {
@@ -444,7 +444,7 @@ export const addGuestToEvent = async (
 
     rank_snapshot: validateRank(input.rank, rankSettings),
 
-    game_participation_status: input.gameParticipationStatus ?? "undecided",
+    game_participation_status: input.gameParticipationStatus ?? "playing",
 
     participation_token_hash: "",
     participation_responded_at: "",

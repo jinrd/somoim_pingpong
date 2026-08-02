@@ -25,7 +25,6 @@ routerAdd(
       const eventRecord = transactionDao.findRecordById("events", eventId);
 
       workflow.assertRegistrationOpen(eventRecord);
-      workflow.assertNoUndecidedParticipants(transactionDao, eventId);
 
       if (eventRecord.getInt("version") !== expectedVersion) {
         throw new ApiError(
@@ -117,7 +116,7 @@ routerAdd(
     const expectedVersion = Number(requestData.expectedVersion || 0);
     const confirmReset = Boolean(requestData.confirmReset);
 
-    if (!["undecided", "playing", "not_playing"].includes(nextStatus)) {
+    if (!["playing", "not_playing"].includes(nextStatus)) {
       throw new BadRequestError("게임 참가 상태를 확인해 주세요.");
     }
 
@@ -138,12 +137,6 @@ routerAdd(
         throw new ApiError(
           409,
           "다른 운영진이 먼저 참석자 정보를 변경했습니다. 최신 정보를 다시 불러와 주세요.",
-        );
-      }
-
-      if (isClosed && nextStatus === "undecided") {
-        throw new BadRequestError(
-          "참가 신청 마감 후에는 참가 상태를 미정으로 변경할 수 없습니다.",
         );
       }
 
@@ -190,7 +183,7 @@ routerAdd(
       participantRecord.set("game_participation_status", nextStatus);
       participantRecord.set(
         "participation_responded_at",
-        nextStatus === "undecided" ? "" : new Date().toISOString(),
+        new Date().toISOString(),
       );
       participantRecord.set("version", participantRecord.getInt("version") + 1);
 
@@ -269,7 +262,6 @@ routerAdd(
       const eventRecord = transactionDao.findRecordById("events", eventId);
 
       workflow.assertRegistrationClosed(eventRecord);
-      workflow.assertNoUndecidedParticipants(transactionDao, eventId);
       workflow.assertSetupEditable(transactionDao, eventId);
 
       const currentSetting = workflow.findGameSetting(transactionDao, eventId);
@@ -396,7 +388,6 @@ routerAdd(
       const eventRecord = transactionDao.findRecordById("events", eventId);
 
       workflow.assertRegistrationClosed(eventRecord);
-      workflow.assertNoUndecidedParticipants(transactionDao, eventId);
       workflow.assertSetupEditable(transactionDao, eventId);
 
       if (settingRecord.getInt("version") !== expectedVersion) {
@@ -481,7 +472,6 @@ routerAdd(
       const eventRecord = transactionDao.findRecordById("events", eventId);
 
       workflow.assertRegistrationClosed(eventRecord);
-      workflow.assertNoUndecidedParticipants(transactionDao, eventId);
       workflow.assertSetupEditable(transactionDao, eventId);
 
       if (currentSetting.getInt("version") !== expectedVersion) {

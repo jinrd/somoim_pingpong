@@ -6,7 +6,7 @@ export type ParticipationStatus = "open" | "closed";
 
 export type ParticipantType = "member" | "guest";
 
-export type GameParticipationStatus = "undecided" | "playing" | "not_playing";
+export type GameParticipationStatus = "playing" | "not_playing";
 
 export interface SomoimEvent extends RecordModel {
   title: string;
@@ -84,7 +84,6 @@ export const GAME_PARTICIPATION_STATUS_LABELS: Record<
   GameParticipationStatus,
   string
 > = {
-  undecided: "미정",
   playing: "게임 참가",
   not_playing: "게임 미참가",
 };

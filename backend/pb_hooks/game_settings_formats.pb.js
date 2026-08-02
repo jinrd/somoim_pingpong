@@ -80,7 +80,6 @@ routerAdd(
     const eventRecord = $app.dao().findRecordById("events", eventId);
 
     workflow.assertRegistrationClosed(eventRecord);
-    workflow.assertNoUndecidedParticipants($app.dao(), eventId);
     workflow.assertSetupEditable($app.dao(), eventId);
 
     if (gameSettingRecord.getString("status") !== "draft") {

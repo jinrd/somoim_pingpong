@@ -365,7 +365,7 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
 
     participantRecord.set("rank_snapshot", memberRecord.getInt("rank"));
 
-    participantRecord.set("game_participation_status", "undecided");
+    participantRecord.set("game_participation_status", "playing");
 
     participantRecord.set("participation_responded_at", "");
 
@@ -449,10 +449,7 @@ routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
     requestData.gameParticipationStatus || "",
   ).trim();
 
-  /*
-   * 참가자는 게임 참가 또는 미참가만 선택합니다.
-   * 미정 상태는 응답하기 전의 상태입니다.
-   */
+  /* 참가자는 게임 참가 또는 미참가만 선택합니다. */
   if (
     gameParticipationStatus !== "playing" &&
     gameParticipationStatus !== "not_playing"

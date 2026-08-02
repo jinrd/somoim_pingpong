@@ -26,32 +26,6 @@ function assertRegistrationClosed(eventRecord) {
   }
 }
 
-function getUndecidedCount(dao, eventId) {
-  return dao.findRecordsByFilter(
-    "event_participants",
-    ["event = {:eventId}", "game_participation_status = {:status}"].join(
-      " && ",
-    ),
-    "",
-    500,
-    0,
-    {
-      eventId,
-      status: "undecided",
-    },
-  ).length;
-}
-
-function assertNoUndecidedParticipants(dao, eventId) {
-  const undecidedCount = getUndecidedCount(dao, eventId);
-
-  if (undecidedCount > 0) {
-    throw new BadRequestError(
-      `참가 상태가 미정인 참석자 ${undecidedCount}명이 있습니다. 모든 상태를 확정한 후 진행해 주세요.`,
-    );
-  }
-}
-
 function assertSetupEditable(dao, eventId) {
   const matchIntegrity = require(`${__hooks}/event_match_integrity.js`);
 
@@ -149,14 +123,12 @@ function toParticipantDto(record) {
 }
 
 module.exports = {
-  assertNoUndecidedParticipants,
   assertRegistrationClosed,
   assertRegistrationOpen,
   assertSetupEditable,
   deleteGameConfiguration,
   deleteTeamSchedules,
   findGameSetting,
-  getUndecidedCount,
   hasDownstreamConfiguration,
   toGameSettingDto,
   toParticipantDto,

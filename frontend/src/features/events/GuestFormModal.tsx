@@ -26,7 +26,7 @@ export default function GuestFormModal({
   const [rank, setRank] = useState(rankSettings.default_guest_rank);
 
   const [gameParticipationStatus, setGameParticipationStatus] =
-    useState<GameParticipationStatus>("undecided");
+    useState<GameParticipationStatus>("playing");
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -136,7 +136,6 @@ export default function GuestFormModal({
                 );
               }}
             >
-              <option value="undecided">미정</option>
               <option value="playing">게임 참가</option>
               <option value="not_playing">게임 미참가</option>
             </select>

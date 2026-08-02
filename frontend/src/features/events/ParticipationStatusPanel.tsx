@@ -3,7 +3,6 @@ import styles from "./Events.module.css";
 interface Props {
   isParticipationClosed: boolean;
   hasStartedMatches: boolean;
-  undecidedCount: number;
   isLoading: boolean;
   isWorking: boolean;
   onCloseRequest: () => void;
@@ -12,7 +11,6 @@ interface Props {
 export default function ParticipationStatusPanel({
   isParticipationClosed,
   hasStartedMatches,
-  undecidedCount,
   isLoading,
   isWorking,
   onCloseRequest,
@@ -45,14 +43,14 @@ export default function ParticipationStatusPanel({
     <div className={styles.workflowNotice}>
       <strong>참가 신청 접수 중</strong>
       <p>
-        미정인 참석자가 없을 때 최종 마감할 수 있습니다. 마감은 취소하거나 다시
+        게임 참가 인원을 확인한 뒤 최종 마감해 주세요. 마감은 취소하거나 다시
         열 수 없습니다.
       </p>
 
       <button
         type="button"
         className={styles.primaryButton}
-        disabled={isWorking || isLoading || undecidedCount > 0}
+        disabled={isWorking || isLoading}
         onClick={onCloseRequest}
       >
         참가 신청 최종 마감

@@ -76,7 +76,6 @@ export default function ParticipantManager({
         {
           playing: 0,
           not_playing: 0,
-          undecided: 0,
         },
       ),
     [participants],
@@ -84,7 +83,6 @@ export default function ParticipantManager({
 
   const playingCount = participantCounts.playing;
   const notPlayingCount = participantCounts.not_playing;
-  const undecidedCount = participantCounts.undecided;
 
   const handleAddSelectedMembers = async () => {
     const selectedMembers = availableMembers.filter((member) =>
@@ -116,14 +114,6 @@ export default function ParticipantManager({
   };
 
   const handleCloseParticipation = async () => {
-    if (undecidedCount > 0) {
-      setError(
-        `참가 상태가 미정인 참석자 ${undecidedCount}명이 있습니다. 모두 확정한 후 마감해 주세요.`,
-      );
-      setCloseConfirmationOpen(false);
-      return;
-    }
-
     setCloseConfirmationOpen(false);
     setIsWorking(true);
     setError("");
@@ -288,7 +278,6 @@ export default function ParticipantManager({
         totalCount={participants.length}
         playingCount={playingCount}
         notPlayingCount={notPlayingCount}
-        undecidedCount={undecidedCount}
       />
 
       <ParticipantErrorPanel
@@ -301,7 +290,6 @@ export default function ParticipantManager({
       <ParticipationStatusPanel
         isParticipationClosed={isParticipationClosed}
         hasStartedMatches={hasStartedMatches}
-        undecidedCount={undecidedCount}
         isLoading={isLoading}
         isWorking={isWorking}
         onCloseRequest={() => {
