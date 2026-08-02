@@ -225,7 +225,7 @@ export default function MatchResultsPanel({ setting }: MatchResultsPanelProps) {
           }}
         >
           <RefreshCw size={17} aria-hidden="true" />
-          새로고침
+          <span className={styles.buttonText}>새로고침</span>
         </button>
       </header>
 

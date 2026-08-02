@@ -537,6 +537,38 @@ routerAdd(
 
     const teamsById = new Map(teams.map((team) => [team.id, team]));
 
+    const teamMembersById = new Map(
+      teams.map((team) => {
+        const membershipRecords = dao.findRecordsByFilter(
+          "team_members",
+          "formation = {:formationId} && team = {:teamId}",
+          "sort_order",
+          100,
+          0,
+          {
+            formationId: formation.id,
+            teamId: team.id,
+          },
+        );
+
+        return [
+          team.id,
+          membershipRecords.map((membership) => {
+            const participant = dao.findRecordById(
+              "event_participants",
+              membership.getString("participant"),
+            );
+
+            return {
+              participantId: participant.id,
+              name: participant.getString("display_name") || "참가자",
+              position: membership.getInt("sort_order"),
+            };
+          }),
+        ];
+      }),
+    );
+
     const matchRecords = dao.findRecordsByFilter(
       "team_matches",
       "formation = {:formationId}",
@@ -604,6 +636,9 @@ routerAdd(
           name: "삭제된 팀",
           sortOrder: 0,
         },
+
+        homeMembers: teamMembersById.get(homeTeamId) || [],
+        awayMembers: teamMembersById.get(awayTeamId) || [],
 
         games: matchGames.map((game) => {
           const playerRecords = dao.findRecordsByFilter(

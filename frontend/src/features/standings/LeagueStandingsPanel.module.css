@@ -710,10 +710,14 @@
   }
 
   .refreshButton {
-    width: 42px;
-    min-width: 42px;
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
     padding: 0;
-    font-size: 0;
+  }
+  
+  .refreshButton .buttonText {
+    display: none;
   }
 
   .nameHeader,

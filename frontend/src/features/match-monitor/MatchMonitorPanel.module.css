@@ -25,8 +25,7 @@
   color: #64748b;
 }
 
-.refreshButton,
-.startButton {
+.refreshButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -45,13 +44,7 @@
   background: #f1f5f9;
 }
 
-.startButton {
-  color: #ffffff;
-  background: #2563eb;
-}
-
-.refreshButton:disabled,
-.startButton:disabled {
+.refreshButton:disabled {
   color: #94a3b8;
   background: #e2e8f0;
   cursor: not-allowed;
@@ -137,8 +130,10 @@
 }
 
 .matchContent {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -203,7 +198,7 @@
 .success {
   margin: 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .error {
@@ -266,10 +261,14 @@
   }
 
   .refreshButton {
-    width: 42px;
-    min-width: 42px;
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
     padding: 0;
-    font-size: 0;
+  }
+  
+  .refreshButton .buttonText {
+    display: none;
   }
 
   .summary {
@@ -300,27 +299,13 @@
   }
 
   .matchCardHeader {
-    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 9px;
     padding: 10px;
   }
 
   .order {
-    width: 38px;
-    height: 38px;
-    align-content: center;
-    color: #4338ca;
-    background: #eef2ff;
-    border-radius: 12px;
-  }
-
-  .order span {
     display: none;
-  }
-
-  .order strong {
-    color: #4338ca;
-    font-size: 1.05rem;
   }
 
   .status {
@@ -330,6 +315,7 @@
   }
 
   .matchContent {
+    flex-wrap: wrap;
     gap: 4px;
   }
 
@@ -355,6 +341,22 @@
   .resultDisputed {
     padding: 6px 8px;
     font-size: 0.7rem;
+  }
+
+  .resultContent {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .resultContent strong {
+    font-size: 0.74rem;
+  }
+
+  .resultContent span {
+    font-size: 0.74rem;
   }
 }
 
@@ -434,42 +436,29 @@
   background: #fee4e2;
 }
 
-.matchActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-  padding: 0 15px 13px;
-}
-
-.matchActions > * {
-  min-width: 160px;
-}
-
-.cancelButton {
-  min-height: 42px;
+.cancelResultButtonInline {
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 12px;
-  border-radius: 12px;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 8px;
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.cancelButton {
+  font-size: 0.74rem;
+  font-weight: 750;
   color: #b42318;
   background: #fff4f2;
   border: 1px solid #fecdca;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.cancelButton:hover:not(:disabled) {
+.cancelResultButtonInline:hover:not(:disabled) {
   background: #fee4e2;
 }
 
-.cancelButton:disabled {
+.cancelResultButtonInline:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -536,7 +525,7 @@
   color: #7a271a;
   background: #fff4f2;
   border: 1px solid #fecdca;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .cancelWarning strong {
@@ -556,6 +545,65 @@
   color: #64748b;
   font-size: 0.83rem;
   line-height: 1.55;
+}
+
+.playerSelectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.playerSelector {
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.playerSelector legend {
+  max-width: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playerSelector legend span {
+  margin-left: 6px;
+  color: #64748b;
+}
+
+.playerSelector > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.playerSelector button {
+  min-height: 34px;
+  padding: 0 9px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.playerSelector button.playerSelected {
+  color: #ffffff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.playerSelector button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .scoreEditor {
@@ -689,21 +737,10 @@
 }
 
 @media (max-width: 800px) {
-  .matchActions {
-    display: grid;
-    width: 100%;
-    padding: 0 10px 10px;
-    box-sizing: border-box;
-  }
-
-  .matchActions > * {
-    min-width: 0;
-  }
-
-  .cancelButton {
-    min-height: 38px;
-    border-radius: 10px;
-    font-size: 0.76rem;
+  .cancelResultButtonInline {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 0.69rem;
   }
 
   .modalBackdrop {
@@ -724,6 +761,10 @@
 
   .scoreEditor {
     gap: 8px;
+  }
+
+  .playerSelectors {
+    grid-template-columns: 1fr;
   }
 
   .inputResultButton {

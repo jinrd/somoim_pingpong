@@ -18,10 +18,6 @@ const normalizeInput = function (input) {
     throw new ApiError(400, "결과 버전 정보가 올바르지 않습니다.");
   }
 
-  if (!reason) {
-    throw new ApiError(400, "결과 취소 사유를 입력해 주세요.");
-  }
-
   if (reason.length > 500) {
     throw new ApiError(400, "취소 사유는 500자 이하로 입력해 주세요.");
   }
@@ -48,10 +44,6 @@ const normalizeConfirmInput = function (input) {
     throw new ApiError(400, "결과 버전 정보가 올바르지 않습니다.");
   }
 
-  if (!reason) {
-    throw new ApiError(400, "운영진 입력 사유를 입력해 주세요.");
-  }
-
   if (reason.length > 500) {
     throw new ApiError(400, "입력 사유는 500자 이하로 입력해 주세요.");
   }
@@ -62,9 +54,100 @@ const normalizeConfirmInput = function (input) {
     reason,
     homeScore: input.homeScore,
     awayScore: input.awayScore,
+    homeParticipantIds: Array.isArray(input.homeParticipantIds)
+      ? input.homeParticipantIds.map(String)
+      : [],
+    awayParticipantIds: Array.isArray(input.awayParticipantIds)
+      ? input.awayParticipantIds.map(String)
+      : [],
     adminId: String(input.adminId || ""),
     adminName: String(input.adminName || "관리자"),
   };
+};
+
+const saveTeamGamePlayers = function (
+  dao,
+  matchGame,
+  teamMatch,
+  teamId,
+  participantIds,
+) {
+  const requiredCount = matchGame.getString("match_type") === "doubles" ? 2 : 1;
+  const normalizedIds = participantIds.map((id) => String(id || "").trim());
+
+  if (
+    normalizedIds.length !== requiredCount ||
+    normalizedIds.some((id) => !id) ||
+    new Set(normalizedIds).size !== requiredCount
+  ) {
+    throw new ApiError(
+      400,
+      `${requiredCount}명의 실제 출전 선수를 선택해 주세요.`,
+    );
+  }
+
+  const memberships = dao.findRecordsByFilter(
+    "team_members",
+    "formation = {:formationId} && team = {:teamId}",
+    "",
+    100,
+    0,
+    {
+      formationId: teamMatch.getString("formation"),
+      teamId,
+    },
+  );
+  const memberIds = new Set(
+    memberships.map((membership) => membership.getString("participant")),
+  );
+
+  normalizedIds.forEach((participantId) => {
+    if (!memberIds.has(participantId)) {
+      throw new ApiError(400, "해당 팀에 속한 선수만 선택할 수 있습니다.");
+    }
+
+    const participant = dao.findRecordById(
+      "event_participants",
+      participantId,
+    );
+
+    if (participant.getString("game_participation_status") !== "playing") {
+      throw new ApiError(400, "게임 참가 상태인 선수만 선택할 수 있습니다.");
+    }
+  });
+
+  const lineup = dao.findFirstRecordByFilter(
+    "team_match_lineups",
+    "team_match = {:teamMatchId} && team = {:teamId}",
+    {
+      teamMatchId: teamMatch.id,
+      teamId,
+    },
+  );
+  const previousPlayers = dao.findRecordsByFilter(
+    "match_game_players",
+    "lineup = {:lineupId} && match_game = {:matchGameId}",
+    "",
+    10,
+    0,
+    {
+      lineupId: lineup.id,
+      matchGameId: matchGame.id,
+    },
+  );
+
+  previousPlayers.forEach((player) => dao.deleteRecord(player));
+
+  const collection = dao.findCollectionByNameOrId("match_game_players");
+
+  normalizedIds.forEach((participantId, index) => {
+    const player = new Record(collection);
+    player.set("lineup", lineup.id);
+    player.set("match_game", matchGame.id);
+    player.set("participant", participantId);
+    player.set("position", index + 1);
+    dao.saveRecord(player);
+  });
 };
 
 const deleteGameSubmissions = function (dao, matchGameId) {
@@ -112,7 +195,7 @@ const resetResultFields = function (record) {
   record.set("version", record.getInt("version") + 1);
 };
 
-const cancelTeamMatchResult = function (teamMatchId, input) {
+const cancelTeamGameResult = function (matchGameId, input) {
   const normalized = normalizeInput(input);
 
   $app.dao().runInTransaction((txDao) => {
@@ -123,8 +206,8 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
 
     if (previousHistory) {
       if (
-        previousHistory.getString("target_type") === "team_match" &&
-        previousHistory.getString("team_match") === teamMatchId &&
+        previousHistory.getString("target_type") === "team_game" &&
+        previousHistory.getString("match_game") === matchGameId &&
         previousHistory.getString("actor_admin") === normalized.adminId
       ) {
         return;
@@ -133,13 +216,18 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
       throw new ApiError(409, "이미 다른 요청에서 사용된 요청 정보입니다.");
     }
 
-    let teamMatch;
+    let matchGame;
 
     try {
-      teamMatch = txDao.findRecordById("team_matches", teamMatchId);
+      matchGame = txDao.findRecordById("match_games", matchGameId);
     } catch {
-      throw new ApiError(404, "팀 대결을 찾을 수 없습니다.");
+      throw new ApiError(404, "팀 세부 경기를 찾을 수 없습니다.");
     }
+
+    const teamMatch = txDao.findRecordById(
+      "team_matches",
+      matchGame.getString("team_match"),
+    );
 
     const eventRecord = txDao.findRecordById(
       "events",
@@ -150,7 +238,7 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
       throw new ApiError(409, "보관된 회차의 결과는 취소할 수 없습니다.");
     }
 
-    if (teamMatch.getInt("version") !== normalized.expectedVersion) {
+    if (matchGame.getInt("version") !== normalized.expectedVersion) {
       throw new ApiError(
         409,
         "경기 정보가 변경되었습니다. 새로고침 후 다시 시도해 주세요.",
@@ -185,49 +273,22 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
       );
     }
 
-    const games = txDao.findRecordsByFilter(
-      "match_games",
-      "team_match = {:teamMatchId}",
-      "sequence",
-      100,
-      0,
-      {
-        teamMatchId,
-      },
-    );
-
-    const confirmedGames = games.filter(
-      (game) => game.getString("result_status") === RESULT_STATUS_CONFIRMED,
-    );
-
-    if (confirmedGames.length === 0) {
+    if (matchGame.getString("result_status") !== RESULT_STATUS_CONFIRMED) {
       throw new ApiError(409, "취소할 확정 결과가 없습니다.");
     }
 
     const beforeData = {
-      teamMatch: {
-        status: teamMatch.getString("status"),
-        version: teamMatch.getInt("version"),
-      },
-
-      games: games.map((game) => ({
-        id: game.id,
-        sequence: game.getInt("sequence"),
-        status: game.getString("status"),
-        resultStatus: game.getString("result_status"),
-        homeScore: game.getInt("home_score"),
-        awayScore: game.getInt("away_score"),
-        winnerSide: game.getString("winner_side"),
-        version: game.getInt("version"),
-      })),
+      status: matchGame.getString("status"),
+      resultStatus: matchGame.getString("result_status"),
+      homeScore: matchGame.getInt("home_score"),
+      awayScore: matchGame.getInt("away_score"),
+      winnerSide: matchGame.getString("winner_side"),
+      version: matchGame.getInt("version"),
     };
 
-    games.forEach((game) => {
-      deleteGameSubmissions(txDao, game.id);
-      resetResultFields(game);
-
-      txDao.saveRecord(game);
-    });
+    deleteGameSubmissions(txDao, matchGame.id);
+    resetResultFields(matchGame);
+    txDao.saveRecord(matchGame);
 
     teamMatch.set("status", "in_progress");
     teamMatch.set("completed_at", "");
@@ -237,8 +298,8 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
 
     historyService.createHistory(txDao, {
       eventId: teamMatch.getString("event"),
-      targetType: "team_match",
-      targetId: teamMatch.id,
+      targetType: "team_game",
+      targetId: matchGame.id,
       action: "cancelled",
       requestId: normalized.requestId,
       actorType: "admin",
@@ -249,18 +310,9 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
       beforeData,
 
       afterData: {
-        teamMatch: {
-          status: teamMatch.getString("status"),
-          version: teamMatch.getInt("version"),
-        },
-
-        games: games.map((game) => ({
-          id: game.id,
-          sequence: game.getInt("sequence"),
-          status: game.getString("status"),
-          resultStatus: game.getString("result_status"),
-          version: game.getInt("version"),
-        })),
+        status: matchGame.getString("status"),
+        resultStatus: matchGame.getString("result_status"),
+        version: matchGame.getInt("version"),
       },
     });
 
@@ -278,7 +330,7 @@ const cancelTeamMatchResult = function (teamMatchId, input) {
 
   rankingService.recalculateAllCandidates($app.dao());
 
-  const record = $app.dao().findRecordById("team_matches", teamMatchId);
+  const record = $app.dao().findRecordById("match_games", matchGameId);
 
   return {
     id: record.id,
@@ -490,22 +542,31 @@ const confirmMatchResult = function (targetType, targetId, input) {
       );
     }
 
-    if (target.getString("status") !== "in_progress") {
-      throw new ApiError(409, "진행 중인 경기만 결과를 입력할 수 있습니다.");
+    if (
+      !["scheduled", "ready", "in_progress"].includes(
+        target.getString("status"),
+      )
+    ) {
+      throw new ApiError(409, "대기 중이거나 진행 중인 경기만 결과를 입력할 수 있습니다.");
     }
 
     let eventId = target.getString("event");
+    let teamMatch = null;
 
     if (isTeamGame) {
-      const teamMatch = txDao.findRecordById(
+      teamMatch = txDao.findRecordById(
         "team_matches",
         target.getString("team_match"),
       );
 
-      if (teamMatch.getString("status") !== "in_progress") {
+      if (
+        !["scheduled", "ready", "in_progress"].includes(
+          teamMatch.getString("status"),
+        )
+      ) {
         throw new ApiError(
           409,
-          "진행 중인 팀 대결의 세부 경기만 결과를 입력할 수 있습니다.",
+          "대기 중이거나 진행 중인 팀 대결만 결과를 입력할 수 있습니다.",
         );
       }
 
@@ -529,6 +590,23 @@ const confirmMatchResult = function (targetType, targetId, input) {
       normalized.homeScore,
       normalized.awayScore,
     );
+
+    if (isTeamGame) {
+      saveTeamGamePlayers(
+        txDao,
+        target,
+        teamMatch,
+        teamMatch.getString("home_team"),
+        normalized.homeParticipantIds,
+      );
+      saveTeamGamePlayers(
+        txDao,
+        target,
+        teamMatch,
+        teamMatch.getString("away_team"),
+        normalized.awayParticipantIds,
+      );
+    }
 
     const beforeData = {
       status: target.getString("status"),
@@ -630,7 +708,7 @@ const confirmIndividualMatchResult = function (individualMatchId, input) {
 };
 
 module.exports = Object.freeze({
-  cancelTeamMatchResult,
+  cancelTeamGameResult,
   cancelIndividualMatchResult,
   confirmTeamGameResult,
   confirmIndividualMatchResult,

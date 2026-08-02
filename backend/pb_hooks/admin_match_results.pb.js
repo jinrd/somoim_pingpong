@@ -11,6 +11,8 @@ routerAdd(
       homeScore: 0,
       awayScore: 0,
       reason: "",
+      homeParticipantIds: [],
+      awayParticipantIds: [],
     });
 
     context.bind(requestData);
@@ -32,6 +34,8 @@ routerAdd(
         homeScore: requestData.homeScore,
         awayScore: requestData.awayScore,
         reason: requestData.reason,
+        homeParticipantIds: requestData.homeParticipantIds,
+        awayParticipantIds: requestData.awayParticipantIds,
         adminId: admin.id,
         adminName:
           admin.getString("name") || admin.getString("email") || "관리자",
@@ -87,7 +91,7 @@ routerAdd(
 
 routerAdd(
   "POST",
-  "/api/somoim/admin/team-matches/:matchId/result/cancel",
+  "/api/somoim/admin/match-games/:matchId/result/cancel",
   (context) => {
     const requestData = new DynamicModel({
       requestId: "",
@@ -106,7 +110,7 @@ routerAdd(
 
     const service = require(`${__hooks}/admin_match_results_service.js`);
 
-    const result = service.cancelTeamMatchResult(context.pathParam("matchId"), {
+    const result = service.cancelTeamGameResult(context.pathParam("matchId"), {
       requestId: requestData.requestId,
       expectedVersion: requestData.expectedVersion,
       reason: requestData.reason,

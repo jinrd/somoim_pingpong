@@ -160,6 +160,8 @@ export interface StoredTeamMatch {
 
   homeTeam: RoundRobinTeam;
   awayTeam: RoundRobinTeam;
+  homeMembers: StoredMatchPlayer[];
+  awayMembers: StoredMatchPlayer[];
 
   games: StoredMatchGame[];
 
@@ -330,6 +332,8 @@ export interface ConfirmMatchResultInput {
   homeScore: number;
   awayScore: number;
   reason: string;
+  homeParticipantIds?: string[];
+  awayParticipantIds?: string[];
 }
 
 export interface ConfirmMatchResultResponse {
@@ -359,6 +363,8 @@ export const confirmTeamGameResult = async (
         homeScore: input.homeScore,
         awayScore: input.awayScore,
         reason: input.reason,
+        homeParticipantIds: input.homeParticipantIds || [],
+        awayParticipantIds: input.awayParticipantIds || [],
       },
     },
   );
@@ -391,12 +397,12 @@ export interface CancelMatchResultResponse {
   version: number;
 }
 
-export const cancelTeamMatchResult = async (
+export const cancelTeamGameResult = async (
   matchId: string,
   input: CancelMatchResultInput,
 ): Promise<CancelMatchResultResponse> => {
   return pb.send<CancelMatchResultResponse>(
-    `/api/somoim/admin/team-matches/${encodeURIComponent(
+    `/api/somoim/admin/match-games/${encodeURIComponent(
       matchId,
     )}/result/cancel`,
     {
