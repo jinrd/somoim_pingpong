@@ -55,7 +55,6 @@ export default function MatchMonitorCard({
         </div>
 
         <div className={styles.matchContent}>
-          <small>{match.round}라운드</small>
           <strong>{match.title}</strong>
         </div>
 

@@ -42,17 +42,37 @@ export default function MatchMonitorList({
     );
   }
 
+  const matchesByRound = visibleMatches.reduce<Map<number, MonitorMatch[]>>(
+    (rounds, match) => {
+      const roundMatches = rounds.get(match.round) || [];
+      roundMatches.push(match);
+      rounds.set(match.round, roundMatches);
+      return rounds;
+    },
+    new Map(),
+  );
+
   return (
-    <div className={styles.matchList}>
-      {visibleMatches.map((match) => (
-        <MatchMonitorCard
-          key={match.id}
-          match={match}
-          isWorking={isWorking}
-          onOpenResult={onOpenResult}
-          onCancelResult={onCancelResult}
-        />
-      ))}
+    <div className={styles.matchRoundList}>
+      {[...matchesByRound.entries()]
+        .sort(([leftRound], [rightRound]) => leftRound - rightRound)
+        .map(([round, roundMatches]) => (
+          <section key={round} className={styles.matchRoundGroup}>
+            <h3>{round}라운드</h3>
+
+            <div className={styles.matchList}>
+              {roundMatches.map((match) => (
+                <MatchMonitorCard
+                  key={match.id}
+                  match={match}
+                  isWorking={isWorking}
+                  onOpenResult={onOpenResult}
+                  onCancelResult={onCancelResult}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
     </div>
   );
 }
