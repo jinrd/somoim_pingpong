@@ -125,6 +125,7 @@ export default function PublicLinkManager({
   );
 
   const [isDisableConfirmOpen, setDisableConfirmOpen] = useState(false);
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +136,7 @@ export default function PublicLinkManager({
           return;
         }
 
+        setCurrentTimestamp(Date.now());
         setIsRecoverable(result.recoverable);
 
         if (result.enabled && result.recoverable && result.token) {
@@ -168,9 +170,41 @@ export default function PublicLinkManager({
     return () => {
       cancelled = true;
     };
-  }, [eventRecord.id, eventRecord.public_access_enabled]);
+  }, [
+    eventRecord.id,
+    eventRecord.public_access_enabled,
+    eventRecord.version,
+  ]);
+
+  useEffect(() => {
+    const expiresAtTimestamp = activeExpiration
+      ? new Date(activeExpiration).getTime()
+      : Number.NaN;
+
+    if (
+      !Number.isFinite(expiresAtTimestamp) ||
+      expiresAtTimestamp <= currentTimestamp
+    ) {
+      return;
+    }
+
+    const maxTimeoutMs = 2_147_000_000;
+    const timeoutId = window.setTimeout(
+      () => setCurrentTimestamp(Date.now()),
+      Math.min(expiresAtTimestamp - currentTimestamp + 100, maxTimeoutMs),
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeExpiration, currentTimestamp]);
 
   const isEnabled = eventRecord.public_access_enabled;
+  const activeExpirationTimestamp = activeExpiration
+    ? new Date(activeExpiration).getTime()
+    : Number.NaN;
+  const isExpired =
+    isEnabled &&
+    Number.isFinite(activeExpirationTimestamp) &&
+    activeExpirationTimestamp <= currentTimestamp;
 
   const handleIssue = async () => {
     if (!expiration) {
@@ -209,6 +243,7 @@ export default function PublicLinkManager({
 
       setExpiration(issuedExpiration);
       setActiveExpiration(issuedExpiration);
+      setCurrentTimestamp(Date.now());
       setIssueFormOpen(false);
       setDisableConfirmOpen(false);
 
@@ -276,10 +311,14 @@ export default function PublicLinkManager({
 
         <span
           className={
-            isEnabled ? styles.publicLinkEnabled : styles.publicLinkDisabled
+            !isEnabled
+              ? styles.publicLinkDisabled
+              : isExpired
+                ? styles.publicLinkExpired
+                : styles.publicLinkEnabled
           }
         >
-          {isEnabled ? "사용 중" : "비활성"}
+          {!isEnabled ? "비활성" : isExpired ? "만료" : "사용 중"}
         </span>
       </div>
 
@@ -294,6 +333,13 @@ export default function PublicLinkManager({
           <p className={styles.publicLinkHint}>
             이 링크는 암호화 저장 기능이 추가되기 전에 발급되어 원본을 복원할 수
             없습니다. 새 링크를 한 번 재발급해 주세요.
+          </p>
+        )}
+
+        {!isInitialLoading && isExpired && (
+          <p className={styles.publicLinkWarning} role="status">
+            참석 링크가 만료되었습니다. 참가 신청을 받으려면 새 링크를 재발급해
+            주세요.
           </p>
         )}
 

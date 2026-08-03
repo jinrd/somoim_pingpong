@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { X } from "lucide-react";
 import { ClientResponseError } from "pocketbase";
+import useModalDialog from "../../hooks/useModalDialog";
 import styles from "./Modal.module.css";
 import { DOMAIN_LIMITS } from "../../config/domain";
 import {
@@ -85,6 +86,11 @@ export default function MemberFormModal({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useModalDialog<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    canClose: !isSaving,
+  });
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -120,8 +126,17 @@ export default function MemberFormModal({
   };
 
   return (
-    <div className={styles.overlay} role="presentation" onMouseDown={onClose}>
+    <div
+      className={styles.overlay}
+      role="presentation"
+      onMouseDown={() => {
+        if (!isSaving) {
+          onClose();
+        }
+      }}
+    >
       <div
+        ref={dialogRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"

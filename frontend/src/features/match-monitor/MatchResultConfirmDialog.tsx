@@ -1,5 +1,6 @@
 import { ClipboardCheck, Loader2, X } from "lucide-react";
 
+import useModalDialog from "../../hooks/useModalDialog";
 import type { MonitorResult } from "./types";
 
 import styles from "./MatchMonitorPanel.module.css";
@@ -41,6 +42,12 @@ export default function MatchResultConfirmDialog({
   onClose,
   onConfirm,
 }: Props) {
+  const dialogRef = useModalDialog<HTMLElement>({
+    isOpen: Boolean(target),
+    onClose,
+    canClose: !isWorking,
+  });
+
   if (!target) {
     return null;
   }
@@ -79,6 +86,7 @@ export default function MatchResultConfirmDialog({
       }}
     >
       <section
+        ref={dialogRef}
         className={styles.cancelModal}
         role="dialog"
         aria-modal="true"

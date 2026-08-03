@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import useModalDialog from "../../hooks/useModalDialog";
 import type { SomoimEvent } from "./types";
 import styles from "./Events.module.css";
 
@@ -58,6 +59,12 @@ function ConfirmDialog({
   onClose,
   onConfirm,
 }: ConfirmDialogProps) {
+  const dialogRef = useModalDialog<HTMLElement>({
+    isOpen,
+    onClose,
+    canClose: !isWorking,
+  });
+
   if (!isOpen) {
     return null;
   }
@@ -65,6 +72,7 @@ function ConfirmDialog({
   return (
     <div className={styles.confirmOverlay}>
       <section
+        ref={dialogRef}
         className={styles.confirmDialog}
         role="dialog"
         aria-modal="true"

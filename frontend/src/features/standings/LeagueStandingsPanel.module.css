@@ -5,7 +5,7 @@
   padding: 20px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .header {
@@ -41,27 +41,11 @@
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
 }
 
-.refreshButton {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 13px;
-  color: #334155;
-  background: #f1f5f9;
-  border: 0;
-  border-radius: 9px;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 750;
-}
-
 .matrixScroll {
   width: 100%;
   overflow-x: auto;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .matrix {
@@ -73,8 +57,8 @@
 
 .matrix th,
 .matrix td {
-  min-width: 62px;
-  height: 54px;
+  min-width: 58px;
+  height: 50px;
   padding: 5px;
   text-align: center;
   border-right: 1px solid #dbe3ec;
@@ -115,7 +99,7 @@
 
 .columnName {
   display: block;
-  max-width: 80px;
+  max-width: 72px;
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -174,20 +158,16 @@
   background: #fef0c7;
 }
 
-.rankCell {
-  color: #4338ca;
-  background: #eef2ff;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
 .detail {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(80dvh, 720px);
   display: grid;
   gap: 13px;
+  overflow-y: auto;
   padding: 16px;
   background: #f8fafc;
   border: 1px solid #dbe3ec;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .detail > header {
@@ -218,11 +198,18 @@
 }
 
 .detail header button {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
   color: #475569;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 7px;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 0;
 }
 
 .detailScore {
@@ -312,179 +299,72 @@
   background: #f8fafc;
 }
 
-.mobileViewTabs,
-.mobileRanking {
-  display: none;
+.standingsViewTabs {
+  width: min(100%, 320px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.standingsViewTab,
+.standingsViewTabActive {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.standingsViewTab {
+  color: #64748b;
+  background: transparent;
+}
+
+.standingsViewTabActive {
+  color: #1d4ed8;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+}
+
+.viewHidden {
+  display: none !important;
+}
+
+.rankingSection {
+  display: grid;
+  gap: 10px;
 }
 
 .detailBackdrop {
-  display: contents;
-}
-
-.orderSection {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
   display: grid;
-  gap: 12px;
+  place-items: center;
+  padding: 16px;
+  background: rgb(15 23 42 / 55%);
 }
 
-.orderHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.orderHeader h3 {
+.rankingHeader h3 {
   margin: 0 0 4px;
   color: #0f172a;
   font-size: 1rem;
 }
 
-.orderHeader p {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.8rem;
-}
-
-.orderHeader > span {
-  padding: 5px 9px;
-  color: #4338ca;
-  background: #eef2ff;
-  border-radius: 999px;
-  font-size: 0.76rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.orderList {
-  display: grid;
-  gap: 8px;
-  max-height: 430px;
-  overflow-y: auto;
-}
-
-.orderCard,
-.orderCardActive {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 50px minmax(0, 1fr) 74px 104px;
-  align-items: center;
-  gap: 10px;
-  padding: 11px;
-  color: inherit;
-  text-align: left;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 11px;
-  cursor: pointer;
-  font: inherit;
-}
-
-.orderCard:hover {
-  border-color: #a5b4fc;
-  background: #fafaff;
-}
-
-.orderCardActive {
-  background: #fffbeb;
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 3px rgb(251 191 36 / 12%);
-}
-
-.desktopOrderContent {
-  display: contents;
-}
-
-.mobileOrderContent {
-  display: none;
-}
-
-.orderNumber {
-  display: grid;
-  justify-items: center;
-}
-
-.orderNumber small,
-.orderMatch small {
-  color: #94a3b8;
-  font-size: 0.68rem;
-}
-
-.orderNumber strong {
-  color: #0f172a;
-  font-size: 1.1rem;
-}
-
-.orderMatch {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.orderMatch strong {
-  overflow: hidden;
-  color: #0f172a;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.orderMatch strong span {
-  color: #94a3b8;
-  font-size: 0.75rem;
-}
-
-.orderScore {
-  color: #334155;
-  text-align: center;
-  font-size: 0.86rem;
-  font-weight: 850;
-}
-
-.orderStatus {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 8px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.orderStatusWaiting {
-  color: #475569;
-  background: #f1f5f9;
-}
-
-.orderStatusProgress {
-  color: #b45309;
-  background: #fef3c7;
-}
-
-.orderStatusCompleted {
-  color: #047857;
-  background: #d1fae5;
-}
-
-.orderStatusDisputed {
-  color: #b42318;
-  background: #fee4e2;
-}
-
-.mobileRankingHeader h3 {
-  margin: 0 0 4px;
-  color: #0f172a;
-  font-size: 1rem;
-}
-
-.mobileRankingHeader p {
+.rankingHeader p {
   margin: 0;
   color: #64748b;
   font-size: 0.76rem;
 }
 
-.mobileRankingList {
+.rankingList {
   display: grid;
   gap: 8px;
 }
@@ -497,7 +377,7 @@
   padding: 12px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .rankingPosition {
@@ -556,136 +436,20 @@
 }
 
 @media (max-width: 800px) {
-  .mobileViewTabs {
+  .standingsViewTabs {
     position: sticky;
     z-index: 5;
     top: 8px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    padding: 4px;
+    width: auto;
     background: rgb(241 245 249 / 96%);
-    border: 1px solid #e2e8f0;
-    border-radius: 11px;
     box-shadow: 0 5px 16px rgb(15 23 42 / 8%);
     backdrop-filter: blur(8px);
   }
 
-  .mobileViewTab,
-  .mobileViewTabActive {
+  .standingsViewTab,
+  .standingsViewTabActive {
     min-height: 42px;
-    padding: 0 7px;
-    border: 0;
-    border-radius: 8px;
-    font: inherit;
     font-size: 0.76rem;
-    font-weight: 800;
-  }
-
-  .mobileViewTab {
-    color: #64748b;
-    background: transparent;
-  }
-
-  .mobileViewTabActive {
-    color: #4338ca;
-    background: #ffffff;
-    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.1);
-  }
-
-  .mobileViewHidden {
-    display: none !important;
-  }
-
-  .mobileRanking:not(.mobileViewHidden) {
-    display: grid;
-    gap: 10px;
-  }
-
-  .orderCard,
-  .orderCardActive {
-    display: block;
-    overflow: hidden;
-    padding: 0;
-    border-radius: 12px;
-  }
-
-  .desktopOrderContent {
-    display: none;
-  }
-
-  .mobileOrderContent {
-    display: grid;
-    width: 100%;
-  }
-
-  .mobileOrderHeader {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-  }
-
-  .orderCardActive .mobileOrderHeader {
-    background: #fffbeb;
-    border-bottom-color: #fde68a;
-  }
-
-  .mobileOrderHeader > strong {
-    color: #4338ca;
-    font-size: 0.76rem;
-  }
-
-  .mobileOrderHeader > span:nth-child(2) {
-    color: #64748b;
-    font-size: 0.68rem;
-  }
-
-  .mobileOrderMatchup {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr);
-    align-items: center;
-    gap: 8px;
-    padding: 12px 10px;
-  }
-
-  .mobileOrderMatchup > strong {
-    overflow: hidden;
-    color: #0f172a;
-    font-size: 0.86rem;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobileOrderScore {
-    padding: 7px 4px;
-    color: #312e81;
-    text-align: center;
-    background: #eef2ff;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 850;
-    white-space: nowrap;
-  }
-
-  .mobileOrderHeader .orderStatus {
-    min-height: 24px;
-    padding: 0 6px;
-    font-size: 0.64rem;
-  }
-
-  .mobileOrderHeader .orderStatus svg {
-    width: 13px;
-    height: 13px;
-  }
-
-  .orderList {
-    max-height: none;
-    overflow: visible;
   }
 
   .panel {
@@ -693,7 +457,7 @@
     padding: 12px;
     margin-top: 0;
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
+    border-radius: 8px;
   }
 
   .header {
@@ -709,55 +473,29 @@
     font-size: 0.72rem;
   }
 
-  .refreshButton {
-    width: 36px;
-    min-width: 36px;
-    min-height: 36px;
-    padding: 0;
-  }
-  
-  .refreshButton .buttonText {
-    display: none;
-  }
-
   .nameHeader,
   .rowHeader {
-    min-width: 100px !important;
+    min-width: 92px !important;
   }
 
   .matrixScroll {
     max-width: calc(100vw - 24px);
-    border-radius: 9px;
+    border-radius: 8px;
   }
 
   .matrix th,
   .matrix td {
-    min-width: 54px;
-    height: 48px;
+    min-width: 50px;
+    height: 46px;
     padding: 4px;
   }
 
-  .orderHeader {
-    align-items: center;
-  }
-
-  .orderHeader h3,
-  .mobileRankingHeader h3 {
+  .rankingHeader h3 {
     font-size: 0.95rem;
   }
 
-  .orderHeader p,
-  .mobileRankingHeader p {
+  .rankingHeader p {
     margin-top: 3px;
-    font-size: 0.7rem;
-  }
-
-  .orderHeader p {
-    display: none;
-  }
-
-  .orderHeader > span {
-    padding: 4px 8px;
     font-size: 0.7rem;
   }
 
@@ -765,7 +503,7 @@
     grid-template-columns: 38px minmax(0, 1fr) minmax(112px, auto);
     gap: 8px;
     padding: 9px;
-    border-radius: 12px;
+    border-radius: 8px;
   }
 
   .rankingPosition {
@@ -775,7 +513,7 @@
     justify-content: center;
     color: #4338ca;
     background: #eef2ff;
-    border-radius: 11px;
+    border-radius: 8px;
     font-size: 0.98rem;
   }
 
@@ -828,24 +566,18 @@
   }
 
   .detailBackdrop {
-    position: fixed;
-    z-index: 1000;
-    inset: 0;
-    display: grid;
     align-items: end;
     padding: 12px;
-    background: rgba(15, 23, 42, 0.55);
   }
 
   .detail {
     width: 100%;
     max-height: min(78dvh, 680px);
-    overflow-y: auto;
     box-sizing: border-box;
     padding: 18px;
     background: #ffffff;
     border: 0;
-    border-radius: 20px 20px 12px 12px;
+    border-radius: 8px;
     box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
   }
 
@@ -861,12 +593,9 @@
   }
 
   .detail header button {
-    min-width: 54px;
-    min-height: 36px;
-    padding: 0 12px;
-    font: inherit;
-    font-size: 0.76rem;
-    font-weight: 750;
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
   }
 
   .detailTitle {
@@ -889,7 +618,7 @@
     padding: 12px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 13px;
+    border-radius: 8px;
   }
 
   .detailScoreSide {

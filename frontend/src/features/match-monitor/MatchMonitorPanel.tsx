@@ -96,7 +96,10 @@ export default function MatchMonitorPanel({
         onFilterChange={setActiveFilter}
       />
 
-      <MatchMonitorFeedback error={error} message={message} />
+      <MatchMonitorFeedback
+        error={resultTarget || cancelTarget ? "" : error}
+        message={message}
+      />
 
       <MatchMonitorList
         matches={matches}
@@ -144,8 +147,12 @@ export default function MatchMonitorPanel({
       <MatchResultCancelDialog
         target={cancelTarget}
         reason={cancelReason}
+        error={error}
         isWorking={Boolean(workingMatchId)}
-        onReasonChange={setCancelReason}
+        onReasonChange={(reason) => {
+          setCancelReason(reason);
+          setError("");
+        }}
         onClose={closeCancel}
         onConfirm={() => {
           void cancelResult();

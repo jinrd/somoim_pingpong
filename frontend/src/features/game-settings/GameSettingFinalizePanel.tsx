@@ -1,3 +1,4 @@
+import { isValidTeamMatchFormatCount } from "./gameSettingUtils";
 import type { CompetitionType } from "./types";
 
 import styles from "./GameSettings.module.css";
@@ -35,8 +36,9 @@ export default function GameSettingFinalizePanel({
       ? "변경한 게임 설정을 먼저 임시 저장해 주세요."
       : hasUnsavedFormats
         ? "변경한 세부 경기를 먼저 저장해 주세요."
-        : competitionType === "team_league" && matchFormatCount === 0
-          ? "팀 대결 세부 경기를 한 개 이상 저장해 주세요."
+        : competitionType === "team_league" &&
+            !isValidTeamMatchFormatCount(matchFormatCount)
+          ? "팀 대결 세부 경기 수를 1개, 3개, 5개 중에서 선택해 주세요."
           : hasSetting
             ? undefined
             : "게임 설정을 먼저 임시 저장해 주세요.";

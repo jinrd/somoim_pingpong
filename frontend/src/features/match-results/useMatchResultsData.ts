@@ -77,30 +77,49 @@ export default function useMatchResultsData(setting: EventGameSetting | null) {
 
   useEffect(() => {
     isMountedRef.current = true;
+    let cancelled = false;
+    let refreshTimeoutId: number | undefined;
+
+    const scheduleRefresh = () => {
+      window.clearTimeout(refreshTimeoutId);
+
+      if (cancelled || document.hidden) {
+        return;
+      }
+
+      refreshTimeoutId = window.setTimeout(async () => {
+        await loadResults();
+        scheduleRefresh();
+      }, REFRESH_INTERVAL_MS);
+    };
+
+    const refreshNow = async () => {
+      window.clearTimeout(refreshTimeoutId);
+      await loadResults();
+      scheduleRefresh();
+    };
 
     const initialLoadId = window.setTimeout(() => {
-      void loadResults();
+      void refreshNow();
     }, 0);
 
-    const refreshVisibleResults = () => {
+    const handleVisibilityChange = () => {
+      window.clearTimeout(refreshTimeoutId);
+
       if (!document.hidden) {
-        void loadResults();
+        void refreshNow();
       }
     };
 
-    const intervalId = window.setInterval(
-      refreshVisibleResults,
-      REFRESH_INTERVAL_MS,
-    );
-
-    document.addEventListener("visibilitychange", refreshVisibleResults);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      cancelled = true;
       isMountedRef.current = false;
       latestRequestIdRef.current += 1;
       window.clearTimeout(initialLoadId);
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", refreshVisibleResults);
+      window.clearTimeout(refreshTimeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [loadResults]);
 

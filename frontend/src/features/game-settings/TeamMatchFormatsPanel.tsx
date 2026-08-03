@@ -1,38 +1,33 @@
 import { Save } from "lucide-react";
 
-import GameMatchFormatForm from "./GameMatchFormatForm";
 import GameMatchFormatList from "./GameMatchFormatList";
-import type { MatchFormatDraft, MatchFormatInput } from "./types";
+import { TEAM_MATCH_FORMAT_COUNTS } from "./constants";
+import { isValidTeamMatchFormatCount } from "./gameSettingUtils";
+import type { MatchFormatDraft } from "./types";
 
 import styles from "./GameSettings.module.css";
 
 interface Props {
   hasSetting: boolean;
   formats: MatchFormatDraft[];
-  newFormat: MatchFormatInput;
   isConfirmed: boolean;
   isWorking: boolean;
   isDirty: boolean;
   onFormatChange: (format: MatchFormatDraft) => void;
-  onDelete: (formatKey: string) => void;
+  onCountChange: (count: number) => void;
   onReorder: (formats: MatchFormatDraft[]) => void;
-  onNewFormatChange: (format: MatchFormatInput) => void;
-  onAdd: () => void;
   onSave: () => void;
 }
 
 export default function TeamMatchFormatsPanel({
   hasSetting,
   formats,
-  newFormat,
   isConfirmed,
   isWorking,
   isDirty,
   onFormatChange,
-  onDelete,
+  onCountChange,
   onReorder,
-  onNewFormatChange,
-  onAdd,
   onSave,
 }: Props) {
   return (
@@ -40,7 +35,7 @@ export default function TeamMatchFormatsPanel({
       <header className={styles.sectionHeader}>
         <div>
           <h2>팀 대결 세부 경기</h2>
-          <p>세트와 단식·복식 순서를 설정할 수 있습니다.</p>
+          <p>세부 경기는 1·3·5개로 구성합니다.</p>
         </div>
 
         {!isConfirmed && (
@@ -64,23 +59,36 @@ export default function TeamMatchFormatsPanel({
         </p>
       ) : (
         <>
+          {!isConfirmed && (
+            <label className={styles.formatCountControl}>
+              <span>세부 경기 수</span>
+              <select
+                value={formats.length}
+                disabled={isWorking}
+                onChange={(event) => onCountChange(Number(event.target.value))}
+              >
+                {!isValidTeamMatchFormatCount(formats.length) && (
+                  <option value={formats.length} disabled>
+                    {formats.length === 0
+                      ? "선택해 주세요"
+                      : `${formats.length}개 · 수정 필요`}
+                  </option>
+                )}
+                {TEAM_MATCH_FORMAT_COUNTS.map((count) => (
+                  <option key={count} value={count}>
+                    {count}개
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <GameMatchFormatList
             formats={formats}
             disabled={isWorking || isConfirmed}
             onFormatChange={onFormatChange}
-            onDelete={onDelete}
             onReorder={onReorder}
           />
-
-          {!isConfirmed && (
-            <GameMatchFormatForm
-              format={newFormat}
-              position={formats.length + 1}
-              disabled={isWorking}
-              onChange={onNewFormatChange}
-              onAdd={onAdd}
-            />
-          )}
         </>
       )}
     </section>

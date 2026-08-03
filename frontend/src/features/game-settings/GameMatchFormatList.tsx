@@ -23,7 +23,6 @@ interface Props {
   formats: MatchFormatDraft[];
   disabled: boolean;
   onFormatChange: (format: MatchFormatDraft) => void;
-  onDelete: (formatKey: string) => void;
   onReorder: (formats: MatchFormatDraft[]) => void;
 }
 
@@ -31,7 +30,6 @@ export default function GameMatchFormatList({
   formats,
   disabled,
   onFormatChange,
-  onDelete,
   onReorder,
 }: Props) {
   const sensors = useSensors(
@@ -96,7 +94,6 @@ export default function GameMatchFormatList({
               isLast={index === formats.length - 1}
               disabled={disabled}
               onChange={onFormatChange}
-              onDeleted={onDelete}
               onMoved={handleMove}
             />
           ))}

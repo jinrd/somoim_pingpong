@@ -8,6 +8,7 @@ import GameSettingsFeedback from "./GameSettingsFeedback";
 import GameSettingFinalizePanel from "./GameSettingFinalizePanel";
 import useMatchFormatActions from "./useMatchFormatActions";
 import useGameSettingActions from "./useGameSettingActions";
+import { isValidTeamMatchFormatCount } from "./gameSettingUtils";
 
 import { type EventGameSetting } from "./types";
 
@@ -48,11 +49,8 @@ export default function GameSettingsPanel({
   const [isWorking, setIsWorking] = useState(false);
 
   const {
-    newFormat,
-    setNewFormat,
-    handleAddFormat,
+    handleFormatCountChange,
     handleSaveFormats,
-    handleDeleteFormat,
     handleFormatChange,
     handleReorderFormats,
   } = useMatchFormatActions({
@@ -107,7 +105,7 @@ export default function GameSettingsPanel({
     !hasUnsavedSettingChanges &&
     !areFormatsDirty &&
     (formData.competitionType === "individual_singles" ||
-      matchFormats.length > 0);
+      isValidTeamMatchFormatCount(matchFormats.length));
 
   if (isLoading) {
     return <div className={styles.loading}>게임 설정을 불러오는 중입니다…</div>;
@@ -150,15 +148,12 @@ export default function GameSettingsPanel({
         <TeamMatchFormatsPanel
           hasSetting={Boolean(setting)}
           formats={matchFormats}
-          newFormat={newFormat}
           isConfirmed={isConfirmed}
           isWorking={isWorking}
           isDirty={areFormatsDirty}
           onFormatChange={handleFormatChange}
-          onDelete={handleDeleteFormat}
+          onCountChange={handleFormatCountChange}
           onReorder={handleReorderFormats}
-          onNewFormatChange={setNewFormat}
-          onAdd={handleAddFormat}
           onSave={() => void handleSaveFormats()}
         />
       )}

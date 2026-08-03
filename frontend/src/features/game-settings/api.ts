@@ -1,6 +1,7 @@
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../../lib/pocketbase";
+import { isValidTeamMatchFormatCount } from "./gameSettingUtils";
 
 import type {
   EventGameConfiguration,
@@ -167,6 +168,12 @@ export const saveMatchFormats = async (
   gameSettingId: string,
   formats: MatchFormatInput[],
 ): Promise<EventMatchFormat[]> => {
+  if (!isValidTeamMatchFormatCount(formats.length)) {
+    throw new Error(
+      "팀 대결 세부 경기 수는 1개, 3개, 5개 중에서 선택해 주세요.",
+    );
+  }
+
   formats.forEach(validateMatchFormatInput);
 
   return pb.send<EventMatchFormat[]>(

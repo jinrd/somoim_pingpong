@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { X } from "lucide-react";
 import { DOMAIN_LIMITS } from "../../config/domain";
+import useModalDialog from "../../hooks/useModalDialog";
 import type { RankSettingsInput } from "../members/api";
 
 import { addGuestToEvent } from "./api";
@@ -30,6 +31,11 @@ export default function GuestFormModal({
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useModalDialog<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    canClose: !isSaving,
+  });
 
   const handleSubmit = async (submitEvent: SubmitEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
@@ -58,8 +64,17 @@ export default function GuestFormModal({
   };
 
   return (
-    <div className={styles.overlay} role="presentation" onMouseDown={onClose}>
+    <div
+      className={styles.overlay}
+      role="presentation"
+      onMouseDown={() => {
+        if (!isSaving) {
+          onClose();
+        }
+      }}
+    >
       <div
+        ref={dialogRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"
@@ -99,7 +114,6 @@ export default function GuestFormModal({
               value={name}
               maxLength={DOMAIN_LIMITS.guestNameMaxLength}
               required
-              autoFocus
               onChange={(changeEvent) => {
                 setName(changeEvent.target.value);
               }}

@@ -85,6 +85,14 @@ p {
   min-height: 100vh;
 }
 
+.route-loading {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+  color: var(--color-muted);
+  place-items: center;
+}
+
 ::selection {
   color: #ffffff;
   background: #6366f1;

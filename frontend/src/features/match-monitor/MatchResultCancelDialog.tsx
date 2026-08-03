@@ -1,5 +1,6 @@
 import { Loader2, RotateCcw, X } from "lucide-react";
 
+import useModalDialog from "../../hooks/useModalDialog";
 import type { CancelTarget } from "./types";
 
 import styles from "./MatchMonitorPanel.module.css";
@@ -7,6 +8,7 @@ import styles from "./MatchMonitorPanel.module.css";
 interface Props {
   target: CancelTarget | null;
   reason: string;
+  error: string;
   isWorking: boolean;
   onReasonChange: (reason: string) => void;
   onClose: () => void;
@@ -16,11 +18,18 @@ interface Props {
 export default function MatchResultCancelDialog({
   target,
   reason,
+  error,
   isWorking,
   onReasonChange,
   onClose,
   onConfirm,
 }: Props) {
+  const dialogRef = useModalDialog<HTMLElement>({
+    isOpen: Boolean(target),
+    onClose,
+    canClose: !isWorking,
+  });
+
   if (!target) {
     return null;
   }
@@ -36,6 +45,7 @@ export default function MatchResultCancelDialog({
       }}
     >
       <section
+        ref={dialogRef}
         className={styles.cancelModal}
         role="dialog"
         aria-modal="true"
@@ -64,6 +74,12 @@ export default function MatchResultCancelDialog({
             선택한 경기의 확정 점수가 삭제되고 결과를 다시 입력할 수 있게 됩니다.
           </p>
         </div>
+
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
 
         <label className={styles.reasonField}>
           <span>취소 사유</span>

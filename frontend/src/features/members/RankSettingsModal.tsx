@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from "react";
 import { X } from "lucide-react";
+import useModalDialog from "../../hooks/useModalDialog";
 import styles from "./Modal.module.css";
 import { DEFAULT_RANK_SETTINGS, DOMAIN_LIMITS } from "../../config/domain";
 import {
@@ -37,6 +38,11 @@ export default function RankSettingsModal({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useModalDialog<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    canClose: !isSaving,
+  });
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -81,8 +87,17 @@ export default function RankSettingsModal({
   };
 
   return (
-    <div className={styles.overlay} role="presentation" onMouseDown={onClose}>
+    <div
+      className={styles.overlay}
+      role="presentation"
+      onMouseDown={() => {
+        if (!isSaving) {
+          onClose();
+        }
+      }}
+    >
       <div
+        ref={dialogRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"
@@ -96,6 +111,7 @@ export default function RankSettingsModal({
             onClick={onClose}
             className={styles.closeBtn}
             aria-label="닫기"
+            disabled={isSaving}
           >
             <X size={24} />
           </button>

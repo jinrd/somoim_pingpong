@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import EventManagementTabs from "../../features/events/EventManagementTabs";
 
@@ -12,6 +12,7 @@ import EventLifecycleDialogs from "../../features/events/EventLifecycleDialogs";
 import { useEventLifecycleActions } from "../../features/events/useEventLifecycleActions";
 import { useEventDetail } from "../../features/events/useEventDetail";
 import { useEventManagementState } from "../../features/events/useEventManagementState";
+import { getAvailableManagementStep } from "../../features/events/EventWorkflow";
 export default function EventDetail() {
   const { eventId } = useParams<{
     eventId: string;
@@ -24,6 +25,7 @@ export default function EventDetail() {
     setActiveStep: setActiveTab,
     gameSetting,
     workflow,
+    isWorkflowResolved,
     configurationRevision,
     handleGameConfigurationReset,
     handleSettingConfigurationReset,
@@ -34,6 +36,11 @@ export default function EventDetail() {
   } = useEventManagementState(eventId);
 
   const navigate = useNavigate();
+  const requiresWorkflow =
+    activeTab !== "participants" && activeTab !== "game-settings";
+  const displayedTab = isWorkflowResolved
+    ? getAvailableManagementStep(activeTab, workflow)
+    : activeTab;
 
   const lifecycle = useEventLifecycleActions({
     eventRecord,
@@ -89,6 +96,15 @@ export default function EventDetail() {
 
   return (
     <section className={styles.page}>
+      {isWorkflowResolved && displayedTab !== activeTab && (
+        <Navigate
+          replace
+          to={{
+            search:
+              displayedTab === "participants" ? "" : `?step=${displayedTab}`,
+          }}
+        />
+      )}
       <button
         type="button"
         className={styles.backButton}
@@ -110,26 +126,32 @@ export default function EventDetail() {
       />
 
       <EventManagementTabs
-        activeStep={activeTab}
+        activeStep={displayedTab}
         workflow={workflow}
         onStepChange={setActiveTab}
       />
-      <EventManagementContent
-        activeStep={activeTab}
-        eventId={eventId}
-        eventRecord={eventRecord}
-        gameSetting={gameSetting}
-        workflow={workflow}
-        configurationRevision={configurationRevision}
-        onEventUpdated={setEventRecord}
-        onGameConfigurationReset={handleGameConfigurationReset}
-        onSettingChanged={handleSettingChanged}
-        onSettingConfigurationReset={handleSettingConfigurationReset}
-        onFormationChanged={setFormationStatus}
-        onScheduleReset={handleScheduleReset}
-        onScheduleChanged={setHasSchedule}
-        onEventStatusChanged={refreshEventRecord}
-      />
+      {requiresWorkflow && !isWorkflowResolved ? (
+        <div className={styles.emptyPanel} role="status">
+          회차 진행 상태를 확인하는 중입니다…
+        </div>
+      ) : (
+        <EventManagementContent
+          activeStep={displayedTab}
+          eventId={eventId}
+          eventRecord={eventRecord}
+          gameSetting={gameSetting}
+          workflow={workflow}
+          configurationRevision={configurationRevision}
+          onEventUpdated={setEventRecord}
+          onGameConfigurationReset={handleGameConfigurationReset}
+          onSettingChanged={handleSettingChanged}
+          onSettingConfigurationReset={handleSettingConfigurationReset}
+          onFormationChanged={setFormationStatus}
+          onScheduleReset={handleScheduleReset}
+          onScheduleChanged={setHasSchedule}
+          onEventStatusChanged={refreshEventRecord}
+        />
+      )}
       <EventLifecycleDialogs
         eventRecord={eventRecord}
         deleteDialog={lifecycle.deleteDialog}

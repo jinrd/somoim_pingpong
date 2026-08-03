@@ -4,6 +4,11 @@ import type {
   GameSettingInput,
   MatchFormatDraft,
 } from "./types";
+import { TEAM_MATCH_FORMAT_COUNTS } from "./constants";
+
+export const isValidTeamMatchFormatCount = (count: number): boolean => {
+  return TEAM_MATCH_FORMAT_COUNTS.some((allowedCount) => allowedCount === count);
+};
 
 export const toGameSettingInput = (
   setting: EventGameSetting,

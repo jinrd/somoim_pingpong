@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from "react";
 import { X } from "lucide-react";
+import useModalDialog from "../../hooks/useModalDialog";
 
 import { createEvent } from "./api";
 import type { SomoimEvent } from "./types";
@@ -38,6 +39,11 @@ export default function EventFormModal({ onClose, onCreated }: Props) {
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useModalDialog<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    canClose: !isSaving,
+  });
 
   const handleSubmit = async (submitEvent: SubmitEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
@@ -66,8 +72,17 @@ export default function EventFormModal({ onClose, onCreated }: Props) {
   };
 
   return (
-    <div className={styles.overlay} role="presentation" onMouseDown={onClose}>
+    <div
+      className={styles.overlay}
+      role="presentation"
+      onMouseDown={() => {
+        if (!isSaving) {
+          onClose();
+        }
+      }}
+    >
       <div
+        ref={dialogRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"
@@ -112,7 +127,6 @@ export default function EventFormModal({ onClose, onCreated }: Props) {
               }}
               maxLength={DOMAIN_LIMITS.eventTitleMaxLength}
               required
-              autoFocus
             />
           </div>
 

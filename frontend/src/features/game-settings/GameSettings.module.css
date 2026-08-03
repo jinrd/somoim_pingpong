@@ -112,9 +112,7 @@
 .formField input,
 .formField select,
 .formatRow input,
-.formatRow select,
-.newFormatRow input,
-.newFormatRow select {
+.formatRow select {
   width: 100%;
   height: 44px;
   padding: 0 11px;
@@ -126,15 +124,13 @@
   font: inherit;
 }
 
-.formatRow input[type="number"],
-.newFormatRow input[type="number"] {
+.formatRow input[type="number"] {
   width: 54px;
   padding: 0 4px;
   text-align: center;
 }
 
-.formatRow select,
-.newFormatRow select {
+.formatRow select {
   width: auto;
   min-width: 72px;
 }
@@ -155,9 +151,7 @@
 .formField input:focus,
 .formField select:focus,
 .formatRow input:focus,
-.formatRow select:focus,
-.newFormatRow input:focus,
-.newFormatRow select:focus {
+.formatRow select:focus {
   border-color: #6366f1;
   outline: 3px solid rgba(99, 102, 241, 0.12);
 }
@@ -365,8 +359,7 @@
   box-shadow: 0 12px 28px rgba(79, 70, 229, 0.18);
 }
 
-.formatRow,
-.newFormatRow {
+.formatRow {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
@@ -378,15 +371,7 @@
   border-radius: 12px;
 }
 
-.newFormatRow {
-  grid-template-columns: 88px 90px 64px auto auto;
-  margin-top: 10px;
-  background: #ffffff;
-  border-style: dashed;
-}
-
-.orderCell,
-.newFormatOrder {
+.orderCell {
   height: 44px;
   display: flex;
   align-items: center;
@@ -397,8 +382,7 @@
   flex-shrink: 0;
 }
 
-.orderCell strong,
-.newFormatOrder strong {
+.orderCell strong {
   color: #4338ca;
   font-size: 1rem;
 }
@@ -446,6 +430,31 @@
   gap: 12px;
 }
 
+.formatCountControl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  color: #344054;
+  background: #f8fafc;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.formatCountControl select {
+  width: 108px;
+  height: 40px;
+  padding: 0 10px;
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+}
+
 .compactField {
   display: grid;
   gap: 6px;
@@ -474,11 +483,6 @@
   width: 18px;
   height: 18px;
   accent-color: #4f46e5;
-}
-
-.formatRow > .iconButton,
-.newFormatRow > .primaryButton {
-  margin-left: auto;
 }
 
 .emptyFormats {
@@ -869,8 +873,18 @@
     gap: 6px;
   }
 
-  .formatRow,
-  .newFormatRow {
+  .formatCountControl {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+  }
+
+  .formatCountControl select {
+    width: 104px;
+    height: 36px;
+    font-size: 0.8rem;
+  }
+
+  .formatRow {
     display: flex;
     flex-direction: row;
     align-items: flex-end;
@@ -879,26 +893,22 @@
     padding: 8px 4px;
   }
 
-  .formatRow > .compactField,
-  .newFormatRow > .compactField {
+  .formatRow > .compactField {
     width: auto;
     max-width: none;
     flex-shrink: 1;
   }
 
-  .formatRow select,
-  .newFormatRow select {
+  .formatRow select {
     min-width: 60px;
     padding: 0 6px;
   }
 
-  .formatRow input[type="number"],
-  .newFormatRow input[type="number"] {
+  .formatRow input[type="number"] {
     width: 44px;
   }
 
-  .orderCell,
-  .newFormatOrder {
+  .orderCell {
     grid-column: auto;
     grid-row: auto;
     width: auto;
@@ -912,8 +922,7 @@
     box-sizing: border-box;
   }
 
-  .orderCell strong,
-  .newFormatOrder strong {
+  .orderCell strong {
     font-size: 0.85rem;
   }
 
@@ -929,8 +938,7 @@
     border-color: #e4e7ec;
   }
 
-  .formatRow > .compactField,
-  .newFormatRow > .compactField {
+  .formatRow > .compactField {
     min-width: 0;
     grid-column: auto;
     grid-row: auto;
@@ -938,35 +946,29 @@
     max-width: none;
   }
 
-  .formatRow .compactField > span,
-  .newFormatRow .compactField > span {
+  .formatRow .compactField > span {
     display: none;
   }
 
   .formatRow input,
-  .formatRow select,
-  .newFormatRow input,
-  .newFormatRow select {
+  .formatRow select {
     height: 34px;
     padding: 0 4px;
     font-size: 0.8rem;
     border-radius: 7px;
   }
 
-  .formatRow input[type="number"],
-  .newFormatRow input[type="number"] {
+  .formatRow input[type="number"] {
     width: 42px;
     padding: 0 2px;
     text-align: center;
   }
 
-  .formatRow select,
-  .newFormatRow select {
+  .formatRow select {
     padding-left: 4px;
   }
 
-  .formatRow .formatCheckbox,
-  .newFormatRow .formatCheckbox {
+  .formatRow .formatCheckbox {
     grid-column: auto;
     grid-row: auto;
     width: max-content;
@@ -980,44 +982,18 @@
     white-space: nowrap;
   }
 
-  .formatRow .formatCheckbox input,
-  .newFormatRow .formatCheckbox input {
+  .formatRow .formatCheckbox input {
     width: 15px;
     height: 15px;
   }
 
-  .formatRow .formatCheckbox span,
-  .newFormatRow .formatCheckbox span {
+  .formatRow .formatCheckbox span {
     font-size: 0;
   }
 
-  .formatRow .formatCheckbox span::after,
-  .newFormatRow .formatCheckbox span::after {
+  .formatRow .formatCheckbox span::after {
     content: "승강";
     font-size: 0.7rem;
-  }
-
-  .formatRow > .iconButton {
-    grid-column: auto;
-    grid-row: auto;
-    width: 34px;
-    height: 34px;
-    border-radius: 7px;
-    justify-self: center;
-  }
-
-  .newFormatRow > .primaryButton {
-    grid-column: auto;
-    grid-row: auto;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    border-radius: 7px;
-    justify-self: center;
-  }
-
-  .newFormatRow > .primaryButton span {
-    display: none;
   }
 
   .dragHandle {

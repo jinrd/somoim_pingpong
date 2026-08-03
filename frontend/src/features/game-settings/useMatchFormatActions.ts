@@ -1,16 +1,13 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 import { saveMatchFormats } from "./api";
 import { DEFAULT_MATCH_FORMAT_INPUT } from "./constants";
 import {
   getGameSettingErrorMessage,
+  isValidTeamMatchFormatCount,
   toMatchFormatDraft,
 } from "./gameSettingUtils";
-import type {
-  EventGameSetting,
-  MatchFormatDraft,
-  MatchFormatInput,
-} from "./types";
+import type { EventGameSetting, MatchFormatDraft } from "./types";
 
 interface Params {
   setting: EventGameSetting | null;
@@ -33,37 +30,48 @@ export default function useMatchFormatActions({
   setError,
   setMessage,
 }: Params) {
-  const [newFormat, setNewFormat] = useState<MatchFormatInput>(
-    DEFAULT_MATCH_FORMAT_INPUT,
-  );
-
-  const handleAddFormat = () => {
+  const handleFormatCountChange = (count: number) => {
     if (!setting) {
       setError("먼저 회차 게임 설정을 저장해 주세요.");
       return;
     }
 
-    if (newFormat.matchType === "doubles" && teamSize < 2) {
-      setError("복식 경기를 추가하려면 팀당 인원이 2명 이상이어야 합니다.");
+    if (!isValidTeamMatchFormatCount(count)) {
+      setError("팀 대결 세부 경기 수는 1개, 3개, 5개 중에서 선택해 주세요.");
+      return;
+    }
+
+    if (count === matchFormats.length) {
       return;
     }
 
     setError("");
-    setMatchFormats((currentFormats) => [
-      ...currentFormats,
-      {
-        key: crypto.randomUUID(),
-        ...newFormat,
-      },
-    ]);
-    setNewFormat(DEFAULT_MATCH_FORMAT_INPUT);
+    setMatchFormats((currentFormats) => {
+      const nextFormats = currentFormats.slice(0, count);
+
+      while (nextFormats.length < count) {
+        nextFormats.push({
+          key: crypto.randomUUID(),
+          ...DEFAULT_MATCH_FORMAT_INPUT,
+        });
+      }
+
+      return nextFormats;
+    });
     setAreFormatsDirty(true);
-    setMessage("경기를 목록에 추가했습니다. 저장을 눌러 반영해 주세요.");
+    setMessage(`세부 경기를 ${count}개로 변경했습니다. 저장해 주세요.`);
   };
 
   const handleSaveFormats = async () => {
     if (!setting) {
       setError("먼저 회차 게임 설정을 저장해 주세요.");
+      return;
+    }
+
+    if (!isValidTeamMatchFormatCount(matchFormats.length)) {
+      setError(
+        "팀 대결 세부 경기 수는 1개, 3개, 5개 중에서 선택해 주세요.",
+      );
       return;
     }
 
@@ -105,15 +113,6 @@ export default function useMatchFormatActions({
     }
   };
 
-  const handleDeleteFormat = (formatKey: string) => {
-    setError("");
-    setMatchFormats((currentFormats) =>
-      currentFormats.filter((format) => format.key !== formatKey),
-    );
-    setAreFormatsDirty(true);
-    setMessage("경기를 목록에서 삭제했습니다. 저장을 눌러 반영해 주세요.");
-  };
-
   const handleFormatChange = (updatedFormat: MatchFormatDraft) => {
     setMatchFormats((currentFormats) =>
       currentFormats.map((currentFormat) =>
@@ -132,11 +131,8 @@ export default function useMatchFormatActions({
   };
 
   return {
-    newFormat,
-    setNewFormat,
-    handleAddFormat,
+    handleFormatCountChange,
     handleSaveFormats,
-    handleDeleteFormat,
     handleFormatChange,
     handleReorderFormats,
   };

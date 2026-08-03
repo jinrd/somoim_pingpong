@@ -17,6 +17,7 @@ import { ClientResponseError } from "pocketbase";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import useModalDialog from "../../hooks/useModalDialog";
 import {
   approveRankingCandidate,
   getMemberRankingDetail,
@@ -107,24 +108,8 @@ export default function Rankings() {
   }, []);
 
   const openMemberDetail = useCallback(
-    async (memberId: string) => {
-      setIsDetailLoading(true);
-      setError("");
+    (memberId: string) => {
       setSearchParams({ member: memberId });
-
-      try {
-        const result = await getMemberRankingDetail(memberId);
-
-        setSelectedDetail(result);
-        setRankInput(result.member.currentRank);
-        setIsRankEditing(false);
-      } catch (caughtError) {
-        setError(
-          getErrorMessage(caughtError, "회원 전적을 불러오지 못했습니다."),
-        );
-      } finally {
-        setIsDetailLoading(false);
-      }
     },
     [setSearchParams],
   );
@@ -218,39 +203,44 @@ export default function Rankings() {
   }, []);
 
   useEffect(() => {
-    if (
-      !selectedMemberId ||
-      selectedDetail?.member.memberId === selectedMemberId
-    ) {
+    if (!selectedMemberId) {
       return;
     }
 
     let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      setIsDetailLoading(true);
+      setError("");
 
-    getMemberRankingDetail(selectedMemberId)
-      .then((result) => {
-        if (!cancelled) {
-          setSelectedDetail(result);
-        }
-      })
-      .catch((caughtError) => {
-        if (!cancelled) {
-          setError(
-            getErrorMessage(caughtError, "회원 전적을 불러오지 못했습니다."),
-          );
-          setSearchParams({});
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsDetailLoading(false);
-        }
-      });
+      getMemberRankingDetail(selectedMemberId)
+        .then((result) => {
+          if (!cancelled) {
+            setSelectedDetail(result);
+            setRankInput(result.member.currentRank);
+            setIsRankEditing(false);
+          }
+        })
+        .catch((caughtError) => {
+          if (!cancelled) {
+            setSelectedDetail(null);
+            setError(
+              getErrorMessage(caughtError, "회원 전적을 불러오지 못했습니다."),
+            );
+            setSearchParams({});
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsDetailLoading(false);
+          }
+        });
+    }, 0);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, [selectedDetail?.member.memberId, selectedMemberId, setSearchParams]);
+  }, [selectedMemberId, setSearchParams]);
 
   const activeMemberCount = useMemo(
     () =>
@@ -311,6 +301,17 @@ export default function Rankings() {
       setIsReviewing(false);
     }
   };
+
+  const detailDialogRef = useModalDialog<HTMLElement>({
+    isOpen: Boolean(selectedDetail),
+    onClose: closeMemberDetail,
+    canClose: !isRankSaving,
+  });
+  const reviewDialogRef = useModalDialog<HTMLDivElement>({
+    isOpen: Boolean(reviewTarget),
+    onClose: () => setReviewTarget(null),
+    canClose: !isReviewing,
+  });
 
   return (
     <div className={styles.container}>
@@ -585,9 +586,14 @@ export default function Rankings() {
         <div
           className={styles.overlay}
           role="presentation"
-          onMouseDown={closeMemberDetail}
+          onMouseDown={() => {
+            if (!isRankSaving) {
+              closeMemberDetail();
+            }
+          }}
         >
           <aside
+            ref={detailDialogRef}
             className={styles.detailPanel}
             role="dialog"
             aria-modal="true"
@@ -606,6 +612,7 @@ export default function Rankings() {
                 type="button"
                 onClick={closeMemberDetail}
                 aria-label="회원 전적 닫기"
+                disabled={isRankSaving}
               >
                 <X size={21} aria-hidden="true" />
               </button>
@@ -795,6 +802,7 @@ export default function Rankings() {
           }}
         >
           <div
+            ref={reviewDialogRef}
             className={styles.reviewDialog}
             role="dialog"
             aria-modal="true"

@@ -1,3 +1,4 @@
+import useModalDialog from "../../hooks/useModalDialog";
 import styles from "./GameSettings.module.css";
 
 interface Props {
@@ -11,6 +12,11 @@ export default function GameSettingsFeedback({
   message,
   onErrorDismiss,
 }: Props) {
+  const errorDialogRef = useModalDialog<HTMLElement>({
+    isOpen: Boolean(error),
+    onClose: onErrorDismiss,
+  });
+
   if (!error && !message) {
     return null;
   }
@@ -20,6 +26,7 @@ export default function GameSettingsFeedback({
       {error && (
         <div className={styles.confirmOverlay}>
           <section
+            ref={errorDialogRef}
             className={styles.confirmDialog}
             role="alertdialog"
             aria-modal="true"
@@ -33,7 +40,6 @@ export default function GameSettingsFeedback({
               <button
                 type="button"
                 className={styles.confirmSettingButton}
-                autoFocus
                 onClick={onErrorDismiss}
               >
                 확인

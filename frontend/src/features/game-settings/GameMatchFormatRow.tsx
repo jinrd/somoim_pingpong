@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, GripVertical, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -16,7 +16,6 @@ interface Props {
   isLast: boolean;
   disabled: boolean;
   onChange: (format: MatchFormatDraft) => void;
-  onDeleted: (formatKey: string) => void;
   onMoved: (formatKey: string, direction: -1 | 1) => void;
 }
 
@@ -26,7 +25,6 @@ export default function GameMatchFormatRow({
   isLast,
   disabled,
   onChange,
-  onDeleted,
   onMoved,
 }: Props) {
   const {
@@ -143,20 +141,6 @@ export default function GameMatchFormatRow({
           />
           <span>부수 승강 반영</span>
         </label>
-
-        <button
-          type="button"
-          className={styles.iconButton}
-          disabled={disabled}
-          aria-label={`${position}번 경기 삭제`}
-          onClick={() => {
-            if (window.confirm(`${position}번 경기를 목록에서 삭제할까요?`)) {
-              onDeleted(format.key);
-            }
-          }}
-        >
-          <Trash2 size={18} aria-hidden="true" />
-        </button>
       </div>
     </div>
   );

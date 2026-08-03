@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -28,15 +28,35 @@ const PARTICIPANT_GUIDE_TEXT = `[🏓 탁꾸러기 메이트 이용 안내]
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"policy" | "admin" | "participant">("policy");
-  const [isCopied, setIsCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const copyResetTimerRef = useRef<number | null>(null);
 
-  const handleCopyGuide = () => {
-    navigator.clipboard.writeText(PARTICIPANT_GUIDE_TEXT).then(() => {
-      setIsCopied(true);
-      setTimeout(() => {
-        setIsCopied(false);
-      }, 2000);
-    });
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyGuide = async () => {
+    if (copyResetTimerRef.current !== null) {
+      window.clearTimeout(copyResetTimerRef.current);
+    }
+
+    try {
+      await navigator.clipboard.writeText(PARTICIPANT_GUIDE_TEXT);
+      setCopyStatus("success");
+    } catch {
+      setCopyStatus("error");
+    }
+
+    copyResetTimerRef.current = window.setTimeout(() => {
+      setCopyStatus("idle");
+      copyResetTimerRef.current = null;
+    }, 2000);
   };
 
   return (
@@ -284,13 +304,21 @@ export default function Dashboard() {
               </div>
               <button
                 type="button"
-                className={`${styles.copyBtn} ${isCopied ? styles.copyBtnCopied : ""}`}
-                onClick={handleCopyGuide}
+                className={`${styles.copyBtn} ${copyStatus === "success" ? styles.copyBtnCopied : ""}`}
+                aria-live="polite"
+                onClick={() => {
+                  void handleCopyGuide();
+                }}
               >
-                {isCopied ? (
+                {copyStatus === "success" ? (
                   <>
                     <Check size={16} aria-hidden="true" />
                     <span>복사 완료</span>
+                  </>
+                ) : copyStatus === "error" ? (
+                  <>
+                    <Copy size={16} aria-hidden="true" />
+                    <span>복사 실패</span>
                   </>
                 ) : (
                   <>

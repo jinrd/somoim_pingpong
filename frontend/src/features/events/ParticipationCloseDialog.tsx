@@ -1,3 +1,4 @@
+import useModalDialog from "../../hooks/useModalDialog";
 import styles from "./Events.module.css";
 
 interface Props {
@@ -13,6 +14,12 @@ export default function ParticipationCloseDialog({
   onCancel,
   onConfirm,
 }: Props) {
+  const dialogRef = useModalDialog<HTMLElement>({
+    isOpen,
+    onClose: onCancel,
+    canClose: !isWorking,
+  });
+
   if (!isOpen) {
     return null;
   }
@@ -20,6 +27,7 @@ export default function ParticipationCloseDialog({
   return (
     <div className={styles.confirmOverlay}>
       <section
+        ref={dialogRef}
         className={styles.confirmDialog}
         role="dialog"
         aria-modal="true"

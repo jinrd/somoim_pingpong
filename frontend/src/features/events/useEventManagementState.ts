@@ -35,12 +35,16 @@ export const useEventManagementState = (eventId?: string) => {
     [searchParams, setSearchParams],
   );
 
-  const [gameSetting, setGameSetting] = useState<EventGameSetting | null>(null);
+  const [loadedGameSetting, setLoadedGameSetting] =
+    useState<EventGameSetting | null>(null);
+  const [gameSettingLoadedFor, setGameSettingLoadedFor] = useState("");
 
   const [formationStatus, setFormationStatus] =
     useState<TeamFormationStatus | null>(null);
+  const [formationStatusLoadedFor, setFormationStatusLoadedFor] = useState("");
 
   const [hasSchedule, setHasSchedule] = useState(false);
+  const [scheduleStatusLoadedFor, setScheduleStatusLoadedFor] = useState("");
 
   const [configurationRevision, setConfigurationRevision] = useState(0);
 
@@ -54,12 +58,17 @@ export const useEventManagementState = (eventId?: string) => {
     getEventGameSetting(eventId)
       .then((setting) => {
         if (!cancelled) {
-          setGameSetting(setting);
+          setLoadedGameSetting(setting);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setGameSetting(null);
+          setLoadedGameSetting(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setGameSettingLoadedFor(eventId);
         }
       });
 
@@ -67,6 +76,9 @@ export const useEventManagementState = (eventId?: string) => {
       cancelled = true;
     };
   }, [eventId]);
+
+  const gameSetting =
+    gameSettingLoadedFor === eventId ? loadedGameSetting : null;
 
   useEffect(() => {
     if (
@@ -89,6 +101,11 @@ export const useEventManagementState = (eventId?: string) => {
         if (!cancelled) {
           setFormationStatus(null);
         }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setFormationStatusLoadedFor(gameSetting.id);
+        }
       });
 
     return () => {
@@ -97,23 +114,30 @@ export const useEventManagementState = (eventId?: string) => {
   }, [gameSetting]);
 
   const handleGameConfigurationReset = useCallback(() => {
-    setGameSetting(null);
+    setLoadedGameSetting(null);
+    setGameSettingLoadedFor(eventId ?? "");
     setFormationStatus(null);
+    setFormationStatusLoadedFor("");
     setHasSchedule(false);
+    setScheduleStatusLoadedFor("");
     setConfigurationRevision((current) => current + 1);
     setActiveStep("participants");
-  }, [setActiveStep]);
+  }, [eventId, setActiveStep]);
 
   const handleSettingConfigurationReset = useCallback(() => {
     setFormationStatus(null);
+    setFormationStatusLoadedFor("");
     setHasSchedule(false);
+    setScheduleStatusLoadedFor("");
     setActiveStep("game-settings");
   }, [setActiveStep]);
 
   const handleSettingChanged = useCallback(
     (nextSetting: EventGameSetting | null) => {
-      setGameSetting(nextSetting);
+      setLoadedGameSetting(nextSetting);
+      setGameSettingLoadedFor(eventId ?? "");
       setHasSchedule(false);
+      setScheduleStatusLoadedFor("");
       setActiveStep("game-settings");
 
       if (
@@ -122,19 +146,39 @@ export const useEventManagementState = (eventId?: string) => {
         nextSetting.competition_type !== "team_league"
       ) {
         setFormationStatus(null);
+        setFormationStatusLoadedFor("");
       }
     },
-    [setActiveStep],
+    [eventId, setActiveStep],
   );
 
   const handleScheduleReset = useCallback(() => {
     setHasSchedule(false);
-  }, []);
+    setScheduleStatusLoadedFor(gameSetting?.id ?? "");
+  }, [gameSetting?.id]);
+
+  const handleFormationChanged = useCallback(
+    (status: TeamFormationStatus | null) => {
+      setFormationStatus(status);
+      setFormationStatusLoadedFor(gameSetting?.id ?? "");
+    },
+    [gameSetting?.id],
+  );
+
+  const handleScheduleChanged = useCallback(
+    (nextHasSchedule: boolean) => {
+      setHasSchedule(nextHasSchedule);
+      setScheduleStatusLoadedFor(gameSetting?.id ?? "");
+    },
+    [gameSetting?.id],
+  );
 
   const workflow = getEventWorkflow({
     gameSetting,
-    formationStatus,
-    hasSchedule,
+    formationStatus:
+      formationStatusLoadedFor === gameSetting?.id ? formationStatus : null,
+    hasSchedule:
+      scheduleStatusLoadedFor === gameSetting?.id ? hasSchedule : false,
   });
 
   useEffect(() => {
@@ -159,6 +203,11 @@ export const useEventManagementState = (eventId?: string) => {
         if (!cancelled) {
           setHasSchedule(false);
         }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setScheduleStatusLoadedFor(gameSetting.id);
+        }
       });
 
     return () => {
@@ -166,17 +215,28 @@ export const useEventManagementState = (eventId?: string) => {
     };
   }, [gameSetting, workflow.canOpenSchedule]);
 
+  const isGameSettingResolved = gameSettingLoadedFor === eventId;
+  const isFormationStatusResolved =
+    !workflow.canOpenFormation || formationStatusLoadedFor === gameSetting?.id;
+  const isScheduleStatusResolved =
+    !workflow.canOpenSchedule || scheduleStatusLoadedFor === gameSetting?.id;
+  const isWorkflowResolved =
+    isGameSettingResolved &&
+    isFormationStatusResolved &&
+    isScheduleStatusResolved;
+
   return {
     activeStep,
     setActiveStep,
     gameSetting,
     workflow,
+    isWorkflowResolved,
     configurationRevision,
     handleGameConfigurationReset,
     handleSettingConfigurationReset,
     handleSettingChanged,
     handleScheduleReset,
-    setFormationStatus,
-    setHasSchedule,
+    setFormationStatus: handleFormationChanged,
+    setHasSchedule: handleScheduleChanged,
   };
 };

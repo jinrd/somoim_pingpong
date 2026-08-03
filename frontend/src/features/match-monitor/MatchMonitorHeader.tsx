@@ -12,13 +12,14 @@ export default function MatchMonitorHeader({ isLoading, onRefresh }: Props) {
     <header className={styles.header}>
       <div>
         <h2>경기 진행</h2>
-        <p>경기 상태는 5초마다 자동으로 갱신됩니다.</p>
+        <p>경기 상태는 15초마다 자동으로 갱신됩니다.</p>
       </div>
 
       <button
         type="button"
         className={styles.refreshButton}
         disabled={isLoading}
+        aria-label="경기 현황 새로고침"
         onClick={onRefresh}
       >
         <RefreshCw size={17} aria-hidden="true" />

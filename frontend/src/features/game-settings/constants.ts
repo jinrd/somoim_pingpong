@@ -15,3 +15,5 @@ export const DEFAULT_MATCH_FORMAT_INPUT: MatchFormatInput = {
   bestOf: 3,
   countsForRanking: false,
 };
+
+export const TEAM_MATCH_FORMAT_COUNTS = [1, 3, 5] as const;

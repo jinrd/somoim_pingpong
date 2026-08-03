@@ -34,6 +34,12 @@ routerAdd(
       throw new BadRequestError("세부 경기 목록 형식이 올바르지 않습니다.");
     }
 
+    if (![1, 3, 5].includes(formats.length)) {
+      throw new BadRequestError(
+        "팀 대결 세부 경기 수는 1개, 3개, 5개 중에서 선택해 주세요.",
+      );
+    }
+
     formats.forEach((format, index) => {
       if (!format || typeof format !== "object") {
         throw new BadRequestError(

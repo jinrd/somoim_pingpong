@@ -1064,6 +1064,7 @@
 }
 
 .publicLinkEnabled,
+.publicLinkExpired,
 .publicLinkDisabled {
   display: inline-flex;
   flex-shrink: 0;
@@ -1076,6 +1077,11 @@
 .publicLinkEnabled {
   color: #166534;
   background: #dcfce7;
+}
+
+.publicLinkExpired {
+  color: #9a3412;
+  background: #ffedd5;
 }
 
 .publicLinkDisabled {
@@ -1489,6 +1495,7 @@
   }
 
   .publicLinkEnabled,
+  .publicLinkExpired,
   .publicLinkDisabled {
     padding: 4px 8px;
     font-size: 0.68rem;

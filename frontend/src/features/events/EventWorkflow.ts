@@ -69,3 +69,34 @@ export const getEventWorkflow = ({
     canOpenMatchViews: canOpenSchedule && hasSchedule,
   };
 };
+
+export const getAvailableManagementStep = (
+  requestedStep: EventManagementStep,
+  workflow: EventWorkflow,
+): EventManagementStep => {
+  if (requestedStep === "participants" || requestedStep === "game-settings") {
+    return requestedStep;
+  }
+
+  if (requestedStep === "formation") {
+    return workflow.canOpenFormation ? requestedStep : "game-settings";
+  }
+
+  if (requestedStep === "schedule") {
+    return workflow.canOpenSchedule
+      ? requestedStep
+      : workflow.canOpenFormation
+        ? "formation"
+        : "game-settings";
+  }
+
+  if (workflow.canOpenMatchViews) {
+    return requestedStep;
+  }
+
+  if (workflow.canOpenSchedule) {
+    return "schedule";
+  }
+
+  return workflow.canOpenFormation ? "formation" : "game-settings";
+};

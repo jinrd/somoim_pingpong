@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ClientResponseError } from "pocketbase";
 
@@ -29,6 +29,7 @@ export default function useMatchMonitorData({ setting }: Options) {
   const [matches, setMatches] = useState<MonitorMatch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const latestRequestIdRef = useRef(0);
 
   const loadMatches = useCallback(
     async (showLoading: boolean) => {
@@ -37,17 +38,21 @@ export default function useMatchMonitorData({ setting }: Options) {
         return;
       }
 
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+
       if (showLoading) {
         setIsLoading(true);
       }
 
       try {
+        let nextMatches: MonitorMatch[];
+
         if (setting.competition_type === "team_league") {
           const schedule = await getTeamSchedule(setting.id);
 
-          setMatches(
-            schedule.rounds.flatMap((round) =>
-              round.matches.map((match) => ({
+          nextMatches = schedule.rounds.flatMap((round) =>
+            round.matches.map((match) => ({
                 id: match.id,
                 round: match.round,
                 sortOrder: match.sortOrder,
@@ -98,15 +103,13 @@ export default function useMatchMonitorData({ setting }: Options) {
                 hasDisputedResult: match.games.some(
                   (game) => game.resultStatus === "disputed",
                 ),
-              })),
-            ),
+            })),
           );
         } else {
           const schedule = await getIndividualSchedule(setting.id);
 
-          setMatches(
-            schedule.rounds.flatMap((round) =>
-              round.matches.map((match) => ({
+          nextMatches = schedule.rounds.flatMap((round) =>
+            round.matches.map((match) => ({
                 id: match.id,
                 round: match.round,
                 sortOrder: match.sortOrder,
@@ -142,18 +145,22 @@ export default function useMatchMonitorData({ setting }: Options) {
                   },
                 ],
                 hasDisputedResult: match.resultStatus === "disputed",
-              })),
-            ),
+            })),
           );
         }
 
-        setError("");
+        if (latestRequestIdRef.current === requestId) {
+          setMatches(nextMatches);
+          setError("");
+        }
       } catch (caughtError) {
-        setError(
-          getErrorMessage(caughtError, "경기 현황을 불러오지 못했습니다."),
-        );
+        if (latestRequestIdRef.current === requestId) {
+          setError(
+            getErrorMessage(caughtError, "경기 현황을 불러오지 못했습니다."),
+          );
+        }
       } finally {
-        if (showLoading) {
+        if (latestRequestIdRef.current === requestId) {
           setIsLoading(false);
         }
       }
@@ -162,17 +169,64 @@ export default function useMatchMonitorData({ setting }: Options) {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    let requesting = false;
+    let refreshTimeoutId: number | null = null;
+
+    const clearRefreshTimeout = () => {
+      if (refreshTimeoutId !== null) {
+        window.clearTimeout(refreshTimeoutId);
+        refreshTimeoutId = null;
+      }
+    };
+
+    const scheduleRefresh = () => {
+      clearRefreshTimeout();
+
+      if (cancelled || document.hidden) {
+        return;
+      }
+
+      refreshTimeoutId = window.setTimeout(() => {
+        void refreshMatches(false);
+      }, MATCH_MONITOR_REFRESH_INTERVAL_MS);
+    };
+
+    const refreshMatches = async (showLoading: boolean) => {
+      if (cancelled || requesting || document.hidden) {
+        return;
+      }
+
+      requesting = true;
+
+      try {
+        await loadMatches(showLoading);
+      } finally {
+        requesting = false;
+        scheduleRefresh();
+      }
+    };
+
     const initialLoadId = window.setTimeout(() => {
-      void loadMatches(true);
+      void refreshMatches(true);
     }, 0);
 
-    const intervalId = window.setInterval(() => {
-      void loadMatches(false);
-    }, MATCH_MONITOR_REFRESH_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      clearRefreshTimeout();
+
+      if (!document.hidden) {
+        void refreshMatches(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      cancelled = true;
+      latestRequestIdRef.current += 1;
       window.clearTimeout(initialLoadId);
-      window.clearInterval(intervalId);
+      clearRefreshTimeout();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [loadMatches]);
 

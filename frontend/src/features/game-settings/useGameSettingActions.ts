@@ -12,6 +12,7 @@ import {
 } from "./api";
 import {
   getGameSettingErrorMessage,
+  isValidTeamMatchFormatCount,
   toGameSettingInput,
 } from "./gameSettingUtils";
 import type {
@@ -119,9 +120,11 @@ export default function useGameSettingActions({
 
     if (
       formData.competitionType === "team_league" &&
-      matchFormats.length === 0
+      !isValidTeamMatchFormatCount(matchFormats.length)
     ) {
-      setError("팀 대결 세부 경기를 한 개 이상 저장해 주세요.");
+      setError(
+        "팀 대결 세부 경기 수는 1개, 3개, 5개 중에서 선택해 주세요.",
+      );
       return;
     }
 
