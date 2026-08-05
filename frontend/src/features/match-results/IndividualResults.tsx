@@ -70,7 +70,6 @@ export default function IndividualResults({
                   <td>
                     <MatchResultStatus
                       status={match.resultStatus}
-                      submissionCount={match.submissionCount}
                     />
                   </td>
                 </tr>
@@ -102,7 +101,6 @@ export default function IndividualResults({
 
                     <MatchResultStatus
                       status={match.resultStatus}
-                      submissionCount={match.submissionCount}
                     />
                   </header>
 

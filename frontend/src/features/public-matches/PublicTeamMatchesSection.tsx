@@ -242,28 +242,23 @@ export default function PublicTeamMatchesSection({
         canOpenResult && (
         <div
           id={`team-result-${match.id}`}
-          className={styles.inlineEditor}
+          className={`${styles.inlineEditor} ${styles.teamResultEditor}`}
         >
-          <header className={styles.editorHeader}>
-            <div>
-              <span>{context.match.round}라운드</span>
-
-              <h3>
-                {context.team.name} VS {context.opponentTeam.name}
-              </h3>
-            </div>
-
+          <div className={styles.resultEditorHeader}>
+            <span>
+              {match.round}라운드 · {match.sortOrder}번째 경기
+            </span>
             <button
               type="button"
               className={styles.closeEditorButton}
-              aria-label="경기 결과 입력 닫기"
+              aria-label="경기 결과 닫기"
               onClick={() => {
                 setContext(null);
               }}
             >
               <X size={18} aria-hidden="true" />
             </button>
-          </header>
+          </div>
 
           <div className={styles.gameList}>
             {context.games.map((game) => (
@@ -274,17 +269,9 @@ export default function PublicTeamMatchesSection({
                       {game.sequence}번째 세부 경기 ·{" "}
                       {getMatchTypeLabel(game.matchType)}
                     </span>
-
-                    <strong>{game.bestOf}판 경기</strong>
                   </div>
 
-                  <span className={styles.gameCardAction}>
-                    {game.status === "in_progress"
-                      ? "입력 가능"
-                      : game.status === "completed"
-                        ? "결과 확인"
-                        : "대기 중"}
-                  </span>
+
                 </div>
 
                 <PublicMatchResultForm
@@ -292,6 +279,7 @@ export default function PublicTeamMatchesSection({
                   targetId={game.id}
                   responseToken={responseToken}
                   pollingEnabled={game.status === "in_progress"}
+                  showHeader={false}
                   onResultUpdated={reloadMatches}
                 />
               </article>

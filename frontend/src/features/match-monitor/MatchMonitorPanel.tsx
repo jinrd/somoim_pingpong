@@ -6,7 +6,6 @@ import MatchMonitorSummary from "./MatchMonitorSummary";
 import useMatchMonitorData from "./useMatchMonitorData";
 import MatchMonitorList from "./MatchMonitorList";
 import MatchResultConfirmDialog from "./MatchResultConfirmDialog";
-import MatchResultCancelDialog from "./MatchResultCancelDialog";
 import useMatchMonitorActions from "./useMatchMonitorActions";
 import MatchMonitorHeader from "./MatchMonitorHeader";
 import MatchMonitorFeedback from "./MatchMonitorFeedback";
@@ -40,22 +39,15 @@ export default function MatchMonitorPanel({
     resultReason,
     homeParticipantIds,
     awayParticipantIds,
-    cancelTarget,
-    cancelReason,
     setHomeScore,
     setAwayScore,
     setResultReason,
     setHomeParticipantIds,
     setAwayParticipantIds,
-    setCancelReason,
     openResult,
     closeResult,
-    openCancel,
-    closeCancel,
     confirmResult,
-    cancelResult,
   } = useMatchMonitorActions({
-    setting,
     setError,
     loadMatches,
     onEventStatusChanged,
@@ -97,7 +89,7 @@ export default function MatchMonitorPanel({
       />
 
       <MatchMonitorFeedback
-        error={resultTarget || cancelTarget ? "" : error}
+        error={resultTarget ? "" : error}
         message={message}
       />
 
@@ -107,7 +99,6 @@ export default function MatchMonitorPanel({
         isLoading={isLoading}
         isWorking={Boolean(workingMatchId)}
         onOpenResult={openResult}
-        onCancelResult={openCancel}
       />
 
       <MatchResultConfirmDialog
@@ -142,20 +133,6 @@ export default function MatchMonitorPanel({
         onClose={closeResult}
         onConfirm={() => {
           void confirmResult();
-        }}
-      />
-      <MatchResultCancelDialog
-        target={cancelTarget}
-        reason={cancelReason}
-        error={error}
-        isWorking={Boolean(workingMatchId)}
-        onReasonChange={(reason) => {
-          setCancelReason(reason);
-          setError("");
-        }}
-        onClose={closeCancel}
-        onConfirm={() => {
-          void cancelResult();
         }}
       />
     </section>

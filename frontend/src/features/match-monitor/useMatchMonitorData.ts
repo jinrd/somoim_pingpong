@@ -5,6 +5,7 @@ import { ClientResponseError } from "pocketbase";
 import type { EventGameSetting } from "../game-settings/types";
 
 import { getIndividualSchedule, getTeamSchedule } from "../match-schedule/api";
+import { getBestOfLabel } from "../match-schedule/matchFormatUtils";
 
 import { MATCH_MONITOR_REFRESH_INTERVAL_MS } from "./constants";
 import type { MonitorMatch } from "./types";
@@ -97,9 +98,7 @@ export default function useMatchMonitorData({ setting }: Options) {
                     ),
                   };
                 }),
-                canCancelResult: match.games.some(
-                  (game) => game.resultStatus === "confirmed",
-                ),
+
                 hasDisputedResult: match.games.some(
                   (game) => game.resultStatus === "disputed",
                 ),
@@ -120,9 +119,9 @@ export default function useMatchMonitorData({ setting }: Options) {
                   match.awayParticipant.name,
                 description:
                   match.status === "in_progress" && match.tableNumber > 0
-                    ? `${match.tableNumber}번 테이블 · ${match.bestOf}판 경기`
-                    : `${match.bestOf}판 경기`,
-                canCancelResult: match.resultStatus === "confirmed",
+                    ? `${match.tableNumber}번 테이블 · ${getBestOfLabel(match.bestOf)}`
+                    : getBestOfLabel(match.bestOf),
+
                 results: [
                   {
                     id: match.id,

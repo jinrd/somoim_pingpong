@@ -339,10 +339,8 @@
 }
 
 .gameCard {
-  padding: 14px;
-  background: #ffffff;
-  border: 1px solid #e4e7ec;
-  border-radius: 12px;
+  display: grid;
+  gap: 6px;
 }
 
 .gameCard header > div {
@@ -495,11 +493,6 @@
   .editorHeader {
     padding: 0 2px;
   }
-
-  .gameCard {
-    padding: 12px;
-    border-radius: 12px;
-  }
 }
 
 .gameCardHeader {
@@ -507,8 +500,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 0 8px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 2px 2px 0;
 }
 
 .gameCardHeader > div {
@@ -568,11 +560,44 @@
   margin-bottom: 8px;
 }
 
+.teamResultEditor {
+  margin: 8px 0;
+  background: #ffffff;
+  border-top: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.resultEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.individualResultEditor {
+  margin: 8px 0;
+}
+
 @media (max-width: 600px) {
   .inlineEditor {
     padding: 8px;
     margin-bottom: 6px;
     border-radius: 0 0 8px 8px;
+  }
+
+  .individualResultEditor {
+    margin: 8px 0 6px;
+  }
+
+  .teamResultEditor {
+    margin: 0 0 6px;
+    border-radius: 8px;
   }
 }
 
@@ -605,14 +630,10 @@
   }
 }
 
-.inlineEditorHeader {
+.inlineEditorControls {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 2px 0 8px;
-  color: #344054;
-  font-size: 0.84rem;
+  justify-content: flex-end;
+  margin-bottom: 4px;
 }
 
 .matchGroup {

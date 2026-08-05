@@ -144,9 +144,7 @@
 }
 
 .confirmed,
-.disputed,
-.waiting,
-.pending {
+.disputed {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -167,15 +165,7 @@
   background: #fee4e2;
 }
 
-.waiting {
-  color: #175cd3;
-  background: #dbeafe;
-}
 
-.pending {
-  color: #475569;
-  background: #f1f5f9;
-}
 
 .error,
 .empty {
@@ -304,9 +294,7 @@
   }
 
   .mobileResultCard .confirmed,
-  .mobileResultCard .disputed,
-  .mobileResultCard .waiting,
-  .mobileResultCard .pending {
+  .mobileResultCard .disputed {
     padding: 4px 7px;
     font-size: 0.66rem;
   }

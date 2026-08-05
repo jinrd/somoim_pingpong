@@ -1,5 +1,6 @@
 import type { StoredIndividualScheduleRound } from "./api";
 import type { RoundRobinSchedule } from "./generateRoundRobin";
+import { getBestOfLabel } from "./matchFormatUtils";
 
 import styles from "./SchedulePanel.module.css";
 
@@ -65,7 +66,9 @@ export function IndividualScheduleStoredRounds({ rounds }: StoredProps) {
                   <strong className={styles.playerName}>{match.homeParticipant.name}</strong>
                   <span className={styles.vsText}>vs</span>
                   <strong className={styles.playerName}>{match.awayParticipant.name}</strong>
-                  <span className={styles.formatText}>단식({match.bestOf}판)</span>
+                  <span className={styles.formatText}>
+                    단식 · {getBestOfLabel(match.bestOf)}
+                  </span>
                   {match.tableNumber > 0 && (
                     <strong className={styles.tableBadge}>T{match.tableNumber}</strong>
                   )}

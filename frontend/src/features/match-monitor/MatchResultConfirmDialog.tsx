@@ -1,7 +1,12 @@
-import { ClipboardCheck, Loader2, X } from "lucide-react";
+import { ClipboardCheck, Loader2, Pencil, X } from "lucide-react";
 
 import useModalDialog from "../../hooks/useModalDialog";
 import type { MonitorResult } from "./types";
+
+import {
+  getBestOfLabel,
+  getRequiredWins,
+} from "../match-schedule/matchFormatUtils";
 
 import styles from "./MatchMonitorPanel.module.css";
 
@@ -23,7 +28,6 @@ interface Props {
   onConfirm: () => void;
 }
 
-const getRequiredWins = (bestOf: number): number => Math.floor(bestOf / 2) + 1;
 
 export default function MatchResultConfirmDialog({
   target,
@@ -51,6 +55,8 @@ export default function MatchResultConfirmDialog({
   if (!target) {
     return null;
   }
+
+  const isEditingResult = target.resultStatus === "confirmed";
 
   const requiredWins = getRequiredWins(target.bestOf);
   const scoreOptions = Array.from(
@@ -87,14 +93,16 @@ export default function MatchResultConfirmDialog({
     >
       <section
         ref={dialogRef}
-        className={styles.cancelModal}
+        className={styles.resultModal}
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-result-title"
       >
         <header>
           <div>
-            <span className={styles.resultModalEyebrow}>운영진 결과 입력</span>
+            <span className={styles.resultModalEyebrow}>
+              {isEditingResult ? "운영진 결과 수정" : "운영진 결과 입력"}
+            </span>
             <h3 id="admin-result-title">{target.title}</h3>
           </div>
 
@@ -103,13 +111,21 @@ export default function MatchResultConfirmDialog({
             className={styles.modalCloseButton}
             disabled={isWorking}
             onClick={onClose}
-            aria-label="운영진 결과 입력 창 닫기"
+            aria-label={
+              isEditingResult
+                ? "운영진 결과 수정 창 닫기"
+                : "운영진 결과 입력 창 닫기"
+            }
           >
             <X size={20} aria-hidden="true" />
           </button>
         </header>
 
-        <p className={styles.resultHelp}>최종 점수를 조정 및 입력합니다.</p>
+        <p className={styles.resultHelp}>
+          {isEditingResult
+            ? "확정된 점수와 실제 출전 선수를 수정합니다."
+            : "최종 점수와 실제 출전 선수를 입력합니다."}
+        </p>
 
         {target.type === "team_game" && (
           <div className={styles.playerSelectors}>
@@ -204,7 +220,7 @@ export default function MatchResultConfirmDialog({
         </div>
 
         <p className={styles.scoreRule}>
-          {target.bestOf}판 {requiredWins}선 승
+          {getBestOfLabel(target.bestOf)}
         </p>
 
         {error && (
@@ -214,13 +230,17 @@ export default function MatchResultConfirmDialog({
         )}
 
         <label className={styles.reasonField}>
-          <span>입력 사유</span>
+          <span>{isEditingResult ? "수정 사유" : "입력 사유"}</span>
           <textarea
             value={reason}
             maxLength={500}
             rows={3}
             disabled={isWorking}
-            placeholder="예: 참가자가 현장에서 결과 입력을 요청했습니다."
+            placeholder={
+              isEditingResult
+                ? "예: 점수가 잘못 입력되어 실제 결과로 수정합니다."
+                : "예: 참가자가 현장에서 결과 입력을 요청했습니다."
+            }
             onChange={(event) => onReasonChange(event.target.value)}
           />
           <small>{reason.length}/500</small>
@@ -248,10 +268,12 @@ export default function MatchResultConfirmDialog({
                 size={17}
                 aria-hidden="true"
               />
+            ) : isEditingResult ? (
+              <Pencil size={17} aria-hidden="true" />
             ) : (
               <ClipboardCheck size={17} aria-hidden="true" />
             )}
-            결과 확정
+            {isEditingResult ? "결과 수정" : "결과 확정"}
           </button>
         </div>
       </section>

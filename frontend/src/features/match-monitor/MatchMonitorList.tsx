@@ -12,7 +12,6 @@ interface Props {
   isLoading: boolean;
   isWorking: boolean;
   onOpenResult: (result: MonitorResult) => void;
-  onCancelResult: (result: MonitorResult) => void;
 }
 
 export default function MatchMonitorList({
@@ -21,7 +20,6 @@ export default function MatchMonitorList({
   isLoading,
   isWorking,
   onOpenResult,
-  onCancelResult,
 }: Props) {
   if (isLoading && matches.length === 0) {
     return (
@@ -67,7 +65,6 @@ export default function MatchMonitorList({
                   match={match}
                   isWorking={isWorking}
                   onOpenResult={onOpenResult}
-                  onCancelResult={onCancelResult}
                 />
               ))}
             </div>

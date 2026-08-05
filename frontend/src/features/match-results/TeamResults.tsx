@@ -91,7 +91,6 @@ export default function TeamResults({
                   <td>
                     <MatchResultStatus
                       status={game.resultStatus}
-                      submissionCount={game.submissionCount}
                     />
                   </td>
                 </tr>
@@ -132,7 +131,6 @@ export default function TeamResults({
                           </strong>
                           <MatchResultStatus
                             status={game.resultStatus}
-                            submissionCount={game.submissionCount}
                           />
                         </div>
 

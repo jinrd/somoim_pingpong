@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { RefreshCw, X } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import PublicMatchResultForm from "../match-result/PublicMatchResultForm";
 import PublicMatchGroup from "./PublicMatchGroup";
@@ -214,28 +214,17 @@ export default function PublicIndividualMatchesSection({
         {isOpened && canOpenResult && (
           <div
             id={`individual-result-${match.id}`}
-            className={styles.inlineEditor}
+            className={styles.individualResultEditor}
           >
-            <div className={styles.inlineEditorHeader}>
-              <strong>경기 결과 입력</strong>
-
-              <button
-                type="button"
-                className={styles.closeEditorButton}
-                aria-label="경기 결과 입력 닫기"
-                onClick={() => {
-                  setOpenedMatchId("");
-                }}
-              >
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-
             <PublicMatchResultForm
               targetType="individual_match"
               targetId={match.id}
               responseToken={responseToken}
               pollingEnabled={match.status === "in_progress"}
+              showHeader
+              onClose={() => {
+                setOpenedMatchId("");
+              }}
               onResultUpdated={reloadMatches}
             />
           </div>

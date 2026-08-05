@@ -18,13 +18,13 @@ import styles from "./Dashboard.module.css";
 
 const PARTICIPANT_GUIDE_TEXT = `[🏓 탁꾸러기 메이트 이용 안내]
 
-1. 참석 링크에서 본인 확인
-2. 참석 여부와 게임 참가 여부 선택
-3. 제출 후 변경이 필요하면 운영진에게 요청
-4. 모임 당일 [내 경기]에서 경기 순서와 탁구대 확인
-5. 경기 후 양측이 같은 스코어를 입력하면 결과 확정
-6. 잘못 입력한 결과는 운영진에게 취소 요청
-7. [경기 현황]에서 전체 결과와 순위 확인`;
+1. 참석 링크에서 이름과 연락처 뒤 4자리로 본인 확인
+2. 게임 참가 여부와 팀 정보는 운영진이 안내한 내용을 확인
+3. 모임 당일 [내 경기]에서 경기 순서와 탁구대를 확인
+4. 팀전은 경기가 끝난 뒤 실제 경기한 선수를 선택하고 점수를 입력
+5. 양측이 같은 결과를 입력하면 자동으로 결과가 확정
+6. 확정된 결과를 바꿔야 하면 운영진에게 결과 수정을 요청
+7. [경기 현황]에서 전체 결과와 순위를 확인`;
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"policy" | "admin" | "participant">("policy");
@@ -176,8 +176,8 @@ export default function Dashboard() {
                     낮은 부수입니다.
                   </li>
                   <li>
-                    <strong>기본값:</strong> 신규 회원과 게스트 부수는 운영
-                    설정을 따릅니다.
+                    <strong>부수 변경:</strong> 운영진은 부수 관리에서 회원의
+                    부수를 직접 수정할 수 있습니다.
                   </li>
                   <li>
                     <strong>승급·강등:</strong> 공식 단식의 연속 경기 조건을
@@ -189,16 +189,16 @@ export default function Dashboard() {
               <div className={styles.policyCard}>
                 <div className={styles.policyCardHeader}>
                   <CalendarDays size={20} color="#059669" aria-hidden="true" />
-                  <span>참가 신청과 편성</span>
+                  <span>게임 참가와 편성</span>
                 </div>
                 <ul className={styles.policyList}>
                   <li>
-                    <strong>참가 응답:</strong> 한 번 제출하면 참가자가 직접
-                    바꿀 수 없으며 변경은 운영진에게 요청합니다.
+                    <strong>게임 참가:</strong> 회차별 게임 참가·미참가 상태는
+                    운영진이 관리합니다.
                   </li>
                   <li>
-                    <strong>신청 마감:</strong> 최종 마감 후에는 다시 열거나
-                    참석자를 삭제할 수 없습니다.
+                    <strong>참가자 변경:</strong> 게임 참가 상태나 참가자 구성의
+                    변경이 필요하면 운영진에게 요청합니다.
                   </li>
                   <li>
                     <strong>팀 편성:</strong> 부수를 기준으로 자동 편성한 뒤
@@ -214,13 +214,12 @@ export default function Dashboard() {
                 </div>
                 <ul className={styles.policyList}>
                   <li>
-                    <strong>결과 확정:</strong> 양측 입력이 일치하면 자동
-                    확정됩니다. 불일치하거나 미입력된 경기는 운영진이
-                    처리할 수 있습니다.
+                    <strong>결과 확정:</strong> 양측이 같은 점수를 입력하면
+                    자동 확정됩니다. 팀전은 경기 후 실제 선수도 함께 기록합니다.
                   </li>
                   <li>
                     <strong>잘못된 결과:</strong> 참가자는 확정 결과를 직접
-                    수정할 수 없으며 운영진이 취소 후 다시 입력합니다.
+                    수정할 수 없으며 운영진이 결과를 수정합니다.
                   </li>
                   <li>
                     <strong>동률 순위:</strong> 승점 → 승자승 → 세트 득실률
@@ -249,9 +248,9 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>2</div>
                 <div>
-                  <h4 className={styles.stepTitle}>참가자 확인하고 마감하기</h4>
+                  <h4 className={styles.stepTitle}>게임 참가자 관리하기</h4>
                   <p className={styles.stepDesc}>
-                    게임 참가 인원을 확인한 뒤 신청을 최종 마감합니다.
+                    회차 참가자를 추가하고 게임 참가·미참가 상태를 관리합니다.
                   </p>
                 </div>
               </div>
@@ -261,8 +260,8 @@ export default function Dashboard() {
                 <div>
                   <h4 className={styles.stepTitle}>게임 설정과 편성 확정하기</h4>
                   <p className={styles.stepDesc}>
-                    운영 방식을 저장·확정합니다. 팀 리그는 팀 편성까지 확정한
-                    뒤 대진표를 만듭니다.
+                    운영 방식을 설정합니다. 팀 리그는 팀 편성까지 마친 뒤
+                    대진표를 만듭니다.
                   </p>
                 </div>
               </div>
@@ -273,7 +272,7 @@ export default function Dashboard() {
                   <h4 className={styles.stepTitle}>경기 진행 확인하기</h4>
                   <p className={styles.stepDesc}>
                     진행·대기·완료 경기를 확인하고 미입력 또는 잘못된 결과를
-                    운영진 권한으로 처리합니다.
+                    운영진 권한으로 입력하거나 수정합니다.
                   </p>
                 </div>
               </div>
@@ -340,8 +339,7 @@ export default function Dashboard() {
                 <div>
                   <h4 className={styles.stepTitle}>본인 확인</h4>
                   <p className={styles.stepDesc}>
-                    공유된 참석 링크에서 본인을 선택하고 안내에 따라
-                    확인합니다.
+                    공유된 참석 링크에서 이름과 연락처 뒤 4자리로 확인합니다.
                   </p>
                 </div>
               </div>
@@ -349,10 +347,10 @@ export default function Dashboard() {
               <div className={styles.stepItem}>
                 <div className={styles.stepBadge}>2</div>
                 <div>
-                  <h4 className={styles.stepTitle}>참가 여부 제출</h4>
+                  <h4 className={styles.stepTitle}>게임 참가 상태 확인</h4>
                   <p className={styles.stepDesc}>
-                    참석 여부와 게임 참가 여부를 선택합니다. 제출 후 변경이
-                    필요하면 운영진에게 요청합니다.
+                    게임 참가·미참가 상태는 운영진이 관리합니다. 변경이 필요하면
+                    운영진에게 요청합니다.
                   </p>
                 </div>
               </div>
@@ -362,8 +360,8 @@ export default function Dashboard() {
                 <div>
                   <h4 className={styles.stepTitle}>내 경기 확인</h4>
                   <p className={styles.stepDesc}>
-                    내 경기에서 순서와 탁구대를 확인합니다. 팀 경기는 팀원과
-                    라인업을 정해 제출합니다.
+                    내 경기에서 순서와 탁구대를 확인합니다. 팀전은 내 팀과 팀원을
+                    함께 확인합니다.
                   </p>
                 </div>
               </div>
@@ -373,8 +371,8 @@ export default function Dashboard() {
                 <div>
                   <h4 className={styles.stepTitle}>결과 입력</h4>
                   <p className={styles.stepDesc}>
-                    경기 후 스코어를 입력합니다. 양측 결과가 같으면 자동
-                    확정되며 잘못 입력했다면 운영진에게 요청합니다.
+                    경기 후 실제 경기한 선수와 점수를 입력합니다. 양측 결과가
+                    같으면 자동 확정되며, 결과 수정은 운영진에게 요청합니다.
                   </p>
                 </div>
               </div>

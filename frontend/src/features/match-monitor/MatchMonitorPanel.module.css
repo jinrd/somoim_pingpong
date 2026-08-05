@@ -464,32 +464,6 @@
   background: #fee4e2;
 }
 
-.cancelResultButtonInline {
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 10px;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 0.74rem;
-  font-weight: 750;
-  color: #b42318;
-  background: #fff4f2;
-  border: 1px solid #fecdca;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.cancelResultButtonInline:hover:not(:disabled) {
-  background: #fee4e2;
-}
-
-.cancelResultButtonInline:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
 
 .modalBackdrop {
   position: fixed;
@@ -501,7 +475,7 @@
   background: rgb(15 23 42 / 55%);
 }
 
-.cancelModal {
+.resultModal {
   width: min(100%, 480px);
   display: grid;
   gap: 18px;
@@ -511,24 +485,24 @@
   box-shadow: 0 24px 70px rgb(15 23 42 / 30%);
 }
 
-.cancelModal > header {
+.resultModal > header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
-.cancelModal header span {
+.resultModal header span {
   color: #b42318;
   font-size: 0.76rem;
   font-weight: 800;
 }
 
-.cancelModal header .resultModalEyebrow {
+.resultModal header .resultModalEyebrow {
   color: #1d4ed8;
 }
 
-.cancelModal h3 {
+.resultModal h3 {
   margin: 5px 0 0;
   color: #0f172a;
   font-size: 1.1rem;
@@ -548,24 +522,6 @@
   cursor: pointer;
 }
 
-.cancelWarning {
-  padding: 14px;
-  color: #7a271a;
-  background: #fff4f2;
-  border: 1px solid #fecdca;
-  border-radius: 8px;
-}
-
-.cancelWarning strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.cancelWarning p {
-  margin: 0;
-  font-size: 0.83rem;
-  line-height: 1.55;
-}
 
 .resultHelp,
 .scoreRule {
@@ -727,7 +683,6 @@
 }
 
 .modalCancelButton,
-.confirmCancelButton,
 .confirmResultButton {
   min-height: 44px;
   display: inline-flex;
@@ -746,17 +701,11 @@
   background: #f1f5f9;
 }
 
-.confirmCancelButton {
-  color: #ffffff;
-  background: #dc2626;
-}
-
 .confirmResultButton {
   color: #ffffff;
   background: #2563eb;
 }
 
-.confirmCancelButton:disabled,
 .confirmResultButton:disabled,
 .modalCancelButton:disabled,
 .modalCloseButton:disabled {
@@ -765,18 +714,12 @@
 }
 
 @media (max-width: 800px) {
-  .cancelResultButtonInline {
-    min-height: 32px;
-    padding: 0 8px;
-    font-size: 0.69rem;
-  }
-
   .modalBackdrop {
     align-items: end;
     padding: 10px;
   }
 
-  .cancelModal {
+  .resultModal {
     max-height: 84dvh;
     overflow-y: auto;
     padding: 14px;
@@ -794,7 +737,6 @@
   }
 
   .modalCancelButton,
-  .confirmCancelButton,
   .confirmResultButton {
     min-height: 40px;
     font-size: 0.82rem;

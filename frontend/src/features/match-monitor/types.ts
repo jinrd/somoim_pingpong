@@ -35,7 +35,6 @@ export interface MonitorMatch {
   version: number;
   title: string;
   description: string;
-  canCancelResult: boolean;
   results: MonitorResult[];
   hasDisputedResult: boolean;
 }

@@ -322,10 +322,6 @@ export const getIndividualSchedule = async (
   );
 };
 
-export interface CancelMatchResultInput {
-  expectedVersion: number;
-  reason: string;
-}
 
 export interface ConfirmMatchResultInput {
   expectedVersion: number;
@@ -391,49 +387,6 @@ export const confirmIndividualMatchResult = async (
   );
 };
 
-export interface CancelMatchResultResponse {
-  id: string;
-  status: TeamMatchStatus;
-  version: number;
-}
-
-export const cancelTeamGameResult = async (
-  matchId: string,
-  input: CancelMatchResultInput,
-): Promise<CancelMatchResultResponse> => {
-  return pb.send<CancelMatchResultResponse>(
-    `/api/somoim/admin/match-games/${encodeURIComponent(
-      matchId,
-    )}/result/cancel`,
-    {
-      method: "POST",
-      body: {
-        requestId: crypto.randomUUID(),
-        expectedVersion: input.expectedVersion,
-        reason: input.reason,
-      },
-    },
-  );
-};
-
-export const cancelIndividualMatchResult = async (
-  matchId: string,
-  input: CancelMatchResultInput,
-): Promise<CancelMatchResultResponse> => {
-  return pb.send<CancelMatchResultResponse>(
-    `/api/somoim/admin/individual-matches/${encodeURIComponent(
-      matchId,
-    )}/result/cancel`,
-    {
-      method: "POST",
-      body: {
-        requestId: crypto.randomUUID(),
-        expectedVersion: input.expectedVersion,
-        reason: input.reason,
-      },
-    },
-  );
-};
 
 export interface StartIndividualLeagueResult {
   operationStatus: "in_progress" | "completed";

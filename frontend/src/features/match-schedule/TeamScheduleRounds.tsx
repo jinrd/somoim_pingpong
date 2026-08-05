@@ -1,5 +1,6 @@
 import type { StoredScheduleRound, TeamScheduleContext } from "./api";
 import type { ScheduledRound } from "./generateRoundRobin";
+import { getBestOfLabel } from "./matchFormatUtils";
 
 import styles from "./SchedulePanel.module.css";
 
@@ -39,7 +40,7 @@ export function TeamSchedulePreviewRounds({ rounds, formats }: PreviewProps) {
                   {formats.map((format) => (
                     <span key={format.sequence}>
                       {format.sequence}. {getMatchTypeLabel(format.matchType)} ·{" "}
-                      {format.bestOf}판
+                      {getBestOfLabel(format.bestOf)}
                     </span>
                   ))}
                 </div>
@@ -80,7 +81,7 @@ export function TeamScheduleStoredRounds({ rounds }: StoredProps) {
                   {match.games.map((game) => (
                     <span key={game.id}>
                       {game.sequence}. {getMatchTypeLabel(game.matchType)} ·{" "}
-                      {game.bestOf}판
+                      {getBestOfLabel(game.bestOf)}
                     </span>
                   ))}
                 </div>

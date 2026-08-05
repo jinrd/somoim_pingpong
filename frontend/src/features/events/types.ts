@@ -117,7 +117,7 @@ export interface AdminPublicLinkResult {
 
 export interface PublicIdentityInput {
   name: string;
-  phone: string;
+  phoneLast4: string;
 }
 
 export interface PublicTeamMember {

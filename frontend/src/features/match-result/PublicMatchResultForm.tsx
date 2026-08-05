@@ -4,8 +4,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  RefreshCw,
   Save,
+  X,
 } from "lucide-react";
 
 import { ClientResponseError } from "pocketbase";
@@ -19,6 +19,8 @@ import {
 
 import type { PublicMatchResultContext } from "./types";
 
+import { getBestOfLabel } from "../match-schedule/matchFormatUtils";
+
 import styles from "./PublicMatchResultForm.module.css";
 
 interface PublicMatchResultFormProps {
@@ -27,6 +29,8 @@ interface PublicMatchResultFormProps {
   responseToken: string;
   onResultUpdated?: () => void | Promise<void>;
   pollingEnabled?: boolean;
+  showHeader?: boolean;
+  onClose?: () => void;
 }
 
 const RESULT_REFRESH_INTERVAL_MS = 5_000;
@@ -63,6 +67,8 @@ export default function PublicMatchResultForm({
   responseToken,
   onResultUpdated,
   pollingEnabled = true,
+  showHeader = false,
+  onClose,
 }: PublicMatchResultFormProps) {
   const [context, setContext] = useState<PublicMatchResultContext | null>(null);
 
@@ -321,37 +327,56 @@ export default function PublicMatchResultForm({
     participantIds.length === context.requiredPlayerCount;
 
   const hasValidScore =
-    (homeScore === context.requiredWins &&
-      awayScore < context.requiredWins) ||
-    (awayScore === context.requiredWins &&
-      homeScore < context.requiredWins);
+    (homeScore === context.requiredWins && awayScore < context.requiredWins) ||
+    (awayScore === context.requiredWins && homeScore < context.requiredWins);
 
-  const canSubmitResult =
-    canSubmit && hasValidPlayers && hasValidScore;
+  const canSubmitResult = canSubmit && hasValidPlayers && hasValidScore;
+
+  const resultTitle =
+    context.resultStatus === "confirmed"
+      ? "결과 일치"
+      : context.resultStatus === "disputed"
+        ? "결과 불일치"
+        : "점수 입력";
+
+  const resultTitleClassName =
+    context.resultStatus === "confirmed"
+      ? styles.resultTitleMatched
+      : context.resultStatus === "disputed"
+        ? styles.resultTitleMismatch
+        : "";
 
   return (
     <section className={styles.container}>
-      <header className={styles.header}>
-        <div>
-          <strong>경기 결과</strong>
+      {showHeader && (
+        <header className={styles.header}>
+          <div className={styles.headerMeta}>
+            <strong className={styles.matchType}>개인 단식</strong>
+            <span>{getBestOfLabel(context.bestOf)}</span>
+          </div>
 
-          <span>
-            {context.bestOf}판 {context.requiredWins}선승
-          </span>
-        </div>
+          <strong className={resultTitleClassName}>
+            {context.resultStatus === "confirmed" && (
+              <CheckCircle2 size={16} aria-hidden="true" />
+            )}
+            {context.resultStatus === "disputed" && (
+              <AlertTriangle size={16} aria-hidden="true" />
+            )}
+            {resultTitle}
+          </strong>
 
-        <button
-          type="button"
-          className={styles.refreshButton}
-          disabled={isSaving || isLoading}
-          onClick={() => {
-            void loadContext();
-          }}
-          aria-label="경기 결과 새로고침"
-        >
-          <RefreshCw size={16} aria-hidden="true" />
-        </button>
-      </header>
+          {onClose && (
+            <button
+              type="button"
+              className={styles.closeButton}
+              aria-label="경기 결과 닫기"
+              onClick={onClose}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          )}
+        </header>
+      )}
 
       <div className={styles.sideNotice}>
         내 진영:{" "}
@@ -416,8 +441,12 @@ export default function PublicMatchResultForm({
             <span className={styles.sideBadge}>
               {context.side === "home" ? "내 팀" : "상대"}
             </span>
+
             <strong>{context.home.label}</strong>
-            <small>{getPlayersLabel(context.home.players)}</small>
+
+            {targetType === "team_game" && (
+              <small>({getPlayersLabel(context.home.players)})</small>
+            )}
           </div>
 
           <div className={styles.scoreInputs}>
@@ -478,39 +507,17 @@ export default function PublicMatchResultForm({
             <span className={styles.sideBadge}>
               {context.side === "away" ? "내 팀" : "상대"}
             </span>
+
             <strong>{context.away.label}</strong>
-            <small>{getPlayersLabel(context.away.players)}</small>
+
+            {targetType === "team_game" && (
+              <small>({getPlayersLabel(context.away.players)})</small>
+            )}
           </div>
         </div>
       </div>
 
-      {context.resultStatus === "confirmed" && (
-        <div className={styles.confirmed} role="status">
-          <CheckCircle2 size={18} aria-hidden="true" />
-          양측 결과가 일치하여 최종 확정됐습니다.
-        </div>
-      )}
 
-      {context.resultStatus === "disputed" && (
-        <div className={styles.disputed} role="alert">
-          <AlertTriangle size={18} aria-hidden="true" />
-
-          <div>
-            <strong>입력 결과가 일치하지 않습니다.</strong>
-            <span>양측이 점수를 다시 확인한 후 수정해 주세요.</span>
-          </div>
-        </div>
-      )}
-
-      {context.resultStatus === "pending" && context.ownSubmission && (
-        <div className={styles.waiting}>
-          <Clock3 size={17} aria-hidden="true" />
-
-          {context.otherSideSubmitted
-            ? "양측 결과를 확인하고 있습니다."
-            : "내 결과를 제출했습니다. 상대편 입력을 기다리고 있습니다."}
-        </div>
-      )}
 
       {error && (
         <p className={styles.errorMessage} role="alert">
@@ -538,8 +545,8 @@ export default function PublicMatchResultForm({
           {isSaving
             ? "결과 저장 중…"
             : context.ownSubmission
-              ? "내 결과 수정"
-              : "결과 제출"}
+              ? "점수 수정"
+              : "점수 제출"}
         </button>
       )}
 

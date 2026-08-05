@@ -256,56 +256,49 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
   /** @type {any} */
   const requestData = new DynamicModel({
     name: "",
-    phone: "",
+    phoneLast4: "",
   });
 
   context.bind(requestData);
 
   const name = String(requestData.name || "").trim();
+  const phoneLast4 = String(requestData.phoneLast4 || "").replace(
+    /[^0-9]/g,
+    "",
+  );
 
-  const phoneDigits = String(requestData.phone || "").replace(/[^0-9]/g, "");
-
-  // 사용자 존재 여부 추측을 막기 위해
-  // 형식 오류와 회원 불일치에 같은 메시지를 사용합니다.
   const identityErrorMessage =
     "입력한 정보와 일치하는 회원을 찾을 수 없습니다.";
 
-  if (!name || phoneDigits.length !== 11 || phoneDigits.slice(0, 3) !== "010") {
+  if (!name || !/^[0-9]{4}$/.test(phoneLast4)) {
     throw new BadRequestError(identityErrorMessage);
   }
 
-  const formattedPhone =
-    phoneDigits.slice(0, 3) +
-    "-" +
-    phoneDigits.slice(3, 7) +
-    "-" +
-    phoneDigits.slice(7, 11);
-
   const privacy = require(`${__hooks}/member_privacy.js`);
 
-  const phoneHash = privacy.hashPhone(formattedPhone);
+  const namedMembers = $app.dao().findRecordsByFilter(
+    "members",
+    ["name = {:name}", "status = {:status}"].join(" && "),
+    "",
+    50,
+    0,
+    {
+      name,
+      status: "active",
+    },
+  );
 
-  /*
-   * 3. 이름과 연락처가 모두 일치하는 활성 회원 조회
-   */
-  const matchingMembers = $app
-    .dao()
-    .findRecordsByFilter(
-      "members",
-      [
-        "name = {:name}",
-        "phone_hash = {:phoneHash}",
-        "status = {:status}",
-      ].join(" && "),
-      "",
-      2,
-      0,
-      {
-        name,
-        phoneHash,
-        status: "active",
-      },
-    );
+  const matchingMembers = namedMembers.filter((member) => {
+    try {
+      const phoneDigits = privacy
+        .decryptPhone(member.getString("phone"))
+        .replace(/[^0-9]/g, "");
+
+      return phoneDigits.slice(-4) === phoneLast4;
+    } catch {
+      return false;
+    }
+  });
 
   // 0명뿐 아니라 중복 회원이 있어도 본인 확인 실패
   if (matchingMembers.length !== 1) {

@@ -195,282 +195,6 @@ const resetResultFields = function (record) {
   record.set("version", record.getInt("version") + 1);
 };
 
-const cancelTeamGameResult = function (matchGameId, input) {
-  const normalized = normalizeInput(input);
-
-  $app.dao().runInTransaction((txDao) => {
-    const previousHistory = historyService.findHistoryByRequestId(
-      txDao,
-      normalized.requestId,
-    );
-
-    if (previousHistory) {
-      if (
-        previousHistory.getString("target_type") === "team_game" &&
-        previousHistory.getString("match_game") === matchGameId &&
-        previousHistory.getString("actor_admin") === normalized.adminId
-      ) {
-        return;
-      }
-
-      throw new ApiError(409, "이미 다른 요청에서 사용된 요청 정보입니다.");
-    }
-
-    let matchGame;
-
-    try {
-      matchGame = txDao.findRecordById("match_games", matchGameId);
-    } catch {
-      throw new ApiError(404, "팀 세부 경기를 찾을 수 없습니다.");
-    }
-
-    const teamMatch = txDao.findRecordById(
-      "team_matches",
-      matchGame.getString("team_match"),
-    );
-
-    const eventRecord = txDao.findRecordById(
-      "events",
-      teamMatch.getString("event"),
-    );
-
-    if (eventRecord.getString("status") === "archived") {
-      throw new ApiError(409, "보관된 회차의 결과는 취소할 수 없습니다.");
-    }
-
-    if (matchGame.getInt("version") !== normalized.expectedVersion) {
-      throw new ApiError(
-        409,
-        "경기 정보가 변경되었습니다. 새로고침 후 다시 시도해 주세요.",
-      );
-    }
-
-    /*
-     * 다음 라운드가 이미 시작되거나 완료된 경우,
-     * 이전 라운드 결과를 취소하면 서로 다른 라운드가 동시에
-     * 진행 중이 되는 문제가 발생하므로 취소를 차단합니다.
-     */
-    const laterStartedMatches = txDao.findRecordsByFilter(
-      "team_matches",
-      [
-        "game_setting = {:gameSettingId}",
-        "round > {:currentRound}",
-        "(status = 'in_progress' || status = 'completed')",
-      ].join(" && "),
-      "",
-      1,
-      0,
-      {
-        gameSettingId: teamMatch.getString("game_setting"),
-        currentRound: teamMatch.getInt("round"),
-      },
-    );
-
-    if (laterStartedMatches.length > 0) {
-      throw new ApiError(
-        409,
-        "다음 라운드가 이미 시작되어 이전 라운드 결과를 취소할 수 없습니다.",
-      );
-    }
-
-    if (matchGame.getString("result_status") !== RESULT_STATUS_CONFIRMED) {
-      throw new ApiError(409, "취소할 확정 결과가 없습니다.");
-    }
-
-    const beforeData = {
-      status: matchGame.getString("status"),
-      resultStatus: matchGame.getString("result_status"),
-      homeScore: matchGame.getInt("home_score"),
-      awayScore: matchGame.getInt("away_score"),
-      winnerSide: matchGame.getString("winner_side"),
-      version: matchGame.getInt("version"),
-    };
-
-    deleteGameSubmissions(txDao, matchGame.id);
-    resetResultFields(matchGame);
-    txDao.saveRecord(matchGame);
-
-    teamMatch.set("status", "in_progress");
-    teamMatch.set("completed_at", "");
-    teamMatch.set("version", teamMatch.getInt("version") + 1);
-
-    txDao.saveRecord(teamMatch);
-
-    historyService.createHistory(txDao, {
-      eventId: teamMatch.getString("event"),
-      targetType: "team_game",
-      targetId: matchGame.id,
-      action: "cancelled",
-      requestId: normalized.requestId,
-      actorType: "admin",
-      actorId: normalized.adminId,
-      actorName: normalized.adminName,
-      reason: normalized.reason,
-
-      beforeData,
-
-      afterData: {
-        status: matchGame.getString("status"),
-        resultStatus: matchGame.getString("result_status"),
-        version: matchGame.getInt("version"),
-      },
-    });
-
-    const eventStatusService = require(
-      `${__hooks}/event_status_service.js`,
-    );
-
-    eventStatusService.syncEventStatus(
-      txDao,
-      teamMatch.getString("event"),
-    );
-  });
-
-  const rankingService = require(`${__hooks}/ranking_service.js`);
-
-  rankingService.recalculateAllCandidates($app.dao());
-
-  const record = $app.dao().findRecordById("match_games", matchGameId);
-
-  return {
-    id: record.id,
-    status: record.getString("status"),
-    version: record.getInt("version"),
-  };
-};
-
-const cancelIndividualMatchResult = function (individualMatchId, input) {
-  const normalized = normalizeInput(input);
-
-  $app.dao().runInTransaction((txDao) => {
-    const previousHistory = historyService.findHistoryByRequestId(
-      txDao,
-      normalized.requestId,
-    );
-
-    if (previousHistory) {
-      if (
-        previousHistory.getString("target_type") === "individual_match" &&
-        previousHistory.getString("individual_match") === individualMatchId &&
-        previousHistory.getString("actor_admin") === normalized.adminId
-      ) {
-        return;
-      }
-
-      throw new ApiError(409, "이미 다른 요청에서 사용된 요청 정보입니다.");
-    }
-
-    let match;
-
-    try {
-      match = txDao.findRecordById("individual_matches", individualMatchId);
-    } catch {
-      throw new ApiError(404, "개인 경기를 찾을 수 없습니다.");
-    }
-
-    const eventRecord = txDao.findRecordById(
-      "events",
-      match.getString("event"),
-    );
-
-    if (eventRecord.getString("status") === "archived") {
-      throw new ApiError(409, "보관된 회차의 결과는 취소할 수 없습니다.");
-    }
-
-    if (match.getInt("version") !== normalized.expectedVersion) {
-      throw new ApiError(
-        409,
-        "경기 정보가 변경되었습니다. 새로고침 후 다시 시도해 주세요.",
-      );
-    }
-
-    if (match.getString("result_status") !== RESULT_STATUS_CONFIRMED) {
-      throw new ApiError(409, "취소할 확정 결과가 없습니다.");
-    }
-
-    const beforeData = {
-      status: match.getString("status"),
-      resultStatus: match.getString("result_status"),
-      homeScore: match.getInt("home_score"),
-      awayScore: match.getInt("away_score"),
-      winnerSide: match.getString("winner_side"),
-      resultConfirmedAt: match.getString("result_confirmed_at"),
-      version: match.getInt("version"),
-    };
-
-    deleteIndividualSubmissions(txDao, match.id);
-    resetResultFields(match);
-
-    /*
-     * 이미 해당 테이블에 다음 경기가 배정됐을 수 있으므로
-     * 결과를 취소한 경기는 테이블 배정 대기 상태로 되돌립니다.
-     */
-    match.set("status", "scheduled");
-    match.set("table_number", 0);
-    match.set("started_at", "");
-    match.set("completed_at", "");
-
-    txDao.saveRecord(match);
-
-    /*
-     * 마지막 경기까지 완료된 상태에서 결과를 취소하면
-     * operation_status가 completed일 수 있습니다.
-     *
-     * scheduled 경기가 다시 생겼으므로 운영 상태도 진행 중으로 복구합니다.
-     */
-    const gameSettingRecord = txDao.findRecordById(
-      "event_game_settings",
-      match.getString("game_setting"),
-    );
-
-    gameSettingRecord.set("operation_status", "in_progress");
-
-    txDao.saveRecord(gameSettingRecord);
-
-    const operationService = require(`${__hooks}/match_operation_service.js`);
-
-    operationService.assignIndividualMatches(txDao, gameSettingRecord.id);
-
-    historyService.createHistory(txDao, {
-      eventId: match.getString("event"),
-      targetType: "individual_match",
-      targetId: match.id,
-      action: "cancelled",
-      requestId: normalized.requestId,
-      actorType: "admin",
-      actorId: normalized.adminId,
-      actorName: normalized.adminName,
-      reason: normalized.reason,
-      beforeData,
-
-      afterData: {
-        status: match.getString("status"),
-        resultStatus: match.getString("result_status"),
-        version: match.getInt("version"),
-      },
-    });
-
-    const eventStatusService = require(
-      `${__hooks}/event_status_service.js`,
-    );
-
-    eventStatusService.syncEventStatus(txDao, match.getString("event"));
-  });
-
-  const rankingService = require(`${__hooks}/ranking_service.js`);
-
-  rankingService.recalculateAllCandidates($app.dao());
-
-  const record = $app
-    .dao()
-    .findRecordById("individual_matches", individualMatchId);
-
-  return {
-    id: record.id,
-    status: record.getString("status"),
-    version: record.getInt("version"),
-  };
-};
 
 const confirmMatchResult = function (targetType, targetId, input) {
   const normalized = normalizeConfirmInput(input);
@@ -504,7 +228,9 @@ const confirmMatchResult = function (targetType, targetId, input) {
         previousHistory.getString("target_type") === targetType &&
         previousTargetId === targetId &&
         previousHistory.getString("actor_admin") === normalized.adminId &&
-        previousHistory.getString("action") === "confirmed"
+        ["confirmed", "updated"].includes(
+          previousHistory.getString("action"),
+        )
       ) {
         return;
       }
@@ -532,22 +258,20 @@ const confirmMatchResult = function (targetType, targetId, input) {
       );
     }
 
-    if (
-      target.getString("status") === "completed" ||
-      target.getString("result_status") === RESULT_STATUS_CONFIRMED
-    ) {
-      throw new ApiError(
-        409,
-        "이미 확정된 결과입니다. 결과를 취소한 뒤 다시 입력해 주세요.",
-      );
-    }
+    const isEditingConfirmedResult =
+      target.getString("status") === "completed" &&
+      target.getString("result_status") === RESULT_STATUS_CONFIRMED;
 
     if (
+      !isEditingConfirmedResult &&
       !["scheduled", "ready", "in_progress"].includes(
         target.getString("status"),
       )
     ) {
-      throw new ApiError(409, "대기 중이거나 진행 중인 경기만 결과를 입력할 수 있습니다.");
+      throw new ApiError(
+        409,
+        "대기 중이거나 진행 중인 경기만 결과를 입력할 수 있습니다.",
+      );
     }
 
     let eventId = target.getString("event");
@@ -560,6 +284,7 @@ const confirmMatchResult = function (targetType, targetId, input) {
       );
 
       if (
+        !isEditingConfirmedResult &&
         !["scheduled", "ready", "in_progress"].includes(
           teamMatch.getString("status"),
         )
@@ -575,14 +300,15 @@ const confirmMatchResult = function (targetType, targetId, input) {
 
     const eventRecord = txDao.findRecordById("events", eventId);
 
+    if (eventRecord.getString("status") === "archived") {
+      throw new ApiError(409, "보관된 회차의 결과는 수정할 수 없습니다.");
+    }
+
     if (
-      eventRecord.getString("status") === "archived" ||
-      eventRecord.getString("status") === "completed"
+      eventRecord.getString("status") === "completed" &&
+      !isEditingConfirmedResult
     ) {
-      throw new ApiError(
-        409,
-        "종료되거나 보관된 회차에는 결과를 입력할 수 없습니다.",
-      );
+      throw new ApiError(409, "종료된 회차에는 새 결과를 입력할 수 없습니다.");
     }
 
     const validatedScore = resultService.validateScore(
@@ -590,6 +316,14 @@ const confirmMatchResult = function (targetType, targetId, input) {
       normalized.homeScore,
       normalized.awayScore,
     );
+
+    if (isEditingConfirmedResult) {
+      if (isTeamGame) {
+        deleteGameSubmissions(txDao, target.id);
+      } else {
+        deleteIndividualSubmissions(txDao, target.id);
+      }
+    }
 
     if (isTeamGame) {
       saveTeamGamePlayers(
@@ -639,7 +373,7 @@ const confirmMatchResult = function (targetType, targetId, input) {
       eventId,
       targetType,
       targetId,
-      action: "confirmed",
+      action: isEditingConfirmedResult ? "updated" : "confirmed",
       requestId: normalized.requestId,
       actorType: "admin",
       actorId: normalized.adminId,
@@ -662,11 +396,13 @@ const confirmMatchResult = function (targetType, targetId, input) {
       `${__hooks}/match_result_completion_service.js`,
     );
 
-    completionService.completeConfirmedResult(
-      txDao,
-      targetType,
-      target,
-    );
+    if (!isEditingConfirmedResult) {
+      completionService.completeConfirmedResult(
+        txDao,
+        targetType,
+        target,
+      );
+    }
   });
 
   const rankingService = require(`${__hooks}/ranking_service.js`);
@@ -708,8 +444,6 @@ const confirmIndividualMatchResult = function (individualMatchId, input) {
 };
 
 module.exports = Object.freeze({
-  cancelTeamGameResult,
-  cancelIndividualMatchResult,
   confirmTeamGameResult,
   confirmIndividualMatchResult,
 });

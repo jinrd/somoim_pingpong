@@ -1,28 +1,26 @@
 import { useState } from "react";
 
-import type { EventGameSetting } from "../game-settings/types";
-
 import {
-  cancelIndividualMatchResult,
-  cancelTeamGameResult,
   confirmIndividualMatchResult,
   confirmTeamGameResult,
 } from "../match-schedule/api";
 import { getScheduleErrorMessage } from "../match-schedule/scheduleErrorUtils";
 
-import type { CancelTarget, MonitorResult } from "./types";
+import type { MonitorResult } from "./types";
+
+import {
+  getBestOfLabel,
+  getRequiredWins,
+} from "../match-schedule/matchFormatUtils";
 
 interface Options {
-  setting: EventGameSetting | null;
   setError: (error: string) => void;
   loadMatches: (showLoading: boolean) => Promise<void>;
   onEventStatusChanged?: () => void | Promise<void>;
 }
 
-const getRequiredWins = (bestOf: number): number => Math.floor(bestOf / 2) + 1;
 
 export default function useMatchMonitorActions({
-  setting,
   setError,
   loadMatches,
   onEventStatusChanged,
@@ -37,8 +35,7 @@ export default function useMatchMonitorActions({
   const [homeParticipantIds, setHomeParticipantIds] = useState<string[]>([]);
   const [awayParticipantIds, setAwayParticipantIds] = useState<string[]>([]);
 
-  const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
+
 
   const refreshEventStatus = async () => {
     try {
@@ -51,8 +48,8 @@ export default function useMatchMonitorActions({
   const openResult = (target: MonitorResult) => {
     setError("");
     setResultReason("");
-    setHomeScore(0);
-    setAwayScore(0);
+    setHomeScore(target.homeScore);
+    setAwayScore(target.awayScore);
     setHomeParticipantIds(target.homePlayerIds);
     setAwayParticipantIds(target.awayPlayerIds);
     setResultTarget(target);
@@ -67,25 +64,7 @@ export default function useMatchMonitorActions({
     setResultReason("");
   };
 
-  const openCancel = (target: MonitorResult) => {
-    setError("");
-    setCancelReason("");
-    setCancelTarget({
-      id: target.id,
-      type: target.type,
-      title: target.title,
-      version: target.version,
-    });
-  };
 
-  const closeCancel = () => {
-    if (workingMatchId) {
-      return;
-    }
-
-    setCancelTarget(null);
-    setCancelReason("");
-  };
 
   const confirmResult = async () => {
     if (!resultTarget) {
@@ -101,7 +80,7 @@ export default function useMatchMonitorActions({
 
     if (!isValidScore) {
       setError(
-        `${resultTarget.bestOf}판 경기의 승자는 ${requiredWins}승이어야 합니다.`,
+        `${getBestOfLabel(resultTarget.bestOf)}에서는 승자가 ${requiredWins}승이어야 합니다.`,
       );
       return;
     }
@@ -137,7 +116,11 @@ export default function useMatchMonitorActions({
         await confirmIndividualMatchResult(resultTarget.id, input);
       }
 
-      setMessage(`${resultTarget.title} 결과를 확정했습니다.`);
+      setMessage(
+        resultTarget.resultStatus === "confirmed"
+          ? `${resultTarget.title} 결과를 수정했습니다.`
+          : `${resultTarget.title} 결과를 확정했습니다.`,
+      );
       setResultTarget(null);
       setResultReason("");
 
@@ -156,49 +139,7 @@ export default function useMatchMonitorActions({
     }
   };
 
-  const cancelResult = async () => {
-    if (!setting || !cancelTarget) {
-      return;
-    }
 
-    const reason = cancelReason.trim();
-
-    setWorkingMatchId(cancelTarget.id);
-    setError("");
-    setMessage("");
-
-    try {
-      const input = {
-        expectedVersion: cancelTarget.version,
-        reason,
-      };
-
-      if (cancelTarget.type === "team_game") {
-        await cancelTeamGameResult(cancelTarget.id, input);
-      } else {
-        await cancelIndividualMatchResult(cancelTarget.id, input);
-      }
-
-      setMessage(
-        `${cancelTarget.title} 결과를 취소했습니다. 참가자가 결과를 다시 입력할 수 있습니다.`,
-      );
-      setCancelTarget(null);
-      setCancelReason("");
-
-      await loadMatches(false);
-      await refreshEventStatus();
-    } catch (caughtError) {
-      setError(
-        getScheduleErrorMessage(
-          caughtError,
-          "경기 결과를 취소하지 못했습니다.",
-        ),
-      );
-      await loadMatches(false);
-    } finally {
-      setWorkingMatchId("");
-    }
-  };
 
   return {
     workingMatchId,
@@ -209,19 +150,13 @@ export default function useMatchMonitorActions({
     resultReason,
     homeParticipantIds,
     awayParticipantIds,
-    cancelTarget,
-    cancelReason,
     setHomeScore,
     setAwayScore,
     setResultReason,
     setHomeParticipantIds,
     setAwayParticipantIds,
-    setCancelReason,
     openResult,
     closeResult,
-    openCancel,
-    closeCancel,
     confirmResult,
-    cancelResult,
   };
 }

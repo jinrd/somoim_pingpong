@@ -1,5 +1,7 @@
 import type { StoredMatchGame } from "../match-schedule/api";
 
+export { getBestOfLabel } from "../match-schedule/matchFormatUtils";
+
 export const getPlayersLabel = (
   players: StoredMatchGame["homePlayers"],
 ): string => {
@@ -24,6 +26,4 @@ export const getScoreLabel = (
   return resultStatus === "confirmed" ? `${homeScore} : ${awayScore}` : "- : -";
 };
 
-export const getBestOfLabel = (bestOf: number): string => {
-  return `${bestOf}판 ${Math.floor(bestOf / 2) + 1}선승`;
-};
+
