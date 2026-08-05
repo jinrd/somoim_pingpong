@@ -1,9 +1,8 @@
 import { pb } from "../../lib/pocketbase";
 
 import type {
-  PublicLineupContext,
   PublicParticipantMatchesResponse,
-  SavePublicLineupInput,
+  PublicTeamMatchContext,
 } from "./types";
 
 export const getMyTeamMatches = async (
@@ -22,11 +21,11 @@ export const getMyTeamMatches = async (
   );
 };
 
-export const getPublicLineupContext = async (
+export const getPublicTeamMatchContext = async (
   teamMatchId: string,
   responseToken: string,
-): Promise<PublicLineupContext> => {
-  return pb.send<PublicLineupContext>(
+): Promise<PublicTeamMatchContext> => {
+  return pb.send<PublicTeamMatchContext>(
     `/api/somoim/public/team-matches/${encodeURIComponent(
       teamMatchId,
     )}/lineup/context`,
@@ -37,19 +36,6 @@ export const getPublicLineupContext = async (
       body: {
         responseToken,
       },
-    },
-  );
-};
-
-export const savePublicLineup = async (
-  teamMatchId: string,
-  input: SavePublicLineupInput,
-): Promise<PublicLineupContext> => {
-  return pb.send<PublicLineupContext>(
-    `/api/somoim/public/team-matches/${encodeURIComponent(teamMatchId)}/lineup`,
-    {
-      method: "PUT",
-      body: input,
     },
   );
 };

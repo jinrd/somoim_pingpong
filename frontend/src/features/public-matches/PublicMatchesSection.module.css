@@ -42,20 +42,81 @@
   cursor: pointer;
 }
 
-.teamSummary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px;
-  color: #475467;
+.teamSummarySection {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
   background: #ffffff;
   border: 1px solid #e4e7ec;
-  border-radius: 11px;
+  border-radius: 12px;
 }
 
-.teamSummary strong {
-  margin-left: auto;
+.teamSummaryHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4f46e5;
+}
+
+.teamSummaryHeading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teamSummaryHeading span {
+  padding: 3px 8px;
   color: #4338ca;
+  background: #eef2ff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.teamSummaryHeading strong {
+  color: #0f172a;
+  font-size: 0.94rem;
+}
+
+.teamMemberList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teamMember,
+.teamMemberCurrent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.teamMember {
+  color: #475569;
+  background: #f8fafc;
+}
+
+.teamMemberCurrent {
+  color: #ffffff;
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.teamMemberCurrent svg {
+  color: #c7d2fe;
+}
+
+.teamMember small,
+.teamMemberCurrent small {
+  margin-left: 2px;
+  font-size: 0.72rem;
+  opacity: 0.8;
 }
 
 .individualOperationActive,
@@ -371,8 +432,19 @@
     flex-basis: 40px;
   }
 
-  .teamSummary {
-    padding: 11px 12px;
+  .teamSummarySection {
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .teamSummaryHeading strong {
+    font-size: 0.88rem;
+  }
+
+  .teamMember,
+  .teamMemberCurrent {
+    padding: 5px 9px;
+    font-size: 0.74rem;
   }
 
   .matchList {
@@ -425,4 +497,117 @@
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
     backdrop-filter: blur(12px);
   }
+}
+
+.gameCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gameCardHeader > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gameCardHeader span {
+  color: #64748b;
+  font-size: 0.74rem;
+}
+
+.gameCardHeader strong {
+  color: #0f172a;
+  font-size: 0.88rem;
+}
+
+.gameCardAction {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 0.7rem !important;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .gameCardHeader {
+    align-items: flex-start;
+    padding: 8px 0 6px;
+  }
+
+  .gameCardHeader strong {
+    font-size: 0.84rem;
+  }
+
+  .gameCardAction {
+    padding: 3px 6px;
+    font-size: 0.66rem !important;
+  }
+}
+
+.inlineEditor {
+  padding: 10px;
+  margin: -2px 0 8px;
+  background: #fafafa;
+  border: 1px solid #cbd5e1;
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.inlineEditor .editorHeader {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+  .inlineEditor {
+    padding: 8px;
+    margin-bottom: 6px;
+    border-radius: 0 0 8px 8px;
+  }
+}
+
+.closeEditorButton {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.closeEditorButton:active {
+  color: #334155;
+  background: #f1f5f9;
+  transform: scale(0.95);
+}
+
+@media (max-width: 600px) {
+  .closeEditorButton {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+}
+
+.inlineEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0 8px;
+  color: #344054;
+  font-size: 0.84rem;
 }

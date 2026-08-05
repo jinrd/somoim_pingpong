@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { RefreshCw } from "lucide-react";
-import { ClientResponseError } from "pocketbase";
+import { RefreshCw, X } from "lucide-react";
 
 import PublicMatchResultForm from "../match-result/PublicMatchResultForm";
 
+import {
+  getPublicMatchPriority,
+  getPublicMatchStatusLabel,
+} from "./publicMatchStatus";
 import { getMyIndividualMatches } from "./api";
 
-import type {
-  PublicParticipantMatchesResponse,
-  PublicTeamMatchStatus,
-} from "./types";
+import type { PublicParticipantMatchesResponse } from "./types";
 
-import styles from "./PublicLineupSection.module.css";
+import styles from "./PublicMatchesSection.module.css";
 import { PUBLIC_MATCH_REFRESH_INTERVAL_MS } from "./constants";
-interface PublicIndividualLineupSectionProps {
+import { getPublicFeatureErrorMessage } from "./publicErrorUtils";
+import usePublicMatchPolling from "./usePublicMatchPolling";
+
+interface PublicIndividualMatchesSectionProps {
   responseToken: string;
   onMatchStarted?: (notice: PublicIndividualMatchStartedNotice) => void;
 }
@@ -25,34 +28,10 @@ export interface PublicIndividualMatchStartedNotice {
   opponentName: string;
 }
 
-const getErrorMessage = (error: unknown, fallback: string): string => {
-  if (error instanceof ClientResponseError) {
-    return error.response?.message || error.message || fallback;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return fallback;
-};
-
-const getStatusLabel = (status: PublicTeamMatchStatus): string => {
-  const labels: Record<PublicTeamMatchStatus, string> = {
-    scheduled: "대기 중",
-    ready: "시작 대기",
-    in_progress: "진행 중",
-    completed: "경기 완료",
-    cancelled: "취소",
-  };
-
-  return labels[status];
-};
-
-export default function PublicIndividualLineupSection({
+export default function PublicIndividualMatchesSection({
   responseToken,
   onMatchStarted,
-}: PublicIndividualLineupSectionProps) {
+}: PublicIndividualMatchesSectionProps) {
   const [matchResponse, setMatchResponse] =
     useState<PublicParticipantMatchesResponse | null>(null);
 
@@ -101,7 +80,10 @@ export default function PublicIndividualLineupSection({
       .catch((caughtError) => {
         if (!cancelled) {
           setError(
-            getErrorMessage(caughtError, "내 경기 목록을 불러오지 못했습니다."),
+            getPublicFeatureErrorMessage(
+              caughtError,
+              "내 경기 목록을 불러오지 못했습니다.",
+            ),
           );
         }
       })
@@ -117,53 +99,21 @@ export default function PublicIndividualLineupSection({
   }, [applyMatchResponse, responseToken]);
 
   useEffect(() => {
-    let cancelled = false;
-    let isRequesting = false;
+    if (!openedMatchId) {
+      return;
+    }
 
-    const refreshMatches = async () => {
-      if (cancelled || isRequesting || document.visibilityState !== "visible") {
-        return;
-      }
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`individual-result-${openedMatchId}`)
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+    });
+  }, [openedMatchId]);
 
-      isRequesting = true;
-
-      try {
-        const result = await getMyIndividualMatches(responseToken);
-
-        if (!cancelled) {
-          applyMatchResponse(result);
-        }
-      } catch {
-        /*
-         * 자동 갱신 실패 시 기존 화면을 유지합니다.
-         */
-      } finally {
-        isRequesting = false;
-      }
-    };
-
-    const intervalId = window.setInterval(() => {
-      void refreshMatches();
-    }, PUBLIC_MATCH_REFRESH_INTERVAL_MS);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void refreshMatches();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      cancelled = true;
-
-      window.clearInterval(intervalId);
-
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [applyMatchResponse, responseToken]);
-
-  const reloadMatches = async () => {
+  const reloadMatches = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
@@ -173,17 +123,25 @@ export default function PublicIndividualLineupSection({
       applyMatchResponse(result);
     } catch (caughtError) {
       setError(
-        getErrorMessage(caughtError, "내 경기 목록을 불러오지 못했습니다."),
+        getPublicFeatureErrorMessage(
+          caughtError,
+          "내 경기 목록을 불러오지 못했습니다.",
+        ),
       );
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [applyMatchResponse, responseToken]);
+
+  usePublicMatchPolling({
+    refresh: reloadMatches,
+    intervalMs: PUBLIC_MATCH_REFRESH_INTERVAL_MS,
+  });
 
   if (isLoading && !matchResponse) {
     return (
       <section className={styles.section}>
-        내 대진표를 불러오는 중입니다…
+        내 경기 정보를 불러오는 중입니다…
       </section>
     );
   }
@@ -194,10 +152,11 @@ export default function PublicIndividualLineupSection({
 
   const orderedMatches = matchResponse
     ? [...matchResponse.matches].sort((left, right) => {
-        const leftPriority = left.status === "in_progress" ? 0 : 1;
-        const rightPriority = right.status === "in_progress" ? 0 : 1;
-
-        return leftPriority - rightPriority || left.sortOrder - right.sortOrder;
+        return (
+          getPublicMatchPriority(left.status) -
+            getPublicMatchPriority(right.status) ||
+          left.sortOrder - right.sortOrder
+        );
       })
     : [];
 
@@ -205,9 +164,9 @@ export default function PublicIndividualLineupSection({
     <section className={styles.section}>
       <header className={styles.header}>
         <div>
-          <h2>내 개인 단식 경기</h2>
+          <h2>내 경기</h2>
 
-          <p>진행 중인 경기를 선택하여 최종 점수를 입력해 주세요.</p>
+          <p>경기가 시작되면 상대와 테이블을 확인하고 결과를 입력합니다.</p>
         </div>
 
         <button
@@ -245,7 +204,7 @@ export default function PublicIndividualLineupSection({
           </strong>
           <span>
             {activeMatch
-              ? `${activeMatch.opponentTeam.name}님과 경기를 진행해 주세요.`
+              ? `${activeMatch.opponentTeam.name}님과 경기할 차례입니다.`
               : "내 경기 배정을 기다리고 있습니다."}
           </span>
         </div>
@@ -259,7 +218,7 @@ export default function PublicIndividualLineupSection({
       )}
 
       {!matchResponse?.matches || matchResponse.matches.length === 0 ? (
-        <p className={styles.empty}>아직 확정된 개인 단식 대진이 없습니다.</p>
+        <p className={styles.empty}>아직 배정된 개인 경기가 없습니다.</p>
       ) : (
         <div className={styles.matchList}>
           {orderedMatches.map((match) => {
@@ -276,6 +235,8 @@ export default function PublicIndividualLineupSection({
                     isOpened ? styles.matchButtonActive : styles.matchButton
                   }
                   disabled={!canOpenResult}
+                  aria-expanded={isOpened}
+                  aria-controls={`individual-result-${match.id}`}
                   onClick={() => {
                     setOpenedMatchId((current) =>
                       current === match.id ? "" : match.id,
@@ -291,20 +252,41 @@ export default function PublicIndividualLineupSection({
                   <small>
                     {match.status === "in_progress" &&
                     (match.tableNumber ?? 0) > 0
-                      ? `${match.tableNumber}번 테이블 · ${getStatusLabel(
+                      ? `${match.tableNumber}번 테이블 · ${getPublicMatchStatusLabel(
                           match.status,
                         )}`
-                      : `경기 상태: ${getStatusLabel(match.status)}`}
+                      : `경기 상태: ${getPublicMatchStatusLabel(match.status)}`}
                   </small>
                 </button>
 
                 {isOpened && canOpenResult && (
-                  <PublicMatchResultForm
-                    targetType="individual_match"
-                    targetId={match.id}
-                    responseToken={responseToken}
-                    onResultUpdated={reloadMatches}
-                  />
+                  <div
+                    id={`individual-result-${match.id}`}
+                    className={styles.inlineEditor}
+                  >
+                    <div className={styles.inlineEditorHeader}>
+                      <strong>경기 결과 입력</strong>
+
+                      <button
+                        type="button"
+                        className={styles.closeEditorButton}
+                        aria-label="경기 결과 입력 닫기"
+                        onClick={() => {
+                          setOpenedMatchId("");
+                        }}
+                      >
+                        <X size={18} aria-hidden="true" />
+                      </button>
+                    </div>
+
+                    <PublicMatchResultForm
+                      targetType="individual_match"
+                      targetId={match.id}
+                      responseToken={responseToken}
+                      pollingEnabled={match.status === "in_progress"}
+                      onResultUpdated={reloadMatches}
+                    />
+                  </div>
                 )}
               </div>
             );
