@@ -1,8 +1,13 @@
+/// <reference path="../pb_data/types.d.ts" />
+
 /**
  * 참가자 개인 응답 토큰을 검증합니다.
  *
  * 참가자뿐 아니라 참가자가 속한 회차의 공개 접근 정책도 함께 검사합니다.
  * 이 함수를 사용하는 모든 공개 API는 동일한 만료 정책을 적용받습니다.
+ *
+ * @param {string} responseToken
+ * @returns {models.Record}
  */
 const findParticipantByResponseToken = function (responseToken) {
   const config = require(`${__hooks}/config.js`);
@@ -92,6 +97,12 @@ const findParticipantByResponseToken = function (responseToken) {
   return participantRecord;
 };
 
+/**
+ * @param {daos.Dao} dao
+ * @param {models.Record} participantRecord
+ * @param {models.Record} teamMatchRecord
+ * @returns {models.Record}
+ */
 const findParticipantTeam = function (dao, participantRecord, teamMatchRecord) {
   const formationId = teamMatchRecord.getString("formation");
   const homeTeamId = teamMatchRecord.getString("home_team");
@@ -122,7 +133,12 @@ const findParticipantTeam = function (dao, participantRecord, teamMatchRecord) {
   return memberships[0];
 };
 
-const buildLineupContext = function (teamMatchId, responseToken) {
+/**
+ * @param {string} teamMatchId
+ * @param {string} responseToken
+ * @returns {object}
+ */
+const buildTeamMatchContext = function (teamMatchId, responseToken) {
   const dao = $app.dao();
 
   const participantRecord = findParticipantByResponseToken(responseToken);
@@ -173,32 +189,12 @@ const buildLineupContext = function (teamMatchId, responseToken) {
   const teamRecord = dao.findRecordById("teams", teamId);
   const opponentTeamRecord = dao.findRecordById("teams", opponentTeamId);
 
-  const teamMemberRecords = dao.findRecordsByFilter(
-    "team_members",
-    ["formation = {:formationId}", "team = {:teamId}"].join(" && "),
-    "sort_order",
-    100,
-    0,
-    {
-      formationId: formationRecord.id,
-      teamId,
-    },
+  const members = listTeamMembers(
+    dao,
+    formationRecord.id,
+    teamId,
+    participantRecord.id,
   );
-
-  const members = teamMemberRecords.map((teamMemberRecord) => {
-    const teamParticipant = dao.findRecordById(
-      "event_participants",
-      teamMemberRecord.getString("participant"),
-    );
-
-    return {
-      participantId: teamParticipant.id,
-      displayName: teamParticipant.getString("display_name"),
-      rankSnapshot: teamParticipant.getInt("rank_snapshot"),
-      participantType: teamParticipant.getString("participant_type"),
-      isRequester: teamParticipant.id === participantRecord.id,
-    };
-  });
 
   const matchGameRecords = dao.findRecordsByFilter(
     "match_games",
@@ -211,7 +207,7 @@ const buildLineupContext = function (teamMatchId, responseToken) {
     },
   );
 
-  let lineupRecord;
+  let lineupRecord = null;
 
   try {
     lineupRecord = dao.findFirstRecordByFilter(
@@ -223,25 +219,27 @@ const buildLineupContext = function (teamMatchId, responseToken) {
       },
     );
   } catch {
-    throw new NotFoundError(
-      "라인업 정보를 찾을 수 없습니다. 대진표를 다시 생성해 주세요.",
-    );
+    lineupRecord = null;
   }
 
-  const playerRecords = dao.findRecordsByFilter(
-    "match_game_players",
-    "lineup = {:lineupId}",
-    "match_game,position",
-    100,
-    0,
-    {
-      lineupId: lineupRecord.id,
-    },
-  );
+  const playerRecords = lineupRecord
+    ? dao.findRecordsByFilter(
+        "match_game_players",
+        "lineup = {:lineupId}",
+        "match_game,position",
+        100,
+        0,
+        {
+          lineupId: lineupRecord.id,
+        },
+      )
+    : [];
 
   let confirmedBy = null;
 
-  const confirmedById = lineupRecord.getString("confirmed_by");
+  const confirmedById = lineupRecord
+    ? lineupRecord.getString("confirmed_by")
+    : "";
 
   if (confirmedById) {
     try {
@@ -272,11 +270,13 @@ const buildLineupContext = function (teamMatchId, responseToken) {
     team: {
       id: teamRecord.id,
       name: teamRecord.getString("name"),
+      sortOrder: teamRecord.getInt("sort_order"),
     },
 
     opponentTeam: {
       id: opponentTeamRecord.id,
       name: opponentTeamRecord.getString("name"),
+      sortOrder: opponentTeamRecord.getInt("sort_order"),
     },
 
     requester: {
@@ -297,10 +297,10 @@ const buildLineupContext = function (teamMatchId, responseToken) {
     })),
 
     lineup: {
-      id: lineupRecord.id,
-      status: lineupRecord.getString("status"),
-      version: lineupRecord.getInt("version"),
-      confirmedAt: lineupRecord.getString("confirmed_at"),
+      id: lineupRecord ? lineupRecord.id : "",
+      status: lineupRecord ? lineupRecord.getString("status") : "draft",
+      version: lineupRecord ? lineupRecord.getInt("version") : 0,
+      confirmedAt: lineupRecord ? lineupRecord.getString("confirmed_at") : "",
       confirmedBy,
 
       players: playerRecords.map((playerRecord) => ({
@@ -312,6 +312,12 @@ const buildLineupContext = function (teamMatchId, responseToken) {
   };
 };
 
+/**
+ * @param {string} teamMatchId
+ * @param {string} responseToken
+ * @param {any} input
+ * @returns {object}
+ */
 const saveLineup = function (teamMatchId, responseToken, input) {
   const context = buildLineupContext(teamMatchId, responseToken);
 
@@ -601,6 +607,10 @@ const saveLineup = function (teamMatchId, responseToken, input) {
   return buildLineupContext(teamMatchId, responseToken);
 };
 
+/**
+ * @param {string} responseToken
+ * @returns {object}
+ */
 const listParticipantMatches = function (responseToken) {
   const dao = $app.dao();
 
@@ -611,6 +621,7 @@ const listParticipantMatches = function (responseToken) {
   const emptyResult = {
     eventId,
     team: null,
+    members: [],
     matches: [],
   };
 
@@ -675,6 +686,13 @@ const listParticipantMatches = function (responseToken) {
 
   const teamRecord = dao.findRecordById("teams", teamId);
 
+  const members = listTeamMembers(
+    dao,
+    formationRecord.id,
+    teamId,
+    participantRecord.id,
+  );
+
   const matchRecords = dao.findRecordsByFilter(
     "team_matches",
     [
@@ -728,6 +746,7 @@ const listParticipantMatches = function (responseToken) {
       opponentTeam: {
         id: opponentTeamRecord.id,
         name: opponentTeamRecord.getString("name"),
+        sortOrder: opponentTeamRecord.getInt("sort_order"),
       },
 
       ownLineupStatus: ownLineup ? ownLineup.getString("status") : "draft",
@@ -744,15 +763,64 @@ const listParticipantMatches = function (responseToken) {
     team: {
       id: teamRecord.id,
       name: teamRecord.getString("name"),
+      sortOrder: teamRecord.getInt("sort_order"),
     },
 
+    members,
     matches,
   };
 };
+
 module.exports = Object.freeze({
   findParticipantByResponseToken,
   findParticipantTeam,
-  buildLineupContext,
+  buildTeamMatchContext,
+
+  // 기존 라인업 저장 코드와의 호환성을 위해 유지
+  buildLineupContext: buildTeamMatchContext,
+
   saveLineup,
   listParticipantMatches,
 });
+
+/**
+ * @param {daos.Dao} dao
+ * @param {string} formationId
+ * @param {string} teamId
+ * @param {string} requesterParticipantId
+ * @returns {object[]}
+ */
+const listTeamMembers = function (
+  dao,
+  formationId,
+  teamId,
+  requesterParticipantId,
+) {
+  const membershipRecords = dao.findRecordsByFilter(
+    "team_members",
+    ["formation = {:formationId}", "team = {:teamId}"].join(" && "),
+    "sort_order",
+    100,
+    0,
+    {
+      formationId,
+      teamId,
+    },
+  );
+
+  return membershipRecords.map((membershipRecord) => {
+    const participantRecord = dao.findRecordById(
+      "event_participants",
+      membershipRecord.getString("participant"),
+    );
+
+    return {
+      participantId: participantRecord.id,
+      displayName: participantRecord.getString("display_name"),
+      rankSnapshot: participantRecord.getInt("rank_snapshot"),
+      participantType: participantRecord.getString("participant_type"),
+      position: membershipRecord.getInt("sort_order"),
+      isRequester: participantRecord.id === requesterParticipantId,
+    };
+  });
+};

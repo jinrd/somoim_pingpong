@@ -405,6 +405,30 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
     // 확정된 게임 설정이 없으면 unknown 유지
   }
 
+  let participantTeam = null;
+
+  if (competitionType === "team_league") {
+    try {
+      const teamMatchesService = require(
+        `${__hooks}/team_lineups_service.js`,
+      );
+      const teamContext = teamMatchesService.listParticipantMatches(
+        responseToken,
+      );
+
+      if (teamContext.team) {
+        participantTeam = {
+          id: teamContext.team.id,
+          name: teamContext.team.name,
+          sortOrder: teamContext.team.sortOrder,
+          members: teamContext.members,
+        };
+      }
+    } catch {
+      participantTeam = null;
+    }
+  }
+
   return context.json(200, {
     responseToken,
     competitionType,
@@ -417,6 +441,110 @@ routerAdd("POST", "/api/somoim/public/events/:token/identify", (context) => {
       hasResponded: Boolean(
         participantRecord.getString("participation_responded_at"),
       ),
+      team: participantTeam,
+    },
+  });
+});
+
+/**
+ * 공개 참가자: 저장된 본인 확인 토큰으로 최신 참가 정보 조회
+ */
+routerAdd("POST", "/api/somoim/public/participants/identity", (context) => {
+  const config = require(`${__hooks}/config.js`);
+  const requestData = new DynamicModel({ responseToken: "" });
+
+  context.bind(requestData);
+
+  const responseToken = String(requestData.responseToken || "").trim();
+
+  if (
+    !responseToken ||
+    responseToken.length !== config.PARTICIPATION_TOKEN_LENGTH
+  ) {
+    throw new NotFoundError("유효하지 않은 본인 확인 정보입니다.");
+  }
+
+  let participantRecord;
+
+  try {
+    participantRecord = $app
+      .dao()
+      .findFirstRecordByFilter(
+        "event_participants",
+        "participation_token_hash = {:tokenHash}",
+        { tokenHash: $security.sha256(responseToken) },
+      );
+  } catch {
+    throw new NotFoundError("유효하지 않은 본인 확인 정보입니다.");
+  }
+
+  let eventRecord;
+
+  try {
+    eventRecord = $app
+      .dao()
+      .findRecordById("events", participantRecord.getString("event"));
+  } catch {
+    throw new NotFoundError("회차 정보를 찾을 수 없습니다.");
+  }
+
+  const publicAccess = require(`${__hooks}/public_event_access.js`);
+
+  publicAccess.assertEventPublicAccess(eventRecord);
+
+  let competitionType = "unknown";
+
+  try {
+    const gameSettingRecord = $app
+      .dao()
+      .findFirstRecordByFilter(
+        "event_game_settings",
+        "event = {:eventId} && status = 'confirmed'",
+        { eventId: eventRecord.id },
+      );
+
+    competitionType = gameSettingRecord.getString("competition_type");
+  } catch {
+    // 확정된 게임 설정이 없으면 unknown을 유지합니다.
+  }
+
+  let participantTeam = null;
+
+  if (competitionType === "team_league") {
+    try {
+      const teamMatchesService = require(
+        `${__hooks}/team_lineups_service.js`,
+      );
+      const teamContext = teamMatchesService.listParticipantMatches(
+        responseToken,
+      );
+
+      if (teamContext.team) {
+        participantTeam = {
+          id: teamContext.team.id,
+          name: teamContext.team.name,
+          sortOrder: teamContext.team.sortOrder,
+          members: teamContext.members,
+        };
+      }
+    } catch {
+      participantTeam = null;
+    }
+  }
+
+  return context.json(200, {
+    responseToken,
+    competitionType,
+    participant: {
+      displayName: participantRecord.getString("display_name"),
+      rank: participantRecord.getInt("rank_snapshot"),
+      gameParticipationStatus: participantRecord.getString(
+        "game_participation_status",
+      ),
+      hasResponded: Boolean(
+        participantRecord.getString("participation_responded_at"),
+      ),
+      team: participantTeam,
     },
   });
 });
@@ -575,6 +703,7 @@ routerAdd("PATCH", "/api/somoim/public/participants/game-status", (context) => {
         "game_participation_status",
       ),
       hasResponded: true,
+      team: null,
     },
     respondedAt,
   });

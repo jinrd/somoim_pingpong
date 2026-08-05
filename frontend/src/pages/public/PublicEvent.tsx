@@ -1,34 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
-
+import { useState } from "react";
 import {
   AlertCircle,
-  BellRing,
   CalendarDays,
-  ChevronRight,
   LoaderCircle,
   Trophy,
   UserCheck,
 } from "lucide-react";
 
-import { ClientResponseError } from "pocketbase";
-
 import { useParams } from "react-router-dom";
 
-import { getPublicEvent } from "../../features/events/api";
+import usePublicEventData from "./usePublicEventData";
 
 import PublicIdentityForm from "../../features/events/PublicIdentityForm";
 import PublicParticipationForm from "../../features/events/PublicParticipationForm";
-import PublicTeamLineupSection from "../../features/lineup/PublicTeamLineupSection";
-import PublicIndividualLineupSection, {
-  type PublicIndividualMatchStartedNotice,
-} from "../../features/lineup/PublicIndividualLineupSection";
+import PublicTeamMatchesSection from "../../features/public-matches/PublicTeamMatchesSection";
+import PublicIndividualMatchesSection from "../../features/public-matches/PublicIndividualMatchesSection";
+import PublicParticipantSummary from "../../features/public-matches/PublicParticipantSummary";
 import {
   EVENT_STATUS_LABELS,
-  type PublicEventResponse,
-  type PublicIdentityResult,
   type PublicIdentifiedParticipant,
 } from "../../features/events/types";
 import LeagueStandingsPanel from "../../features/standings/LeagueStandingsPanel";
+import usePublicIdentity from "./usePublicIdentity";
+
 import styles from "./PublicEvent.module.css";
 
 const formatDate = (value: string): string => {
@@ -59,139 +53,16 @@ const formatExpiration = (value: string): string => {
   }).format(date);
 };
 
-const getPublicErrorMessage = (error: unknown): string => {
-  if (error instanceof ClientResponseError) {
-    if (error.status === 404) {
-      return (
-        error.response.message || "유효하지 않거나 만료된 참석 링크입니다."
-      );
-    }
-
-    return error.response.message || "회차 정보를 불러오지 못했습니다.";
-  }
-
-  return "서버에 연결하지 못했습니다.";
-};
-
-const getStoredIdentity = (
-  publicToken?: string,
-): PublicIdentityResult | null => {
-  if (!publicToken) {
-    return null;
-  }
-
-  try {
-    const storedValue = sessionStorage.getItem(
-      `event-participant:${publicToken}`,
-    );
-
-    if (!storedValue) {
-      return null;
-    }
-
-    const parsedValue = JSON.parse(storedValue) as PublicIdentityResult;
-
-    if (
-      !parsedValue.responseToken ||
-      !parsedValue.participant ||
-      !parsedValue.competitionType
-    ) {
-      return null;
-    }
-
-    return parsedValue;
-  } catch {
-    return null;
-  }
-};
-
 export default function PublicEvent() {
   const { token } = useParams<{
     token: string;
   }>();
-
-  const [response, setResponse] = useState<PublicEventResponse | null>(null);
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [error, setError] = useState("");
-
-  const [identity, setIdentity] = useState<PublicIdentityResult | null>(() =>
-    getStoredIdentity(token),
-  );
-  const [activePublicTab, setActivePublicTab] = useState<"mine" | "live">(
-    "mine",
-  );
-  const [matchStartNotice, setMatchStartNotice] =
-    useState<PublicIndividualMatchStartedNotice | null>(null);
-
-  const handleIndividualMatchStarted = useCallback(
-    (notice: PublicIndividualMatchStartedNotice) => {
-      setMatchStartNotice(notice);
-    },
-    [],
-  );
-
-  const openMyMatch = () => {
-    setActivePublicTab("mine");
-    setMatchStartNotice(null);
-
-    window.requestAnimationFrame(() => {
-      document.getElementById("public-panel-mine")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
-  };
-
-  const loadEvent = () => {
-    if (!token) {
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
-    getPublicEvent(token)
-      .then((result) => {
-        setResponse(result);
-      })
-      .catch((caughtError) => {
-        setError(getPublicErrorMessage(caughtError));
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    if (!token) {
-      return;
-    }
-
-    let cancelled = false;
-
-    getPublicEvent(token)
-      .then((result) => {
-        if (!cancelled) {
-          setResponse(result);
-        }
-      })
-      .catch((caughtError) => {
-        if (!cancelled) {
-          setError(getPublicErrorMessage(caughtError));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  const { response, isLoading, error, reload } = usePublicEventData(token);
+  const { identity, setIdentity, updateParticipant, clearIdentity } =
+    usePublicIdentity(token);
+  const [activePublicTab, setActivePublicTab] = useState<
+    "home" | "mine" | "live"
+  >("home");
 
   if (!token) {
     return (
@@ -245,7 +116,7 @@ export default function PublicEvent() {
             <button
               type="button"
               className={styles.retryButton}
-              onClick={loadEvent}
+              onClick={() => void reload()}
             >
               다시 확인
             </button>
@@ -320,6 +191,21 @@ export default function PublicEvent() {
                     <button
                       type="button"
                       role="tab"
+                      id="public-tab-home"
+                      aria-controls="public-panel-home"
+                      aria-selected={activePublicTab === "home"}
+                      className={
+                        activePublicTab === "home"
+                          ? styles.publicTabActive
+                          : styles.publicTab
+                      }
+                      onClick={() => setActivePublicTab("home")}
+                    >
+                      홈
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
                       id="public-tab-mine"
                       aria-controls="public-panel-mine"
                       aria-selected={activePublicTab === "mine"}
@@ -332,7 +218,6 @@ export default function PublicEvent() {
                     >
                       내 경기
                     </button>
-
                     <button
                       type="button"
                       role="tab"
@@ -350,34 +235,19 @@ export default function PublicEvent() {
                     </button>
                   </div>
 
-                  {matchStartNotice && (
-                    <button
-                      type="button"
-                      className={styles.matchStartNotice}
-                      onClick={openMyMatch}
-                    >
-                      <span className={styles.matchStartNoticeIcon}>
-                        <BellRing size={20} aria-hidden="true" />
-                      </span>
-                      <span className={styles.matchStartNoticeText}>
-                        <strong>
-                          {matchStartNotice.tableNumber}번 테이블 경기 시작
-                        </strong>
-                        <small>
-                          {matchStartNotice.opponentName}님과 경기할 차례입니다.
-                        </small>
-                      </span>
-                      <ChevronRight size={19} aria-hidden="true" />
-                    </button>
-                  )}
 
                   <div
-                    id="public-panel-mine"
+                    id="public-panel-home"
                     className={styles.publicTabPanel}
                     role="tabpanel"
-                    aria-labelledby="public-tab-mine"
-                    hidden={activePublicTab !== "mine"}
+                    aria-labelledby="public-tab-home"
+                    hidden={activePublicTab !== "home"}
                   >
+                    <PublicParticipantSummary
+                      participant={identity.participant}
+                      competitionType={identity.competitionType}
+                    />
+
                     {event.participationStatus === "open" &&
                     !identity.participant.hasResponded ? (
                       <PublicParticipationForm
@@ -386,17 +256,7 @@ export default function PublicEvent() {
                         onUpdated={(
                           updatedParticipant: PublicIdentifiedParticipant,
                         ) => {
-                          const updatedIdentity = {
-                            ...identity,
-                            participant: updatedParticipant,
-                          };
-
-                          setIdentity(updatedIdentity);
-
-                          sessionStorage.setItem(
-                            `event-participant:${token}`,
-                            JSON.stringify(updatedIdentity),
-                          );
+                          updateParticipant(updatedParticipant);
                         }}
                       />
                     ) : (
@@ -406,24 +266,61 @@ export default function PublicEvent() {
                             ? "참가 신청 마감"
                             : "참가 신청 완료"}
                         </strong>
-                        <p>변경은 운영진에게 문의해 주세요.</p>
+
+                        <p>게임 참가 상태는 운영진에게 문의해 주세요.</p>
+                      </div>
+                    )}
+
+                    <div className={styles.homeGuide}>
+                      <strong>경기 확인</strong>
+                      <p>
+                        {identity.competitionType === "team_league"
+                          ? "내 경기 탭에서 팀 정보와 경기 순서를 확인할 수 있습니다."
+                          : "내 경기 탭에서 내 경기와 경기 순서를 확인할 수 있습니다."}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={styles.changeIdentityButton}
+                      onClick={clearIdentity}
+                    >
+                      다른 참가자로 확인
+                    </button>
+                  </div>
+                  <div
+                    id="public-panel-mine"
+                    className={styles.publicTabPanel}
+                    role="tabpanel"
+                    aria-labelledby="public-tab-mine"
+                    hidden={activePublicTab !== "mine"}
+                  >
+                    {identity.participant.gameParticipationStatus !==
+                      "playing" && (
+                      <div className={styles.lockedNotice}>
+                        <strong>게임 미참가 상태입니다.</strong>
+                        <p>
+                          현재 경기 정보가 없습니다. 참가 상태를 변경하려면
+                          운영진에게 문의해 주세요.
+                        </p>
                       </div>
                     )}
 
                     {identity.participant.gameParticipationStatus ===
                       "playing" &&
                       identity.competitionType === "team_league" && (
-                        <PublicTeamLineupSection
+                        <PublicTeamMatchesSection
                           responseToken={identity.responseToken}
+                          isActive={activePublicTab === "mine"}
                         />
                       )}
 
                     {identity.participant.gameParticipationStatus ===
                       "playing" &&
                       identity.competitionType === "individual_singles" && (
-                        <PublicIndividualLineupSection
+                        <PublicIndividualMatchesSection
                           responseToken={identity.responseToken}
-                          onMatchStarted={handleIndividualMatchStarted}
+                          isActive={activePublicTab === "mine"}
                         />
                       )}
                   </div>

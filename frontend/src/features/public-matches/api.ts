@@ -28,7 +28,7 @@ export const getPublicTeamMatchContext = async (
   return pb.send<PublicTeamMatchContext>(
     `/api/somoim/public/team-matches/${encodeURIComponent(
       teamMatchId,
-    )}/lineup/context`,
+    )}/context`,
     {
       method: "POST",
       requestKey: null,

@@ -1,4 +1,7 @@
-import type { PublicTeamMatchStatus } from "./types";
+import type {
+  PublicParticipantMatch,
+  PublicTeamMatchStatus,
+} from "./types";
 
 const STATUS_LABELS: Record<PublicTeamMatchStatus, string> = {
   scheduled: "경기 준비",
@@ -30,4 +33,58 @@ export const getPublicMatchPriority = (
   }
 
   return 3;
+};
+
+export interface PublicMatchGroups {
+  inProgress: PublicParticipantMatch[];
+  upcoming: PublicParticipantMatch[];
+  completed: PublicParticipantMatch[];
+  cancelled: PublicParticipantMatch[];
+}
+
+export const groupPublicMatches = (
+  matches: PublicParticipantMatch[],
+): PublicMatchGroups => {
+  const groups: PublicMatchGroups = {
+    inProgress: [],
+    upcoming: [],
+    completed: [],
+    cancelled: [],
+  };
+
+  matches.forEach((match) => {
+    if (match.status === "in_progress") {
+      groups.inProgress.push(match);
+      return;
+    }
+
+    if (match.status === "cancelled") {
+      groups.cancelled.push(match);
+      return;
+    }
+
+    if (match.status === "completed") {
+      groups.completed.push(match);
+      return;
+    }
+
+    groups.upcoming.push(match);
+  });
+
+  return groups;
+};
+
+export const hasOpenPublicMatches = (
+  matches: PublicParticipantMatch[],
+): boolean => {
+  return matches.some(
+    (match) =>
+      match.status !== "completed" && match.status !== "cancelled",
+  );
+};
+
+export const canOpenPublicMatchResult = (
+  status: PublicTeamMatchStatus,
+): boolean => {
+  return status === "in_progress" || status === "completed";
 };

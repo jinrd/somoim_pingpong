@@ -4,10 +4,7 @@ import { LogIn, UserCheck } from "lucide-react";
 
 import { ClientResponseError } from "pocketbase";
 
-import {
-  identifyPublicParticipant,
-  identifyPublicGuest,
-} from "./api";
+import { identifyPublicParticipant, identifyPublicGuest } from "./api";
 
 import type { PublicIdentityResult } from "./types";
 
@@ -34,7 +31,16 @@ const formatPhoneNumber = (value: string): string => {
 
 const getIdentityErrorMessage = (error: unknown): string => {
   if (error instanceof ClientResponseError) {
-    return error.response.message || "본인 확인에 실패했습니다.";
+    const message = String(error.response.message || "").trim();
+
+    if (
+      !message ||
+      message === "Something went wrong while processing your request."
+    ) {
+      return "본인 확인을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    }
+
+    return message;
   }
 
   return "서버에 연결하지 못했습니다.";
@@ -69,12 +75,6 @@ export default function PublicIdentityForm({
       } else {
         result = await identifyPublicGuest(publicToken, guestName.trim());
       }
-
-      // 다음 단계의 게임 참가 여부 변경에 사용합니다.
-      sessionStorage.setItem(
-        `event-participant:${publicToken}`,
-        JSON.stringify(result),
-      );
 
       onIdentified(result);
     } catch (caughtError) {

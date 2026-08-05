@@ -21,33 +21,38 @@ export default function PublicTeamSummary({ team, members = [] }: Props) {
             {team.sortOrder > 0
               ? `${team.sortOrder}번 팀 · ${team.name}`
               : team.name}
+            <small>{members.length}명</small>
           </strong>
         </div>
       </div>
 
-      <div className={styles.teamMemberList}>
-        {members.map((member) => (
-          <div
-            key={member.participantId}
-            className={
-              member.isRequester ? styles.teamMemberCurrent : styles.teamMember
-            }
-          >
-            <UserRound size={17} aria-hidden="true" />
+      {members.length === 0 ? (
+        <p className={styles.empty}>아직 팀원 정보가 없습니다.</p>
+      ) : (
+        <div className={styles.teamMemberList}>
+          {members.map((member) => (
+            <div
+              key={member.participantId}
+              className={
+                member.isRequester ? styles.teamMemberCurrent : styles.teamMember
+              }
+            >
+              <UserRound size={17} aria-hidden="true" />
 
-            <span>
-              {member.displayName}
-              {member.isRequester ? " (나)" : ""}
-            </span>
+              <span>
+                {member.displayName}
+                {member.isRequester ? " (나)" : ""}
+              </span>
 
-            <small>
-              {member.rankSnapshot > 0
-                ? `${member.rankSnapshot}부`
-                : "부수 미정"}
-            </small>
-          </div>
-        ))}
-      </div>
+              <small>
+                {member.rankSnapshot > 0
+                  ? `${member.rankSnapshot}부`
+                  : "부수 미정"}
+              </small>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

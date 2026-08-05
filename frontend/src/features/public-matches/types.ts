@@ -8,8 +8,6 @@ export interface PublicTeamMember {
   participantId: string;
   displayName: string;
   rankSnapshot: number;
-  participantType: "member" | "guest";
-  position: number;
   isRequester: boolean;
 }
 

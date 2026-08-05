@@ -17,15 +17,16 @@ import {
   submitTeamGameResult,
 } from "./api";
 
-import type { MatchResultTargetType, PublicMatchResultContext } from "./types";
+import type { PublicMatchResultContext } from "./types";
 
 import styles from "./PublicMatchResultForm.module.css";
 
 interface PublicMatchResultFormProps {
-  targetType: MatchResultTargetType;
+  targetType: "team_game" | "individual_match";
   targetId: string;
   responseToken: string;
   onResultUpdated?: () => void | Promise<void>;
+  pollingEnabled?: boolean;
 }
 
 const RESULT_REFRESH_INTERVAL_MS = 5_000;
@@ -61,6 +62,7 @@ export default function PublicMatchResultForm({
   targetId,
   responseToken,
   onResultUpdated,
+  pollingEnabled = true,
 }: PublicMatchResultFormProps) {
   const [context, setContext] = useState<PublicMatchResultContext | null>(null);
 
@@ -148,6 +150,10 @@ export default function PublicMatchResultForm({
   }, [loadContext]);
 
   useEffect(() => {
+    if (!pollingEnabled) {
+      return;
+    }
+
     let cancelled = false;
     let isRequesting = false;
 
@@ -207,7 +213,7 @@ export default function PublicMatchResultForm({
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [applyContext, responseToken, targetId, targetType]);
+  }, [applyContext, pollingEnabled, responseToken, targetId, targetType]);
 
   const handleSubmit = async () => {
     if (!context) {
@@ -248,8 +254,7 @@ export default function PublicMatchResultForm({
         expectedVersion: context.ownSubmission?.version ?? 0,
         homeScore,
         awayScore,
-        participantIds:
-          targetType === "team_game" ? participantIds : undefined,
+        participantIds: targetType === "team_game" ? participantIds : undefined,
       };
 
       const result =
@@ -311,6 +316,19 @@ export default function PublicMatchResultForm({
   const canSubmit = context.status === "in_progress" && !isConfirmed;
   const ownSide = context.side === "home" ? context.home : context.away;
 
+  const hasValidPlayers =
+    targetType !== "team_game" ||
+    participantIds.length === context.requiredPlayerCount;
+
+  const hasValidScore =
+    (homeScore === context.requiredWins &&
+      awayScore < context.requiredWins) ||
+    (awayScore === context.requiredWins &&
+      homeScore < context.requiredWins);
+
+  const canSubmitResult =
+    canSubmit && hasValidPlayers && hasValidScore;
+
   return (
     <section className={styles.container}>
       <header className={styles.header}>
@@ -341,188 +359,128 @@ export default function PublicMatchResultForm({
           {context.side === "home" ? context.home.label : context.away.label}
         </strong>
       </div>
+      <div className={styles.resultEntryStack}>
+        {targetType === "team_game" && canSubmit && (
+          <fieldset className={styles.playerSelection}>
+            <legend>
+              실제 출전 선수 {participantIds.length}/
+              {context.requiredPlayerCount}
+            </legend>
 
-      {targetType === "team_game" && canSubmit && (
-        <fieldset className={styles.playerSelection}>
-          <legend>
-            실제 출전 선수 {participantIds.length}/
-            {context.requiredPlayerCount}
-          </legend>
+            <div className={styles.playerOptions}>
+              {(ownSide.members ?? []).map((member) => {
+                const selected = participantIds.includes(member.participantId);
 
-          <div className={styles.playerOptions}>
-            {(ownSide.members ?? []).map((member) => {
-              const selected = participantIds.includes(member.participantId);
+                return (
+                  <button
+                    key={member.participantId}
+                    type="button"
+                    className={
+                      selected
+                        ? styles.playerOptionSelected
+                        : styles.playerOption
+                    }
+                    disabled={isSaving || isLoading}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setParticipantIds((current) => {
+                        if (current.includes(member.participantId)) {
+                          return current.filter(
+                            (participantId) =>
+                              participantId !== member.participantId,
+                          );
+                        }
 
-              return (
-                <button
-                  key={member.participantId}
-                  type="button"
-                  className={
-                    selected
-                      ? styles.playerOptionSelected
-                      : styles.playerOption
-                  }
-                  disabled={isSaving || isLoading}
-                  aria-pressed={selected}
-                  onClick={() => {
-                    setParticipantIds((current) => {
-                      if (current.includes(member.participantId)) {
-                        return current.filter(
-                          (participantId) =>
-                            participantId !== member.participantId,
-                        );
-                      }
+                        if (current.length >= context.requiredPlayerCount) {
+                          return [...current.slice(1), member.participantId];
+                        }
 
-                      if (current.length >= context.requiredPlayerCount) {
-                        return [...current.slice(1), member.participantId];
-                      }
-
-                      return [...current, member.participantId];
-                    });
-                    setError("");
-                  }}
-                >
-                  {member.name}
-                </button>
-              );
-            })}
+                        return [...current, member.participantId];
+                      });
+                      setError("");
+                    }}
+                  >
+                    {member.name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
+        <div className={styles.scoreBoard}>
+          <div
+            className={`${styles.competitor} ${
+              context.side === "home" ? styles.competitorMine : ""
+            }`}
+          >
+            <span className={styles.sideBadge}>
+              {context.side === "home" ? "내 팀" : "상대"}
+            </span>
+            <strong>{context.home.label}</strong>
+            <small>{getPlayersLabel(context.home.players)}</small>
           </div>
-        </fieldset>
-      )}
 
-      <div className={styles.scoreBoard}>
-        <div
-          className={`${styles.competitor} ${
-            context.side === "home" ? styles.competitorMine : ""
-          }`}
-        >
-          <span className={styles.sideBadge}>
-            {context.side === "home" ? "내 팀" : "상대"}
-          </span>
-          <strong>{context.home.label}</strong>
-          <small>{getPlayersLabel(context.home.players)}</small>
-        </div>
-
-        <div className={styles.scoreInputs}>
-          {isConfirmed ? (
-            <>
-              <strong>{context.result?.homeScore}</strong>
-              <span className={styles.scoreSeparator}>:</span>
-              <strong>{context.result?.awayScore}</strong>
-            </>
-          ) : (
-            <>
-              <div className={styles.desktopScoreInputs}>
-                <select
-                  value={homeScore}
-                  disabled={!canSubmit || isSaving || isLoading}
-                  aria-label={`${context.home.label} 점수`}
-                  onChange={(event) => {
-                    setHomeScore(Number(event.currentTarget.value));
-                    setError("");
-                    setMessage("");
-                  }}
-                >
-                  {scoreOptions.map((score) => (
-                    <option key={score} value={score}>
-                      {score}
-                    </option>
-                  ))}
-                </select>
-
+          <div className={styles.scoreInputs}>
+            {isConfirmed ? (
+              <>
+                <strong>{context.result?.homeScore}</strong>
                 <span className={styles.scoreSeparator}>:</span>
-
-                <select
-                  value={awayScore}
-                  disabled={!canSubmit || isSaving || isLoading}
-                  aria-label={`${context.away.label} 점수`}
-                  onChange={(event) => {
-                    setAwayScore(Number(event.currentTarget.value));
-                    setError("");
-                    setMessage("");
-                  }}
-                >
-                  {scoreOptions.map((score) => (
-                    <option key={score} value={score}>
-                      {score}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.mobileScoreInputs}>
-                <fieldset className={styles.mobileScoreGroup}>
-                  <legend>{context.home.label}</legend>
-
-                  <div className={styles.mobileScoreOptions}>
+                <strong>{context.result?.awayScore}</strong>
+              </>
+            ) : (
+              <>
+                <div className={styles.scoreSelectorWrapper}>
+                  <select
+                    value={homeScore}
+                    disabled={!canSubmit || isSaving || isLoading}
+                    aria-label={`${context.home.label} 점수`}
+                    onChange={(event) => {
+                      setHomeScore(Number(event.currentTarget.value));
+                      setError("");
+                      setMessage("");
+                    }}
+                  >
                     {scoreOptions.map((score) => (
-                      <button
-                        key={score}
-                        type="button"
-                        className={
-                          homeScore === score
-                            ? styles.mobileScoreOptionActive
-                            : styles.mobileScoreOption
-                        }
-                        disabled={!canSubmit || isSaving || isLoading}
-                        aria-label={`${context.home.label} ${score}점`}
-                        aria-pressed={homeScore === score}
-                        onClick={() => {
-                          setHomeScore(score);
-                          setError("");
-                          setMessage("");
-                        }}
-                      >
+                      <option key={score} value={score}>
                         {score}
-                      </button>
+                      </option>
                     ))}
-                  </div>
-                </fieldset>
+                  </select>
 
-                <span className={styles.mobileVersus}>VS</span>
+                  <span className={styles.scoreSeparator}>:</span>
 
-                <fieldset className={styles.mobileScoreGroup}>
-                  <legend>{context.away.label}</legend>
-
-                  <div className={styles.mobileScoreOptions}>
+                  <select
+                    value={awayScore}
+                    disabled={!canSubmit || isSaving || isLoading}
+                    aria-label={`${context.away.label} 점수`}
+                    onChange={(event) => {
+                      setAwayScore(Number(event.currentTarget.value));
+                      setError("");
+                      setMessage("");
+                    }}
+                  >
                     {scoreOptions.map((score) => (
-                      <button
-                        key={score}
-                        type="button"
-                        className={
-                          awayScore === score
-                            ? styles.mobileScoreOptionActive
-                            : styles.mobileScoreOption
-                        }
-                        disabled={!canSubmit || isSaving || isLoading}
-                        aria-label={`${context.away.label} ${score}점`}
-                        aria-pressed={awayScore === score}
-                        onClick={() => {
-                          setAwayScore(score);
-                          setError("");
-                          setMessage("");
-                        }}
-                      >
+                      <option key={score} value={score}>
                         {score}
-                      </button>
+                      </option>
                     ))}
-                  </div>
-                </fieldset>
-              </div>
-            </>
-          )}
-        </div>
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
 
-        <div
-          className={`${styles.competitor} ${
-            context.side === "away" ? styles.competitorMine : ""
-          }`}
-        >
-          <span className={styles.sideBadge}>
-            {context.side === "away" ? "내 팀" : "상대"}
-          </span>
-          <strong>{context.away.label}</strong>
-          <small>{getPlayersLabel(context.away.players)}</small>
+          <div
+            className={`${styles.competitor} ${
+              context.side === "away" ? styles.competitorMine : ""
+            }`}
+          >
+            <span className={styles.sideBadge}>
+              {context.side === "away" ? "내 팀" : "상대"}
+            </span>
+            <strong>{context.away.label}</strong>
+            <small>{getPlayersLabel(context.away.players)}</small>
+          </div>
         </div>
       </div>
 
@@ -570,7 +528,7 @@ export default function PublicMatchResultForm({
         <button
           type="button"
           className={styles.submitButton}
-          disabled={isSaving || isLoading}
+          disabled={isSaving || isLoading || !canSubmitResult}
           onClick={() => {
             void handleSubmit();
           }}

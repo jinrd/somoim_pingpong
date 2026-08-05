@@ -120,11 +120,26 @@ export interface PublicIdentityInput {
   phone: string;
 }
 
+export interface PublicTeamMember {
+  participantId: string;
+  displayName: string;
+  rankSnapshot: number;
+  isRequester: boolean;
+}
+
+export interface PublicParticipantTeam {
+  id: string;
+  name: string;
+  sortOrder: number;
+  members: PublicTeamMember[];
+}
+
 export interface PublicIdentifiedParticipant {
   displayName: string;
   rank: number;
   gameParticipationStatus: GameParticipationStatus;
   hasResponded: boolean;
+  team: PublicParticipantTeam | null;
 }
 
 export interface PublicIdentityResult {

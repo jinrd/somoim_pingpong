@@ -33,6 +33,8 @@ export default function usePublicMatchPolling({
       }
     };
 
+    void refreshWhenVisible();
+
     const intervalId = window.setInterval(() => {
       void refreshWhenVisible();
     }, intervalMs);

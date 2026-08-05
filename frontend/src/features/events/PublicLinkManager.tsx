@@ -94,6 +94,28 @@ const getErrorMessage = (error: unknown): string => {
   return "참석 링크 요청을 처리하지 못했습니다.";
 };
 
+const copyTextToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, text.length);
+
+    const copied = document.execCommand("copy");
+
+    document.body.removeChild(textarea);
+    return copied;
+  }
+};
+
 export default function PublicLinkManager({
   eventRecord,
   onEventUpdated,
@@ -235,6 +257,8 @@ export default function PublicLinkManager({
       const publicLink =
         `${window.location.origin}` + `/join/events/${result.token}`;
 
+      const isCopied = await copyTextToClipboard(publicLink);
+
       const updatedEvent = await getEvent(eventRecord.id);
 
       setIssuedLink(publicLink);
@@ -247,9 +271,13 @@ export default function PublicLinkManager({
       setIssueFormOpen(false);
       setDisableConfirmOpen(false);
 
-      setMessage(
-        "새 링크가 발급됐습니다. 페이지를 벗어나기 전에 복사해 주세요.",
-      );
+      if (isCopied) {
+        setMessage("새 참석 링크를 발급하고 복사했습니다.");
+      } else {
+        setError(
+          "새 링크는 발급됐지만 자동 복사하지 못했습니다. 복사 버튼을 눌러 주세요.",
+        );
+      }
 
       onEventUpdated(updatedEvent);
     } catch (caughtError) {
@@ -265,7 +293,11 @@ export default function PublicLinkManager({
     }
 
     try {
-      await navigator.clipboard.writeText(issuedLink);
+      const isCopied = await copyTextToClipboard(issuedLink);
+
+      if (!isCopied) {
+        throw new Error("clipboard-copy-failed");
+      }
 
       setError("");
       setMessage("참석 링크를 복사했습니다.");

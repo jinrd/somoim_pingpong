@@ -535,6 +535,22 @@ export const identifyPublicParticipant = async (
 };
 
 /**
+ * 저장된 본인 확인 토큰으로 최신 참가 상태와 팀 정보를 다시 조회합니다.
+ */
+export const refreshPublicParticipantIdentity = async (
+  responseToken: string,
+): Promise<PublicIdentityResult> => {
+  return pb.send<PublicIdentityResult>(
+    "/api/somoim/public/participants/identity",
+    {
+      method: "POST",
+      requestKey: null,
+      body: { responseToken },
+    },
+  );
+};
+
+/**
  * 본인 확인을 마친 참가자가
  * 자신의 게임 참가 여부를 변경합니다.
  */

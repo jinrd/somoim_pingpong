@@ -3,32 +3,42 @@
 /*
  * 참가자용 자기 팀 라인업 조회
  *
- * POST /api/somoim/public/team-matches/:teamMatchId/lineup/context
+ * POST /api/somoim/public/team-matches/:teamMatchId/context
+
  *
  * 토큰이 URL이나 서버 접근 로그에 노출되지 않도록
  * GET query parameter가 아니라 POST body로 전달합니다.
  */
+const handlePublicTeamMatchContext = (context) => {
+  const teamMatchId = context.pathParam("teamMatchId");
+
+  const requestData = new DynamicModel({
+    responseToken: "",
+  });
+
+  context.bind(requestData);
+
+  const service = require(`${__hooks}/team_lineups_service.js`);
+
+  const result = service.buildTeamMatchContext(
+    teamMatchId,
+    requestData.responseToken,
+  );
+
+  return context.json(200, result);
+};
+
+routerAdd(
+  "POST",
+  "/api/somoim/public/team-matches/:teamMatchId/context",
+  handlePublicTeamMatchContext,
+);
+
+// 기존 공개 링크와의 호환성을 위해 유지
 routerAdd(
   "POST",
   "/api/somoim/public/team-matches/:teamMatchId/lineup/context",
-  (context) => {
-    const teamMatchId = context.pathParam("teamMatchId");
-
-    const requestData = new DynamicModel({
-      responseToken: "",
-    });
-
-    context.bind(requestData);
-
-    const service = require(`${__hooks}/team_lineups_service.js`);
-
-    const result = service.buildLineupContext(
-      teamMatchId,
-      requestData.responseToken,
-    );
-
-    return context.json(200, result);
-  },
+  handlePublicTeamMatchContext,
 );
 
 /*
