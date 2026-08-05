@@ -453,14 +453,16 @@
   }
 
   .competitor > small {
-    display: block;
+    display: -webkit-box;
     margin-top: 3px;
     overflow: hidden;
     color: #64748b;
     font-size: 0.66rem;
     line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .competitor > strong {
